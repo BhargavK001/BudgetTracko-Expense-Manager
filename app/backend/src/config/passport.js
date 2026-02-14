@@ -34,9 +34,15 @@ passport.use(
         },
         async (accessToken, refreshToken, profile, done) => {
             try {
+                const providerAvatar = profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null;
                 let user = await User.findOne({ googleId: profile.id });
 
                 if (user) {
+                    // Always update avatar from Google on each login
+                    if (providerAvatar) {
+                        user.avatar = providerAvatar;
+                        await user.save();
+                    }
                     return done(null, user);
                 }
 
@@ -45,8 +51,9 @@ passport.use(
                 user = await User.findOne({ email });
 
                 if (user) {
-                    // Link the accounts
+                    // Link the accounts and update avatar
                     user.googleId = profile.id;
+                    if (providerAvatar) user.avatar = providerAvatar;
                     await user.save();
                     return done(null, user);
                 }
@@ -55,7 +62,7 @@ passport.use(
                     googleId: profile.id,
                     displayName: profile.displayName,
                     email: email,
-                    avatar: profile.photos[0].value,
+                    avatar: providerAvatar,
                 });
 
                 done(null, user);
@@ -77,9 +84,15 @@ passport.use(
         },
         async (accessToken, refreshToken, profile, done) => {
             try {
+                const providerAvatar = profile.photos && profile.photos.length > 0 ? profile.photos[0].value : null;
                 let user = await User.findOne({ githubId: profile.id });
 
                 if (user) {
+                    // Always update avatar from GitHub on each login
+                    if (providerAvatar) {
+                        user.avatar = providerAvatar;
+                        await user.save();
+                    }
                     return done(null, user);
                 }
 
@@ -90,8 +103,9 @@ passport.use(
                     // Check if user exists with this email
                     user = await User.findOne({ email });
                     if (user) {
-                        // Link the accounts
+                        // Link the accounts and update avatar
                         user.githubId = profile.id;
+                        if (providerAvatar) user.avatar = providerAvatar;
                         await user.save();
                         return done(null, user);
                     }
@@ -101,7 +115,7 @@ passport.use(
                     githubId: profile.id,
                     displayName: profile.displayName || profile.username,
                     email: email, // Note: Without email scope, this might be null.
-                    avatar: profile.photos[0].value,
+                    avatar: providerAvatar,
                 });
 
                 done(null, user);

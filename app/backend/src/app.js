@@ -9,6 +9,9 @@ require('./config/passport'); // Passport config
 const authRoutes = require('./routes/auth');
 const accountRoutes = require('./routes/accounts');
 const transactionRoutes = require('./routes/transactions');
+const categoryRoutes = require('./routes/categories');
+const budgetRoutes = require('./routes/budgets');
+const userRoutes = require('./routes/user');
 
 // Initialize app
 const app = express();
@@ -24,14 +27,17 @@ app.use(passport.initialize()); // Initialize Passport
 // Rate limiting
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100 // limit each IP to 100 requests per windowMs
+    max: 500 // limit each IP to 500 requests per windowMs
 });
 app.use(limiter);
 
 // Routes
 app.use('/auth', authRoutes);
+app.use('/api/user', userRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/budgets', budgetRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

@@ -1,5 +1,5 @@
 import { createContext, useReducer, useEffect, useContext } from 'react';
-import { transactionApi, accountApi } from '../services/api';
+import { transactionApi, accountApi, categoryApi, budgetApi } from '../services/api';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 
@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 const initialState = {
     transactions: [],
     accounts: [],
+    categories: [],
+    budgets: [],
     loading: true,
     error: null,
 };
@@ -45,6 +47,34 @@ const AppReducer = (state, action) => {
             };
         case 'DELETE_ACCOUNT':
             return { ...state, accounts: state.accounts.filter(a => a._id !== action.payload) };
+        // ─── Categories ───
+        case 'GET_CATEGORIES':
+            return { ...state, categories: action.payload };
+        case 'ADD_CATEGORY':
+            return { ...state, categories: [...state.categories, action.payload] };
+        case 'UPDATE_CATEGORY':
+            return {
+                ...state,
+                categories: state.categories.map(c =>
+                    c._id === action.payload._id ? action.payload : c
+                ),
+            };
+        case 'DELETE_CATEGORY':
+            return { ...state, categories: state.categories.filter(c => c._id !== action.payload) };
+        // ─── Budgets ───
+        case 'GET_BUDGETS':
+            return { ...state, budgets: action.payload };
+        case 'ADD_BUDGET':
+            return { ...state, budgets: [...state.budgets, action.payload] };
+        case 'UPDATE_BUDGET':
+            return {
+                ...state,
+                budgets: state.budgets.map(b =>
+                    b._id === action.payload._id ? action.payload : b
+                ),
+            };
+        case 'DELETE_BUDGET':
+            return { ...state, budgets: state.budgets.filter(b => b._id !== action.payload) };
         case 'ERROR':
             return { ...state, error: action.payload, loading: false };
         default:
@@ -73,8 +103,8 @@ export const GlobalProvider = ({ children }) => {
         try {
             const res = await transactionApi.create(formData);
             dispatch({ type: 'ADD_TRANSACTION', payload: res.data.data });
-            // Refresh accounts to get updated balances
             getAccounts();
+            getBudgets(); // Refresh budget spending
             toast.success('Transaction added successfully');
             return res.data.data;
         } catch (err) {
@@ -88,7 +118,8 @@ export const GlobalProvider = ({ children }) => {
         try {
             await transactionApi.delete(id);
             dispatch({ type: 'DELETE_TRANSACTION', payload: id });
-            getAccounts(); // Refresh balances
+            getAccounts();
+            getBudgets();
             toast.success('Transaction deleted');
         } catch (err) {
             toast.error('Failed to delete transaction');
@@ -100,7 +131,8 @@ export const GlobalProvider = ({ children }) => {
         try {
             const res = await transactionApi.update(id, formData);
             dispatch({ type: 'UPDATE_TRANSACTION', payload: res.data.data });
-            getAccounts(); // Refresh balances
+            getAccounts();
+            getBudgets();
             toast.success('Transaction updated successfully');
             return res.data.data;
         } catch (err) {
@@ -115,7 +147,6 @@ export const GlobalProvider = ({ children }) => {
             const res = await accountApi.getAll();
             dispatch({ type: 'GET_ACCOUNTS', payload: res.data.data });
         } catch (err) {
-            // Silently fail for accounts — not critical on first load
             console.error('Failed to load accounts:', err);
         }
     }
@@ -162,14 +193,106 @@ export const GlobalProvider = ({ children }) => {
         }
     }
 
+    // ─── Category Actions ───
+    async function getCategories() {
+        try {
+            const res = await categoryApi.getAll();
+            dispatch({ type: 'GET_CATEGORIES', payload: res.data });
+        } catch (err) {
+            console.error('Failed to load categories:', err);
+        }
+    }
+
+    async function addCategory(data) {
+        try {
+            const res = await categoryApi.create(data);
+            dispatch({ type: 'ADD_CATEGORY', payload: res.data });
+            toast.success('Category created');
+            return res.data;
+        } catch (err) {
+            const msg = err.response?.data?.error || 'Failed to create category';
+            toast.error(msg);
+        }
+    }
+
+    async function updateCategory(id, data) {
+        try {
+            const res = await categoryApi.update(id, data);
+            dispatch({ type: 'UPDATE_CATEGORY', payload: res.data });
+            toast.success('Category updated');
+            return res.data;
+        } catch (err) {
+            const msg = err.response?.data?.error || 'Failed to update category';
+            toast.error(msg);
+        }
+    }
+
+    async function deleteCategory(id) {
+        try {
+            await categoryApi.delete(id);
+            dispatch({ type: 'DELETE_CATEGORY', payload: id });
+            toast.success('Category deleted');
+        } catch (err) {
+            toast.error('Failed to delete category');
+        }
+    }
+
+    // ─── Budget Actions ───
+    async function getBudgets() {
+        try {
+            const res = await budgetApi.getAll();
+            dispatch({ type: 'GET_BUDGETS', payload: res.data });
+        } catch (err) {
+            console.error('Failed to load budgets:', err);
+        }
+    }
+
+    async function addBudget(data) {
+        try {
+            const res = await budgetApi.create(data);
+            dispatch({ type: 'ADD_BUDGET', payload: res.data });
+            toast.success('Budget created');
+            return res.data;
+        } catch (err) {
+            const msg = err.response?.data?.error || 'Failed to create budget';
+            toast.error(msg);
+        }
+    }
+
+    async function updateBudget(id, data) {
+        try {
+            const res = await budgetApi.update(id, data);
+            dispatch({ type: 'UPDATE_BUDGET', payload: res.data });
+            toast.success('Budget updated');
+            return res.data;
+        } catch (err) {
+            const msg = err.response?.data?.error || 'Failed to update budget';
+            toast.error(msg);
+        }
+    }
+
+    async function deleteBudget(id) {
+        try {
+            await budgetApi.delete(id);
+            dispatch({ type: 'DELETE_BUDGET', payload: id });
+            toast.success('Budget deleted');
+        } catch (err) {
+            toast.error('Failed to delete budget');
+        }
+    }
+
     // Load data when token is available
     useEffect(() => {
         if (token) {
             getTransactions();
             getAccounts();
+            getCategories();
+            getBudgets();
         } else {
             dispatch({ type: 'GET_TRANSACTIONS', payload: [] });
             dispatch({ type: 'GET_ACCOUNTS', payload: [] });
+            dispatch({ type: 'GET_CATEGORIES', payload: [] });
+            dispatch({ type: 'GET_BUDGETS', payload: [] });
         }
     }, [token]);
 
@@ -178,6 +301,8 @@ export const GlobalProvider = ({ children }) => {
             value={{
                 transactions: state.transactions,
                 accounts: state.accounts,
+                categories: state.categories,
+                budgets: state.budgets,
                 error: state.error,
                 loading: state.loading,
                 getTransactions,
@@ -188,7 +313,15 @@ export const GlobalProvider = ({ children }) => {
                 addAccount,
                 updateAccount,
                 deleteAccount,
-                getAccountTransactions
+                getAccountTransactions,
+                getCategories,
+                addCategory,
+                updateCategory,
+                deleteCategory,
+                getBudgets,
+                addBudget,
+                updateBudget,
+                deleteBudget
             }}
         >
             {children}

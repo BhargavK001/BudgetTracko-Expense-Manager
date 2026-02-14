@@ -38,4 +38,31 @@ export const accountApi = {
     delete: (id) => api.delete(`/api/accounts/${id}`)
 };
 
+// ─── Categories ───
+export const categoryApi = {
+    getAll: () => api.get('/api/categories'),
+    create: (data) => api.post('/api/categories', data),
+    update: (id, data) => api.put(`/api/categories/${id}`, data),
+    delete: (id) => api.delete(`/api/categories/${id}`)
+};
+
+// ─── Budgets ───
+export const budgetApi = {
+    getAll: () => api.get('/api/budgets'),
+    create: (data) => api.post('/api/budgets', data),
+    update: (id, data) => api.put(`/api/budgets/${id}`, data),
+    delete: (id) => api.delete(`/api/budgets/${id}`)
+};
+
+// ─── User / Settings ───
+export const userApi = {
+    getProfile: () => api.get('/api/user/profile'),
+    updateProfile: (data) => api.put('/api/user/profile', data),
+    changePassword: (data) => api.put('/api/user/change-password', data),
+    updatePreferences: (data) => api.put('/api/user/preferences', data),
+    exportData: () => api.get('/api/user/export'),
+    clearAllData: () => api.delete('/api/user/data'),
+    deleteAccount: () => api.delete('/api/user/account')
+};
+
 export default api;

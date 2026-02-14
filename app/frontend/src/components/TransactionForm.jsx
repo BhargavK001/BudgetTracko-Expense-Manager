@@ -3,7 +3,7 @@ import { useGlobalContext } from '../context/GlobalContext';
 import { toast } from 'sonner';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BsX, BsPaperclip, BsClock, BsImage } from 'react-icons/bs';
+import { BsX, BsPaperclip, BsClock, BsImage, BsCashCoin, BsWallet2, BsArrowLeftRight } from 'react-icons/bs';
 
 const TransactionForm = ({ onClose, initialData }) => {
     const { register, handleSubmit, watch, formState: { errors }, reset, setValue } = useForm({
@@ -16,7 +16,7 @@ const TransactionForm = ({ onClose, initialData }) => {
         }
     });
 
-    const { addTransaction, updateTransaction, accounts } = useGlobalContext();
+    const { addTransaction, updateTransaction, accounts, categories: userCategories } = useGlobalContext();
     const type = watch('type');
     const fileInputRef = useRef(null);
 
@@ -46,10 +46,21 @@ const TransactionForm = ({ onClose, initialData }) => {
         }
     }, [initialData, reset]);
 
-    const categories = {
+    // Dynamic categories from API, with fallback defaults
+    const defaultCats = {
         income: ['Salary', 'Business', 'Investment', 'Gift', 'Other'],
         expense: ['Food', 'Transport', 'Bills', 'Shopping', 'Entertainment', 'Health', 'Education', 'Other'],
-        transfer: [] // No categories for transfers
+        transfer: []
+    };
+
+    const categories = {
+        income: userCategories.length > 0
+            ? [...new Set(userCategories.filter(c => c.type === 'income' || c.type === 'both').map(c => c.name))]
+            : defaultCats.income,
+        expense: userCategories.length > 0
+            ? [...new Set(userCategories.filter(c => c.type === 'expense' || c.type === 'both').map(c => c.name))]
+            : defaultCats.expense,
+        transfer: []
     };
 
     const paymentModes = ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Net Banking'];
@@ -154,21 +165,21 @@ const TransactionForm = ({ onClose, initialData }) => {
                     : 'border-gray-200 dark:border-gray-700 text-light-text-secondary dark:text-dark-text-secondary hover:border-gray-400'
                     }`}>
                     <input type="radio" value="income" {...register('type', { required: 'Type is required' })} className="hidden" />
-                    💰 Income
+                    <BsCashCoin className="inline mr-1" size={14} /> Income
                 </label>
                 <label className={`flex-1 cursor-pointer p-2.5 sm:p-3 text-center rounded-xl border-2 font-bold text-xs sm:text-sm transition-all ${type === 'expense'
                     ? 'bg-red-100 dark:bg-red-900/30 border-red-500 text-red-700 dark:text-red-400 neo-shadow-sm'
                     : 'border-gray-200 dark:border-gray-700 text-light-text-secondary dark:text-dark-text-secondary hover:border-gray-400'
                     }`}>
                     <input type="radio" value="expense" {...register('type', { required: 'Type is required' })} className="hidden" />
-                    💸 Expense
+                    <BsWallet2 className="inline mr-1" size={14} /> Expense
                 </label>
                 <label className={`flex-1 cursor-pointer p-2.5 sm:p-3 text-center rounded-xl border-2 font-bold text-xs sm:text-sm transition-all ${type === 'transfer'
                     ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-400 neo-shadow-sm'
                     : 'border-gray-200 dark:border-gray-700 text-light-text-secondary dark:text-dark-text-secondary hover:border-gray-400'
                     }`}>
                     <input type="radio" value="transfer" {...register('type', { required: 'Type is required' })} className="hidden" />
-                    🔄 Transfer
+                    <BsArrowLeftRight className="inline mr-1" size={14} /> Transfer
                 </label>
             </div>
 
