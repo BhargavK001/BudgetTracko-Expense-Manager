@@ -279,24 +279,24 @@ const Login = () => {
 
                                 {/* Social login buttons — shown first for quick access */}
                                 <motion.div variants={staggerItem} className="flex gap-3 mb-5 sm:mb-6">
-                                    <motion.button
-                                        type="button"
+                                    <motion.a
+                                        href={`${import.meta.env.VITE_API_URL}/auth/google`}
                                         whileHover={{ scale: 1.03, y: -2, boxShadow: '6px 6px 0px 0px rgba(0,0,0,1)' }}
                                         whileTap={{ scale: 0.97 }}
-                                        className="flex-1 flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-bold text-sm transition-all"
+                                        className="flex-1 flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] font-bold text-sm transition-all text-brand-black"
                                     >
                                         <FcGoogle className="w-5 h-5" aria-hidden />
                                         <span>Google</span>
-                                    </motion.button>
-                                    <motion.button
-                                        type="button"
+                                    </motion.a>
+                                    <motion.a
+                                        href={`${import.meta.env.VITE_API_URL}/auth/github`}
                                         whileHover={{ scale: 1.03, y: -2, boxShadow: '6px 6px 0px 0px rgba(255,215,0,1)' }}
                                         whileTap={{ scale: 0.97 }}
                                         className="flex-1 flex items-center justify-center gap-2 py-3 sm:py-3.5 bg-black text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(255,215,0,1)] font-bold text-sm transition-all"
                                     >
                                         <FaGithub className="w-5 h-5" aria-hidden />
                                         <span>GitHub</span>
-                                    </motion.button>
+                                    </motion.a>
                                 </motion.div>
 
                                 {/* Divider */}

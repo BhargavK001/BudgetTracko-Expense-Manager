@@ -87,12 +87,12 @@ const Privacy = () => {
             </motion.nav>
 
             {/* Hero */}
-            <div className="pt-24 sm:pt-32 pb-8 sm:pb-12 px-4 sm:px-6 text-center max-w-4xl mx-auto">
+            <div className="pt-20 sm:pt-32 pb-6 sm:pb-12 px-4 sm:px-6 text-center max-w-4xl mx-auto">
                 <motion.h1
                     variants={fadeUp}
                     initial="hidden"
                     animate="visible"
-                    className="text-4xl sm:text-5xl md:text-7xl font-black uppercase tracking-tighter mb-4 sm:mb-6"
+                    className="text-3xl sm:text-5xl md:text-7xl font-black uppercase tracking-tighter mb-3 sm:mb-6"
                 >
                     Privacy Policy
                 </motion.h1>
@@ -108,9 +108,9 @@ const Privacy = () => {
             </div>
 
             {/* Policy Content */}
-            <section className="pb-20 sm:pb-32 px-4 sm:px-6">
+            <section className="pb-16 sm:pb-32 px-4 sm:px-6">
                 <motion.div
-                    className="max-w-3xl mx-auto bg-white border-4 border-black p-6 sm:p-10 md:p-14 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]"
+                    className="max-w-3xl mx-auto bg-white border-3 sm:border-4 border-black p-5 sm:p-10 md:p-14 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]"
                     variants={staggerContainer}
                     initial="hidden"
                     animate="visible"

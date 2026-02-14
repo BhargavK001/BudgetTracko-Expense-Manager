@@ -1,4 +1,6 @@
 import { useGlobalContext } from '../context/GlobalContext';
+import { useAuth } from '../context/AuthContext';
+
 import { useTheme } from '../context/ThemeContext';
 import { Link } from 'react-router-dom';
 import { useMemo, useEffect, useState } from 'react';
@@ -62,6 +64,7 @@ const ChartTooltip = ({ active, payload, label, isDark }) => {
 
 /* ─── Main Dashboard ─── */
 const Dashboard = () => {
+    const { user } = useAuth();
     const { transactions, loading } = useGlobalContext();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
@@ -240,7 +243,7 @@ const Dashboard = () => {
                         </span>
                     </div>
                     <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight">
-                        {greeting}, <span className="text-brand-primary">Student</span> 👋
+                        {greeting}, <span className="text-brand-primary">{user?.displayName?.split(' ')[0] || 'Friend'}</span> 👋
                     </h2>
                     <p className="text-light-text-secondary dark:text-dark-text-secondary font-medium mt-1 text-xs sm:text-sm">
                         You've saved <span className="text-green-500 font-bold">{savingsRate}%</span> of your income this {dateRange}.

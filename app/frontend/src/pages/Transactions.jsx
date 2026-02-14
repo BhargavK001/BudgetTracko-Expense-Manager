@@ -11,7 +11,12 @@ import SEO from '../components/common/SEO';
 const CAT_ICON = {
     Food: '🍔', Transport: '🚌', Bills: '💡', Shopping: '🛍️',
     Entertainment: '🎬', Health: '🏥', Education: '📚', Salary: '💰',
-    Investment: '📈', Gift: '🎁', Other: '📦',
+    Investment: '📈', Gift: '🎁', Transfer: '🔄', Other: '📦',
+};
+
+const safeParse = (d) => {
+    if (!d) return new Date();
+    try { return typeof d === 'string' ? parseISO(d) : new Date(d); } catch { return new Date(d); }
 };
 
 /* ─── Animation variants ─── */
@@ -37,6 +42,7 @@ const Transactions = () => {
         return transactions.filter(t => {
             // Search
             const matchesSearch = t.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (t.note && t.note.toLowerCase().includes(searchTerm.toLowerCase())) ||
                 (t.notes && t.notes.toLowerCase().includes(searchTerm.toLowerCase()));
 
             // Category
@@ -44,10 +50,11 @@ const Transactions = () => {
 
             // Date
             let matchesDate = true;
+            const d = safeParse(t.date);
             if (filterDate === 'thisMonth') {
-                matchesDate = isSameMonth(parseISO(t.date), new Date());
+                matchesDate = isSameMonth(d, new Date());
             } else if (filterDate === 'lastMonth') {
-                matchesDate = isSameMonth(parseISO(t.date), subMonths(new Date(), 1));
+                matchesDate = isSameMonth(d, subMonths(new Date(), 1));
             }
 
             return matchesSearch && matchesCategory && matchesDate;
@@ -59,7 +66,7 @@ const Transactions = () => {
         const groups = {};
         filteredTransactions.forEach(t => {
             if (!t.date) return;
-            const d = parseISO(t.date);
+            const d = safeParse(t.date);
             let label;
             if (isToday(d)) label = 'Today';
             else if (isYesterday(d)) label = 'Yesterday';
@@ -76,7 +83,7 @@ const Transactions = () => {
         setShowForm(true);
     };
 
-    const categories = ['All', 'Food', 'Transport', 'Bills', 'Shopping', 'Entertainment', 'Health', 'Education', 'Salary', 'Investment', 'Other'];
+    const categories = ['All', 'Food', 'Transport', 'Bills', 'Shopping', 'Entertainment', 'Health', 'Education', 'Salary', 'Investment', 'Transfer', 'Other'];
 
     return (
         <div className="space-y-4 sm:space-y-6 pb-20">
@@ -177,7 +184,7 @@ const Transactions = () => {
                                 <AnimatePresence>
                                     {items.map(t => (
                                         <motion.div
-                                            key={t.id}
+                                            key={t._id || t.id}
                                             variants={listItem}
                                             initial="hidden" animate="visible" exit="exit" layout
                                             onClick={() => setSelectedTransaction(t)}
@@ -203,8 +210,8 @@ const Transactions = () => {
                                             </div>
 
                                             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-2">
-                                                <span className={`font-black text-xs sm:text-sm ${t.amount < 0 ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                                                    {t.amount > 0 ? '+' : ''}₹{Math.abs(t.amount).toLocaleString()}
+                                                <span className={`font-black text-xs sm:text-sm ${t.type === 'transfer' ? 'text-blue-500 dark:text-blue-400' : t.amount < 0 ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                                                    {t.type === 'transfer' ? '' : t.amount > 0 ? '+' : ''}₹{Math.abs(t.amount).toLocaleString()}
                                                 </span>
                                             </div>
                                         </motion.div>

@@ -245,7 +245,7 @@ const LandingPage = () => {
             <motion.header
                 ref={heroRef}
                 style={{ y: heroY, scale: heroScale }}
-                className="pt-32 pb-20 px-6 flex flex-col justify-center items-center text-center max-w-7xl mx-auto w-full relative"
+                className="pt-24 sm:pt-32 pb-12 sm:pb-20 px-4 sm:px-6 flex flex-col justify-center items-center text-center max-w-7xl mx-auto w-full relative"
             >
                 {/* Floating money-themed decorative elements */}
                 <FloatingMoney
@@ -295,7 +295,7 @@ const LandingPage = () => {
 
                 {/* Hero Heading — staggered word reveal */}
                 <motion.h1
-                    className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-black mb-4 sm:mb-8 leading-[0.9] tracking-tighter text-brand-black"
+                    className="text-3xl xs:text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-black mb-4 sm:mb-8 leading-[0.9] tracking-tighter text-brand-black"
                     variants={staggerContainer}
                     initial="hidden"
                     animate="visible"
@@ -312,7 +312,7 @@ const LandingPage = () => {
                     initial="hidden"
                     animate="visible"
                     custom={0.6}
-                    className="text-base sm:text-xl md:text-2xl font-medium max-w-2xl mb-8 sm:mb-12 leading-relaxed text-brand-black px-2"
+                    className="text-sm sm:text-xl md:text-2xl font-medium max-w-2xl mb-6 sm:mb-12 leading-relaxed text-brand-black px-2 sm:px-4"
                 >
                     Stop guessing where your money goes. Track, analyze, and optimize your spending with the world's simplest expense manager.
                 </motion.p>
@@ -325,12 +325,12 @@ const LandingPage = () => {
                     animate="visible"
                 >
                     <motion.div variants={staggerItem} custom={0.8}>
-                        <Link to="/login" className="inline-block w-full sm:w-auto text-center bg-black text-white text-lg sm:text-xl font-bold px-8 sm:px-12 py-4 sm:py-5 rounded-none shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] sm:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] hover:shadow-[12px_12px_0px_0px_rgba(255,255,255,1)] hover:-translate-y-1 transition-all border-2 border-black animate-pulse-glow">
+                        <Link to="/login" className="inline-block w-full sm:w-auto text-center bg-black text-white text-base sm:text-xl font-bold px-6 sm:px-12 py-3.5 sm:py-5 rounded-none shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] sm:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] hover:shadow-[12px_12px_0px_0px_rgba(255,255,255,1)] hover:-translate-y-1 transition-all border-2 border-black animate-pulse-glow">
                             Start Tracking Free
                         </Link>
                     </motion.div>
                     <motion.div variants={staggerItem} custom={1.0}>
-                        <a href="#demo" className="inline-block w-full sm:w-auto text-center bg-white text-black text-lg sm:text-xl font-bold px-8 sm:px-12 py-4 sm:py-5 rounded-none shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all border-2 border-black box-border">
+                        <a href="#demo" className="inline-block w-full sm:w-auto text-center bg-white text-black text-base sm:text-xl font-bold px-6 sm:px-12 py-3.5 sm:py-5 rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all border-2 border-black box-border">
                             View Demo
                         </a>
                     </motion.div>
@@ -342,19 +342,19 @@ const LandingPage = () => {
                     initial="hidden"
                     animate="visible"
                     custom={0.8}
-                    className="mt-12 sm:mt-20 w-full max-w-5xl relative group"
+                    className="mt-8 sm:mt-20 w-full max-w-5xl relative group"
                 >
                     <div className="absolute inset-0 bg-black rounded-3xl transform translate-x-4 translate-y-4 group-hover:translate-x-6 group-hover:translate-y-6 transition-transform"></div>
                     <div className="relative bg-white border-4 border-black rounded-3xl overflow-hidden shadow-2xl">
                         {/* Mock Browser Header */}
-                        <div className="bg-gray-100 border-b-4 border-black p-4 flex gap-2 items-center">
-                            <div className="w-4 h-4 rounded-full bg-red-500"></div>
-                            <div className="w-4 h-4 rounded-full bg-amber-400 border-2 border-black"></div>
-                            <div className="w-4 h-4 rounded-full bg-green-500 border-2 border-black"></div>
-                            <span className="ml-4 text-xs font-bold text-gray-500 uppercase tracking-wider">dashboard — BudgetTracko</span>
+                        <div className="bg-gray-100 border-b-2 sm:border-b-4 border-black p-2.5 sm:p-4 flex gap-1.5 sm:gap-2 items-center">
+                            <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-red-500"></div>
+                            <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-amber-400 border-2 border-black"></div>
+                            <div className="w-3 h-3 sm:w-4 sm:h-4 rounded-full bg-green-500 border-2 border-black"></div>
+                            <span className="ml-2 sm:ml-4 text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider hidden sm:inline">dashboard — BudgetTracko</span>
                         </div>
                         {/* Mock UI Content */}
-                        <div className="p-4 sm:p-6 md:p-10 bg-gray-50 grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6">
+                        <div className="p-3 sm:p-6 md:p-10 bg-gray-50 grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-6">
                             {/* Sidebar Mock */}
                             <div className="hidden md:flex col-span-3 flex-col gap-3">
                                 <div className="h-9 bg-black text-white rounded-lg flex items-center px-3 text-sm font-bold">Dashboard</div>
@@ -365,29 +365,29 @@ const LandingPage = () => {
                             {/* Main Content Mock */}
                             <div className="col-span-12 md:col-span-9 space-y-5">
                                 <div className="flex justify-between items-center flex-wrap gap-2">
-                                    <h3 className="text-lg font-black text-black uppercase tracking-tight">February 2025</h3>
-                                    <div className="h-9 px-4 bg-brand-yellow border-2 border-black rounded-lg flex items-center text-sm font-black text-black">+ Add transaction</div>
+                                    <h3 className="text-sm sm:text-lg font-black text-black uppercase tracking-tight">February 2025</h3>
+                                    <div className="h-7 sm:h-9 px-2.5 sm:px-4 bg-brand-yellow border-2 border-black rounded-lg flex items-center text-xs sm:text-sm font-black text-black">+ Add</div>
                                 </div>
                                 {/* Summary cards */}
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    <div className="bg-white border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.15)]">
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Balance</p>
-                                        <p className="text-lg sm:text-xl font-black text-black">₹ 42,850</p>
+                                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                                    <div className="bg-white border-2 border-black rounded-lg sm:rounded-xl p-2 sm:p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.15)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,0.15)]">
+                                        <p className="text-[9px] sm:text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5 sm:mb-1">Balance</p>
+                                        <p className="text-xs sm:text-xl font-black text-black">₹42,850</p>
                                     </div>
-                                    <div className="bg-green-50 border-2 border-green-600 rounded-xl p-4 shadow-[4px_4px_0px_0px_rgba(22,163,74,0.4)]">
-                                        <p className="text-xs font-bold text-green-700 uppercase tracking-wider mb-1">Income</p>
-                                        <p className="text-lg sm:text-xl font-black text-green-700">₹ 65,000</p>
+                                    <div className="bg-green-50 border-2 border-green-600 rounded-lg sm:rounded-xl p-2 sm:p-4 shadow-[2px_2px_0px_0px_rgba(22,163,74,0.4)] sm:shadow-[4px_4px_0px_0px_rgba(22,163,74,0.4)]">
+                                        <p className="text-[9px] sm:text-xs font-bold text-green-700 uppercase tracking-wider mb-0.5 sm:mb-1">Income</p>
+                                        <p className="text-xs sm:text-xl font-black text-green-700">₹65,000</p>
                                     </div>
-                                    <div className="bg-red-50 border-2 border-red-600 rounded-xl p-4 shadow-[4px_4px_0px_0px_rgba(220,38,38,0.4)]">
-                                        <p className="text-xs font-bold text-red-700 uppercase tracking-wider mb-1">Expenses</p>
-                                        <p className="text-lg sm:text-xl font-black text-red-700">₹ 22,150</p>
+                                    <div className="bg-red-50 border-2 border-red-600 rounded-lg sm:rounded-xl p-2 sm:p-4 shadow-[2px_2px_0px_0px_rgba(220,38,38,0.4)] sm:shadow-[4px_4px_0px_0px_rgba(220,38,38,0.4)]">
+                                        <p className="text-[9px] sm:text-xs font-bold text-red-700 uppercase tracking-wider mb-0.5 sm:mb-1">Expenses</p>
+                                        <p className="text-xs sm:text-xl font-black text-red-700">₹22,150</p>
                                     </div>
                                 </div>
                                 {/* Chart block */}
-                                <div className="bg-white border-2 border-black rounded-xl p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] min-h-[220px]">
-                                    <p className="text-sm font-black text-black uppercase tracking-tight mb-3">Spending this month</p>
+                                <div className="bg-white border-2 border-black rounded-lg sm:rounded-xl p-3 sm:p-5 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)] min-h-[160px] sm:min-h-[220px]">
+                                    <p className="text-xs sm:text-sm font-black text-black uppercase tracking-tight mb-2 sm:mb-3">Spending this month</p>
                                     {/* Trend line chart - SVG */}
-                                    <div className="h-20 w-full mb-4 relative">
+                                    <div className="h-14 sm:h-20 w-full mb-3 sm:mb-4 relative">
                                         <svg viewBox="0 0 280 80" className="w-full h-full" preserveAspectRatio="none">
                                             <defs>
                                                 <linearGradient id="trendGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -429,8 +429,8 @@ const LandingPage = () => {
             </motion.header>
 
             {/* ─── Marquee Section ─── */}
-            <div className="bg-black text-brand-yellow py-4 sm:py-6 overflow-hidden border-y-4 border-white transform rotate-1 scale-105">
-                <div className="whitespace-nowrap animate-marquee font-black text-lg sm:text-2xl tracking-widest uppercase flex">
+            <div className="bg-black text-brand-yellow py-3 sm:py-6 overflow-hidden border-y-2 sm:border-y-4 border-white transform rotate-1 scale-105">
+                <div className="whitespace-nowrap animate-marquee font-black text-sm sm:text-2xl tracking-widest uppercase flex">
                     <span className="flex-shrink-0">
                         SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM • SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM • SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM •&nbsp;
                     </span>
@@ -441,32 +441,32 @@ const LandingPage = () => {
             </div>
 
             {/* ─── Security Trust Bar ─── */}
-            <div className="bg-black text-white py-3 sm:py-4 border-b-4 border-white overflow-hidden">
-                <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center gap-6 sm:gap-12 text-xs sm:text-sm font-bold uppercase tracking-widest text-center">
-                    <span className="flex items-center gap-2">
-                        <BsShieldCheck size={18} className="text-brand-yellow" />
+            <div className="bg-black text-white py-2.5 sm:py-4 border-b-2 sm:border-b-4 border-white overflow-hidden">
+                <div className="max-w-7xl mx-auto px-3 sm:px-4 flex flex-wrap justify-center gap-3 sm:gap-12 text-[10px] sm:text-sm font-bold uppercase tracking-wider sm:tracking-widest text-center">
+                    <span className="flex items-center gap-1.5 sm:gap-2">
+                        <BsShieldCheck size={14} className="text-brand-yellow sm:text-[18px]" />
                         Bank-Grade Encryption
                     </span>
-                    <span className="flex items-center gap-2">
-                        <BsShieldLockFill size={18} className="text-brand-yellow" />
+                    <span className="flex items-center gap-1.5 sm:gap-2">
+                        <BsShieldLockFill size={14} className="text-brand-yellow sm:text-[18px]" />
                         100% Private Data
                     </span>
-                    <span className="flex items-center gap-2">
-                        <BsCloudArrowUpFill size={18} className="text-brand-yellow" />
+                    <span className="flex items-center gap-1.5 sm:gap-2">
+                        <BsCloudArrowUpFill size={14} className="text-brand-yellow sm:text-[18px]" />
                         Automatic Backups
                     </span>
                 </div>
             </div>
 
             {/* ─── How it Works Section ─── */}
-            <section id="how-it-works" className="py-16 sm:py-24 px-4 sm:px-6 bg-white border-b-4 border-black text-black overflow-hidden">
+            <section id="how-it-works" className="py-12 sm:py-24 px-4 sm:px-6 bg-white border-b-4 border-black text-black overflow-hidden">
                 <div className="max-w-7xl mx-auto">
                     <motion.h2
                         variants={fadeUp}
                         initial="hidden"
                         whileInView="visible"
                         viewport={{ once: true, amount: 0.3 }}
-                        className="text-3xl sm:text-4xl md:text-6xl font-black mb-4 text-center uppercase tracking-tighter text-black"
+                        className="text-2xl sm:text-4xl md:text-6xl font-black mb-3 sm:mb-4 text-center uppercase tracking-tighter text-black"
                     >
                         How it works
                     </motion.h2>
@@ -476,12 +476,12 @@ const LandingPage = () => {
                         whileInView="visible"
                         viewport={{ once: true, amount: 0.3 }}
                         custom={0.2}
-                        className="text-lg sm:text-xl md:text-2xl font-bold text-center text-gray-700 mb-12 sm:mb-20 max-w-2xl mx-auto"
+                        className="text-sm sm:text-xl md:text-2xl font-bold text-center text-gray-700 mb-8 sm:mb-20 max-w-2xl mx-auto"
                     >
                         Get started in three easy steps — no setup, no hassle.
                     </motion.p>
                     <motion.div
-                        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-12"
+                        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 sm:gap-12"
                         variants={staggerContainer}
                         initial="hidden"
                         whileInView="visible"
@@ -611,20 +611,20 @@ const LandingPage = () => {
             </section>
 
             {/* ─── Comparison Section ─── */}
-            <section className="py-16 sm:py-24 px-4 sm:px-6 bg-gray-50 border-b-4 border-black text-black">
+            <section className="py-12 sm:py-24 px-4 sm:px-6 bg-gray-50 border-b-4 border-black text-black">
                 <div className="max-w-4xl mx-auto">
-                    <div className="text-center mb-12">
-                        <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter mb-4">Why Switch?</h2>
-                        <p className="text-lg font-bold text-gray-600">See how BudgetTracko stacks up against the old ways.</p>
+                    <div className="text-center mb-8 sm:mb-12">
+                        <h2 className="text-2xl sm:text-5xl font-black uppercase tracking-tighter mb-3 sm:mb-4">Why Switch?</h2>
+                        <p className="text-sm sm:text-lg font-bold text-gray-600">See how BudgetTracko stacks up against the old ways.</p>
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <div className="bg-white border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] min-w-[600px]">
-                            <div className="grid grid-cols-3 border-b-4 border-black bg-gray-100">
-                                <div className="p-4 sm:p-6 font-black uppercase text-sm sm:text-base text-gray-500 flex items-center">Feature</div>
-                                <div className="p-4 sm:p-6 font-black uppercase text-sm sm:text-base text-gray-400 border-l-4 border-black">Excel / Notebook</div>
-                                <div className="p-4 sm:p-6 font-black uppercase text-sm sm:text-xl text-brand-black bg-brand-yellow border-l-4 border-black flex items-center gap-2">
-                                    BudgetTracko <span className="text-[10px] bg-black text-white px-2 py-0.5 rounded-full">PRO</span>
+                    <div className="overflow-x-auto -mx-4 px-4 pb-2">
+                        <div className="bg-white border-3 sm:border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] min-w-[480px] sm:min-w-[600px]">
+                            <div className="grid grid-cols-3 border-b-3 sm:border-b-4 border-black bg-gray-100">
+                                <div className="p-3 sm:p-6 font-black uppercase text-xs sm:text-base text-gray-500 flex items-center">Feature</div>
+                                <div className="p-3 sm:p-6 font-black uppercase text-xs sm:text-base text-gray-400 border-l-3 sm:border-l-4 border-black">Excel / Notebook</div>
+                                <div className="p-3 sm:p-6 font-black uppercase text-xs sm:text-xl text-brand-black bg-brand-yellow border-l-3 sm:border-l-4 border-black flex items-center gap-1 sm:gap-2">
+                                    BudgetTracko <span className="text-[8px] sm:text-[10px] bg-black text-white px-1.5 sm:px-2 py-0.5 rounded-full">PRO</span>
                                 </div>
                             </div>
                             {[
@@ -636,12 +636,12 @@ const LandingPage = () => {
                                 { feat: 'Fun to use', old: false, new: true },
                             ].map((row, i) => (
                                 <div key={i} className={`grid grid-cols-3 ${i !== 5 ? 'border-b-2 border-gray-200' : ''}`}>
-                                    <div className="p-4 sm:p-5 font-bold text-sm sm:text-base text-gray-700 flex items-center">{row.feat}</div>
-                                    <div className="p-4 sm:p-5 border-l-4 border-black flex items-center justify-center bg-gray-50 text-gray-400">
-                                        <BsXCircleFill size={24} />
+                                    <div className="p-3 sm:p-5 font-bold text-xs sm:text-base text-gray-700 flex items-center">{row.feat}</div>
+                                    <div className="p-3 sm:p-5 border-l-3 sm:border-l-4 border-black flex items-center justify-center bg-gray-50 text-gray-400">
+                                        <BsXCircleFill size={18} className="sm:text-[24px]" />
                                     </div>
-                                    <div className="p-4 sm:p-5 border-l-4 border-black flex items-center justify-center bg-yellow-50/50 text-green-600">
-                                        <BsCheckCircleFill size={28} />
+                                    <div className="p-3 sm:p-5 border-l-3 sm:border-l-4 border-black flex items-center justify-center bg-yellow-50/50 text-green-600">
+                                        <BsCheckCircleFill size={20} className="sm:text-[28px]" />
                                     </div>
                                 </div>
                             ))}
@@ -651,19 +651,19 @@ const LandingPage = () => {
             </section>
 
             {/* ─── Mobile App Teaser (Android) ─── */}
-            <section className="py-16 sm:py-24 px-4 sm:px-6 bg-black text-white relative overflow-hidden border-b-4 border-black">
+            <section className="py-12 sm:py-24 px-4 sm:px-6 bg-black text-white relative overflow-hidden border-b-4 border-black">
                 {/* Background pattern */}
                 <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
 
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 sm:gap-20 relative z-10">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-8 sm:gap-20 relative z-10">
                     <div className="w-full md:w-1/2 text-center md:text-left">
                         <div className="inline-flex items-center gap-2 bg-brand-yellow text-black font-black px-4 py-1 rounded-full text-xs uppercase tracking-widest mb-6 border-2 border-white">
                             <BsAndroid size={16} /> Android Exclusive
                         </div>
-                        <h2 className="text-4xl sm:text-6xl font-black mb-6 uppercase tracking-tighter leading-none">
+                        <h2 className="text-3xl sm:text-6xl font-black mb-4 sm:mb-6 uppercase tracking-tighter leading-none">
                             Pocket-Sized<br />Powerhouse.
                         </h2>
-                        <p className="text-lg sm:text-xl text-gray-400 mb-8 font-medium max-w-md mx-auto md:mx-0">
+                        <p className="text-base sm:text-xl text-gray-400 mb-6 sm:mb-8 font-medium max-w-md mx-auto md:mx-0">
                             Track expenses on the go with our native Android app. Offline mode, fingerprint lock, and instant sync.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
@@ -680,26 +680,26 @@ const LandingPage = () => {
                         </div>
                     </div>
                     <div className="w-full md:w-1/2 flex justify-center">
-                        <div className="relative w-72 h-[580px] bg-black border-8 border-gray-800 rounded-[3rem] shadow-[0_0_50px_rgba(255,215,0,0.2)]">
+                        <div className="relative w-56 h-[460px] sm:w-72 sm:h-[580px] bg-black border-[6px] sm:border-8 border-gray-800 rounded-[2.5rem] sm:rounded-[3rem] shadow-[0_0_50px_rgba(255,215,0,0.2)]">
                             {/* Screen */}
-                            <div className="absolute inset-2 bg-brand-yellow rounded-[2.5rem] overflow-hidden flex flex-col border-4 border-black">
+                            <div className="absolute inset-1.5 sm:inset-2 bg-brand-yellow rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden flex flex-col border-3 sm:border-4 border-black">
                                 <div className="bg-black/10 h-6 w-full flex justify-center items-center">
                                     <div className="w-20 h-4 bg-black rounded-b-xl"></div>
                                 </div>
-                                <div className="flex-1 p-6 flex flex-col items-center justify-center text-black">
-                                    <div className="w-16 h-16 bg-black rounded-2xl mb-4 flex items-center justify-center">
-                                        <span className="text-brand-yellow font-black text-2xl">BT</span>
+                                <div className="flex-1 p-4 sm:p-6 flex flex-col items-center justify-center text-black">
+                                    <div className="w-12 h-12 sm:w-16 sm:h-16 bg-black rounded-xl sm:rounded-2xl mb-3 sm:mb-4 flex items-center justify-center">
+                                        <span className="text-brand-yellow font-black text-lg sm:text-2xl">BT</span>
                                     </div>
-                                    <h3 className="font-black text-2xl uppercase text-center mb-2">Budget<br />Tracko</h3>
-                                    <p className="text-xs font-bold text-center mb-8 opacity-70">Mobile Edition</p>
-                                    <div className="w-full space-y-3">
-                                        <div className="h-12 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center px-3">
-                                            <span className="text-gray-400 text-xs font-bold">Email</span>
+                                    <h3 className="font-black text-xl sm:text-2xl uppercase text-center mb-1 sm:mb-2">Budget<br />Tracko</h3>
+                                    <p className="text-[10px] sm:text-xs font-bold text-center mb-4 sm:mb-8 opacity-70">Mobile Edition</p>
+                                    <div className="w-full space-y-2 sm:space-y-3">
+                                        <div className="h-10 sm:h-12 bg-white border-2 border-black rounded-lg sm:rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center px-3">
+                                            <span className="text-gray-400 text-[10px] sm:text-xs font-bold">Email</span>
                                         </div>
-                                        <div className="h-12 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center px-3">
-                                            <span className="text-gray-400 text-xs font-bold">Password</span>
+                                        <div className="h-10 sm:h-12 bg-white border-2 border-black rounded-lg sm:rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center px-3">
+                                            <span className="text-gray-400 text-[10px] sm:text-xs font-bold">Password</span>
                                         </div>
-                                        <div className="h-12 bg-black text-white flex items-center justify-center font-bold border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">Login</div>
+                                        <div className="h-10 sm:h-12 bg-black text-white flex items-center justify-center font-bold text-sm sm:text-base border-2 border-black rounded-lg sm:rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">Login</div>
                                     </div>
                                 </div>
                             </div>
@@ -709,13 +709,13 @@ const LandingPage = () => {
             </section>
 
             {/* ─── Testimonials ─── */}
-            <section className="py-16 sm:py-24 px-4 sm:px-6 bg-white border-b-4 border-black">
+            <section className="py-12 sm:py-24 px-4 sm:px-6 bg-white border-b-4 border-black">
                 <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-16">
-                        <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter mb-4 text-black">Student Love</h2>
-                        <p className="text-lg font-bold text-gray-600">Join 10,000+ students taking control of their finances.</p>
+                    <div className="text-center mb-8 sm:mb-16">
+                        <h2 className="text-2xl sm:text-5xl font-black uppercase tracking-tighter mb-3 sm:mb-4 text-black">Student Love</h2>
+                        <p className="text-sm sm:text-lg font-bold text-gray-600">Join 10,000+ students taking control of their finances.</p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
                         {[
                             { name: 'Priya S.', college: 'MIT Pune', quote: "I used to be broke by the 20th of every month. BudgetTracko helped me find where my money was leaking in canteen bills! 🍔" },
                             { name: 'Rohit M.', college: 'VIT Vellore', quote: "Simple, fast, and no ads. Perfect for splitting hostel expenses and tracking lending to friends. Highly recommend! 💯" }
@@ -743,23 +743,23 @@ const LandingPage = () => {
             </section>
 
             {/* ─── FAQ Section ─── */}
-            <section className="py-16 sm:py-24 px-4 sm:px-6 bg-gray-50 border-b-4 border-black">
+            <section className="py-12 sm:py-24 px-4 sm:px-6 bg-gray-50 border-b-4 border-black">
                 <div className="max-w-3xl mx-auto">
-                    <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter mb-10 text-center text-black">FAQ</h2>
-                    <div className="space-y-4">
+                    <h2 className="text-2xl sm:text-5xl font-black uppercase tracking-tighter mb-6 sm:mb-10 text-center text-black">FAQ</h2>
+                    <div className="space-y-3 sm:space-y-4">
                         {[
                             { q: "Is BudgetTracko really free?", a: "Yes! Our core features are 100% free for students forever. No hidden charges." },
                             { q: "Is my data safe?", a: "Absolutely. We use bank-grade encryption and never sell your data to advertisers. Your financial privacy is our priority." },
                             { q: "Can I use it offline?", a: "Yes, the Android app works perfectly offline. Data syncs automatically when you're back online." },
                         ].map((item, i) => (
-                            <details key={i} className="group bg-white border-3 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] open:bg-brand-yellow/10 transition-all">
-                                <summary className="flex justify-between items-center p-6 font-black text-lg cursor-pointer list-none">
+                            <details key={i} className="group bg-white border-2 sm:border-3 border-black rounded-lg shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] open:bg-brand-yellow/10 transition-all">
+                                <summary className="flex justify-between items-center p-4 sm:p-6 font-black text-sm sm:text-lg cursor-pointer list-none">
                                     <span className="uppercase text-black">{item.q}</span>
                                     <span className="transition-transform group-open:rotate-180">
                                         <BsChevronDown size={20} />
                                     </span>
                                 </summary>
-                                <div className="px-6 pb-6 pt-0 font-medium text-gray-700 leading-relaxed">
+                                <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-0 font-medium text-sm sm:text-base text-gray-700 leading-relaxed">
                                     {item.a}
                                 </div>
                             </details>
@@ -769,15 +769,15 @@ const LandingPage = () => {
             </section>
 
             {/* ─── Features Grid ─── */}
-            <section id="features" className="py-16 sm:py-24 px-4 sm:px-6 bg-brand-yellow text-brand-black overflow-hidden">
+            <section id="features" className="py-12 sm:py-24 px-4 sm:px-6 bg-brand-yellow text-brand-black overflow-hidden">
                 <div className="max-w-7xl mx-auto">
-                    <div className="flex flex-col md:flex-row gap-6 sm:gap-12 items-start md:items-end mb-10 sm:mb-16">
+                    <div className="flex flex-col md:flex-row gap-4 sm:gap-12 items-start md:items-end mb-8 sm:mb-16">
                         <motion.h2
                             variants={slideFromLeft}
                             initial="hidden"
                             whileInView="visible"
                             viewport={{ once: true, amount: 0.3 }}
-                            className="text-4xl sm:text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none flex-1 text-brand-black"
+                            className="text-3xl sm:text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none flex-1 text-brand-black"
                         >
                             Everything<br />You Need.
                         </motion.h2>
@@ -786,7 +786,7 @@ const LandingPage = () => {
                             initial="hidden"
                             whileInView="visible"
                             viewport={{ once: true, amount: 0.3 }}
-                            className="text-lg sm:text-xl font-bold max-w-md leading-relaxed text-brand-black"
+                            className="text-sm sm:text-xl font-bold max-w-md leading-relaxed text-brand-black"
                         >
                             We stripped away the clutter to focus on what truly matters: your financial health.
                         </motion.p>
@@ -827,7 +827,7 @@ const LandingPage = () => {
                             variants={staggerItem}
                             className="bg-brand-black text-white border-3 sm:border-4 border-black p-6 sm:p-10 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.5)] sm:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.5)]"
                         >
-                            <h3 className="text-2xl sm:text-3xl font-black mb-4 uppercase text-brand-yellow">More Features...</h3>
+                            <h3 className="text-xl sm:text-3xl font-black mb-3 sm:mb-4 uppercase text-brand-yellow">More Features...</h3>
                             <motion.ul
                                 className="space-y-3 font-bold text-base sm:text-lg"
                                 variants={staggerContainer}
@@ -856,14 +856,14 @@ const LandingPage = () => {
             </section>
 
             {/* ─── Budget Widget ─── */}
-            <section className="py-16 sm:py-20 px-4 sm:px-6 bg-white border-b-4 border-black">
+            <section className="py-12 sm:py-20 px-4 sm:px-6 bg-white border-b-4 border-black">
                 <div className="max-w-2xl mx-auto text-center">
-                    <h3 className="text-2xl font-black uppercase mb-6">Savings Calculator</h3>
-                    <div className="bg-gray-100 p-8 rounded-2xl border-2 border-dashed border-gray-400">
-                        <p className="text-gray-500 font-bold uppercase text-xs tracking-widest mb-4">If you save just</p>
+                    <h3 className="text-xl sm:text-2xl font-black uppercase mb-4 sm:mb-6">Savings Calculator</h3>
+                    <div className="bg-gray-100 p-4 sm:p-8 rounded-xl sm:rounded-2xl border-2 border-dashed border-gray-400">
+                        <p className="text-gray-500 font-bold uppercase text-[10px] sm:text-xs tracking-widest mb-3 sm:mb-4">If you save just</p>
 
-                        <div className="relative mb-8">
-                            <div className="text-5xl sm:text-7xl font-black text-black mb-4">
+                        <div className="relative mb-6 sm:mb-8">
+                            <div className="text-4xl sm:text-7xl font-black text-black mb-3 sm:mb-4">
                                 ₹ <span className="tabular-nums">{savingsAmount}</span>
                             </div>
                             <input
@@ -877,15 +877,15 @@ const LandingPage = () => {
                             />
                         </div>
 
-                        <p className="text-gray-500 font-bold uppercase text-xs tracking-widest mb-8">per week...</p>
+                        <p className="text-gray-500 font-bold uppercase text-[10px] sm:text-xs tracking-widest mb-5 sm:mb-8">per week...</p>
 
-                        <div className="bg-white p-6 rounded-xl border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transform rotate-1 transition-transform hover:rotate-0">
-                            <p className="text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">In one year, you'll have:</p>
+                        <div className="bg-white p-4 sm:p-6 rounded-xl border-3 sm:border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transform rotate-1 transition-transform hover:rotate-0">
+                            <p className="text-xs sm:text-sm font-bold text-gray-600 mb-1.5 sm:mb-2 uppercase tracking-wide">In one year, you'll have:</p>
                             <motion.p
                                 key={savingsAmount}
                                 initial={{ scale: 1.2, color: '#16a34a' }}
                                 animate={{ scale: 1, color: '#000000' }}
-                                className="text-4xl sm:text-5xl font-black text-black tabular-nums"
+                                className="text-3xl sm:text-5xl font-black text-black tabular-nums"
                             >
                                 ₹ {(savingsAmount * 52).toLocaleString('en-IN')}
                             </motion.p>
@@ -895,7 +895,7 @@ const LandingPage = () => {
             </section>
 
             {/* ─── Call to Action ─── */}
-            <section className="py-20 sm:py-32 px-4 sm:px-6 bg-white text-center text-black overflow-hidden relative">
+            <section className="py-14 sm:py-32 px-4 sm:px-6 bg-white text-center text-black overflow-hidden relative">
                 {/* Floating money elements */}
                 <FloatingMoney
                     className="animate-float top-16 left-10 hidden md:block opacity-15"
@@ -921,7 +921,7 @@ const LandingPage = () => {
                     whileInView={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
                     viewport={{ once: true, amount: 0.3 }}
                     transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
-                    className="text-4xl sm:text-6xl md:text-8xl font-black mb-8 sm:mb-12 uppercase tracking-tighter text-black"
+                    className="text-3xl sm:text-6xl md:text-8xl font-black mb-6 sm:mb-12 uppercase tracking-tighter text-black"
                 >
                     Ready to<br />take control?
                 </motion.h2>
@@ -935,7 +935,7 @@ const LandingPage = () => {
                         <motion.span
                             whileHover={{ y: -6, rotate: 2, boxShadow: '16px 16px 0px 0px rgba(0,0,0,1)' }}
                             whileTap={{ scale: 0.95 }}
-                            className="inline-block bg-brand-yellow text-black text-lg sm:text-2xl font-black px-8 sm:px-16 py-4 sm:py-6 rounded-full border-3 sm:border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all transform animate-pulse-glow"
+                            className="inline-block bg-brand-yellow text-black text-base sm:text-2xl font-black px-6 sm:px-16 py-3.5 sm:py-6 rounded-full border-3 sm:border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all transform animate-pulse-glow"
                         >
                             Join BudgetTracko Now
                         </motion.span>
@@ -952,7 +952,7 @@ const LandingPage = () => {
                 className="bg-black text-white py-10 sm:py-16 px-4 sm:px-6 border-t-8 border-brand-yellow"
             >
                 <motion.div
-                    className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-12"
+                    className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-12"
                     variants={staggerContainer}
                     initial="hidden"
                     whileInView="visible"
@@ -984,8 +984,8 @@ const LandingPage = () => {
                             <li><a href="mailto:bhargavk056@gmail.com" className="hover:text-white hover:underline decoration-brand-yellow decoration-2">Email Us</a></li>
                         </ul>
                     </motion.div>
-                    <motion.div variants={staggerItem} className="col-span-2 md:col-span-1">
-                        <h4 className="font-bold text-xl mb-6 uppercase tracking-wider text-brand-yellow">Stay Updated</h4>
+                    <motion.div variants={staggerItem} className="sm:col-span-2 md:col-span-1">
+                        <h4 className="font-bold text-xl mb-4 sm:mb-6 uppercase tracking-wider text-brand-yellow">Stay Updated</h4>
                         <div className="relative">
                             <input
                                 type="email"
@@ -999,9 +999,9 @@ const LandingPage = () => {
                         <p className="text-xs text-gray-500 mt-2">Get tips on saving money. No spam.</p>
                     </motion.div>
                 </motion.div>
-                <div className="max-w-7xl mx-auto mt-10 sm:mt-16 pt-6 sm:pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4 text-gray-500 text-xs sm:text-sm">
+                <div className="max-w-7xl mx-auto mt-8 sm:mt-16 pt-6 sm:pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 text-gray-500 text-xs sm:text-sm">
                     <p>&copy; 2026 BudgetTracko. All rights reserved.</p>
-                    <div className="flex gap-6 mt-4 md:mt-0">
+                    <div className="flex gap-6">
                         <span>Made with ❤️ by bhargavk001</span>
                     </div>
                 </div>

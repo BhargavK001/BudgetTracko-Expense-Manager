@@ -3,7 +3,12 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-const { validationResult } = require('express-validator');
+const passport = require('passport');
+require('./config/passport'); // Passport config
+
+const authRoutes = require('./routes/auth');
+const accountRoutes = require('./routes/accounts');
+const transactionRoutes = require('./routes/transactions');
 
 // Initialize app
 const app = express();
@@ -12,7 +17,9 @@ const app = express();
 app.use(helmet()); // Security headers
 app.use(cors()); // Enable CORS
 app.use(express.json()); // Parse JSON bodies
+app.use(express.urlencoded({ extended: true })); // Parse form data (for multer)
 app.use(morgan('dev')); // Logging
+app.use(passport.initialize()); // Initialize Passport
 
 // Rate limiting
 const limiter = rateLimit({
@@ -20,6 +27,11 @@ const limiter = rateLimit({
     max: 100 // limit each IP to 100 requests per windowMs
 });
 app.use(limiter);
+
+// Routes
+app.use('/auth', authRoutes);
+app.use('/api/accounts', accountRoutes);
+app.use('/api/transactions', transactionRoutes);
 
 // Basic route
 app.get('/', (req, res) => {

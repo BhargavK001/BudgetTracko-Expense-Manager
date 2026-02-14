@@ -86,8 +86,8 @@ const Contact = () => {
                 </div>
             </motion.nav>
 
-            <div className="flex-grow flex items-center justify-center pt-24 px-6">
-                <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-start">
+            <div className="flex-grow flex items-start sm:items-center justify-center pt-20 sm:pt-24 pb-4 px-4 sm:px-6">
+                <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-12 items-start">
 
                     {/* Contact Info — slides from left */}
                     <motion.div
@@ -96,7 +96,7 @@ const Contact = () => {
                         animate="visible"
                     >
                         <motion.h1
-                            className="text-4xl sm:text-5xl md:text-7xl font-black mb-6 sm:mb-8 uppercase leading-none tracking-tighter"
+                            className="text-3xl sm:text-5xl md:text-7xl font-black mb-4 sm:mb-8 uppercase leading-none tracking-tighter"
                         >
                             {'Let\'s'.split('').map((char, i) => (
                                 <motion.span
@@ -126,13 +126,13 @@ const Contact = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.8 }}
-                            className="text-lg sm:text-xl font-bold mb-8 sm:mb-12 max-w-md"
+                            className="text-base sm:text-xl font-bold mb-6 sm:mb-12 max-w-md"
                         >
                             Have a question, suggestion, or just want to say hi? We'd love to hear from you.
                         </motion.p>
 
                         <motion.div
-                            className="space-y-5 sm:space-y-8"
+                            className="space-y-4 sm:space-y-8"
                             variants={staggerContainer}
                             initial="hidden"
                             animate="visible"
@@ -140,18 +140,18 @@ const Contact = () => {
                             <motion.div
                                 variants={staggerItem}
                                 whileHover={{ x: 8, transition: { duration: 0.2 } }}
-                                className="border-l-4 border-black pl-6"
+                                className="border-l-4 border-black pl-4 sm:pl-6"
                             >
-                                <h3 className="font-black text-lg sm:text-xl mb-1 uppercase">Email Us</h3>
-                                <p className="font-medium text-base sm:text-lg">bhargavk056@gmail.com</p>
+                                <h3 className="font-black text-base sm:text-xl mb-0.5 sm:mb-1 uppercase">Email Us</h3>
+                                <p className="font-medium text-sm sm:text-lg">bhargavk056@gmail.com</p>
                             </motion.div>
                             <motion.div
                                 variants={staggerItem}
                                 whileHover={{ x: 8, transition: { duration: 0.2 } }}
-                                className="border-l-4 border-black pl-6"
+                                className="border-l-4 border-black pl-4 sm:pl-6"
                             >
-                                <h3 className="font-black text-lg sm:text-xl mb-1 uppercase">Visit Us</h3>
-                                <p className="font-medium text-base sm:text-lg">Kothrud, Pune,<br />Maharashtra 411038</p>
+                                <h3 className="font-black text-base sm:text-xl mb-0.5 sm:mb-1 uppercase">Visit Us</h3>
+                                <p className="font-medium text-sm sm:text-lg">Kothrud, Pune,<br />Maharashtra 411038</p>
                             </motion.div>
                         </motion.div>
                     </motion.div>
@@ -161,7 +161,7 @@ const Contact = () => {
                         variants={slideFromRight}
                         initial="hidden"
                         animate="visible"
-                        className="bg-white border-3 sm:border-4 border-black p-6 sm:p-8 md:p-12 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] relative"
+                        className="bg-white border-3 sm:border-4 border-black p-5 sm:p-8 md:p-12 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] relative"
                     >
                         {/* Badge bounces in */}
                         <motion.div

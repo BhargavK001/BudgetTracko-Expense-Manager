@@ -97,12 +97,12 @@ const Pricing = () => {
             </motion.nav>
 
             {/* Hero */}
-            <div className="pt-24 sm:pt-32 pb-12 sm:pb-16 px-4 sm:px-6 text-center max-w-4xl mx-auto">
+            <div className="pt-20 sm:pt-32 pb-8 sm:pb-16 px-4 sm:px-6 text-center max-w-4xl mx-auto">
                 <motion.h1
                     variants={fadeUp}
                     initial="hidden"
                     animate="visible"
-                    className="text-4xl sm:text-5xl md:text-7xl font-black uppercase tracking-tighter mb-4 sm:mb-6"
+                    className="text-3xl sm:text-5xl md:text-7xl font-black uppercase tracking-tighter mb-3 sm:mb-6"
                 >
                     Student Pricing
                 </motion.h1>
@@ -111,16 +111,16 @@ const Pricing = () => {
                     initial="hidden"
                     animate="visible"
                     custom={0.2}
-                    className="text-lg sm:text-xl md:text-2xl font-bold max-w-2xl mx-auto leading-relaxed"
+                    className="text-sm sm:text-xl md:text-2xl font-bold max-w-2xl mx-auto leading-relaxed"
                 >
                     Built for students & college life. Affordable plans that won't burn a hole in your pocket. 🔥
                 </motion.p>
             </div>
 
             {/* Pricing Cards */}
-            <section className="pb-20 sm:pb-32 px-4 sm:px-6">
+            <section className="pb-16 sm:pb-32 px-4 sm:px-6">
                 <motion.div
-                    className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-stretch"
+                    className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 sm:gap-8 items-stretch"
                     variants={staggerContainer}
                     initial="hidden"
                     animate="visible"
@@ -130,8 +130,8 @@ const Pricing = () => {
                             key={idx}
                             variants={staggerItem}
                             whileHover={{ y: -8, transition: { duration: 0.2 } }}
-                            className={`relative p-6 sm:p-8 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col ${plan.highlight
-                                ? 'bg-black text-white scale-100 md:scale-105 z-10'
+                            className={`relative p-5 sm:p-8 border-3 sm:border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col ${plan.highlight
+                                ? 'bg-black text-white scale-100 sm:scale-105 z-10'
                                 : 'bg-white'
                                 }`}
                         >
@@ -145,14 +145,14 @@ const Pricing = () => {
                                     MOST POPULAR ⭐
                                 </motion.div>
                             )}
-                            <h3 className={`text-xl sm:text-2xl font-black uppercase mb-2 ${plan.highlight ? 'text-brand-yellow' : ''}`}>{plan.name}</h3>
-                            <div className="mb-6">
-                                <span className="text-4xl sm:text-5xl font-black">{plan.price}</span>
+                            <h3 className={`text-lg sm:text-2xl font-black uppercase mb-1.5 sm:mb-2 ${plan.highlight ? 'text-brand-yellow' : ''}`}>{plan.name}</h3>
+                            <div className="mb-4 sm:mb-6">
+                                <span className="text-3xl sm:text-5xl font-black">{plan.price}</span>
                                 <span className={`text-base sm:text-lg font-bold ml-1 ${plan.highlight ? 'text-gray-400' : 'text-gray-500'}`}>{plan.period}</span>
                             </div>
-                            <ul className="space-y-3 mb-8 flex-1">
+                            <ul className="space-y-2 sm:space-y-3 mb-6 sm:mb-8 flex-1">
                                 {plan.features.map((feat, i) => (
-                                    <li key={i} className="flex items-start gap-2 text-sm sm:text-base font-semibold">
+                                    <li key={i} className="flex items-start gap-2 text-xs sm:text-base font-semibold">
                                         <BsCheckCircleFill className={`mt-0.5 flex-shrink-0 ${plan.highlight ? 'text-brand-yellow' : 'text-green-600'}`} size={16} />
                                         {feat}
                                     </li>
