@@ -1,6 +1,8 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { GlobalProvider } from './context/GlobalContext';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Toaster } from 'sonner';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
@@ -8,23 +10,97 @@ import Transactions from './pages/Transactions';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Contact from './pages/Contact';
+import Features from './pages/Features';
+import Pricing from './pages/Pricing';
+import About from './pages/About';
+import Privacy from './pages/Privacy';
+import Signup from './pages/Signup';
+import ForgotPassword from './pages/ForgotPassword';
+
+// Page transition variants
+const pageVariants = {
+  initial: {
+    opacity: 0,
+    y: 20,
+    filter: 'blur(4px)',
+  },
+  animate: {
+    opacity: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: {
+      duration: 0.5,
+      ease: [0.25, 0.46, 0.45, 0.94],
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -20,
+    filter: 'blur(4px)',
+    transition: {
+      duration: 0.3,
+      ease: [0.25, 0.46, 0.45, 0.94],
+    },
+  },
+};
+
+const PageTransition = ({ children }) => (
+  <motion.div
+    variants={pageVariants}
+    initial="initial"
+    animate="animate"
+    exit="exit"
+    style={{ width: '100%' }}
+  >
+    {children}
+  </motion.div>
+);
+
+const AnimatedRoutes = () => {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
+        <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+        <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
+        <Route path="/features" element={<PageTransition><Features /></PageTransition>} />
+        <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
+        <Route path="/about" element={<PageTransition><About /></PageTransition>} />
+        <Route path="/privacy" element={<PageTransition><Privacy /></PageTransition>} />
+        <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
+        <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+
+        <Route path="/" element={<Layout />}>
+          <Route path="dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
+          <Route path="transactions" element={<PageTransition><Transactions /></PageTransition>} />
+          {/* Add more routes here */}
+        </Route>
+      </Routes>
+    </AnimatePresence>
+  );
+};
 
 function App() {
   return (
     <ThemeProvider>
       <GlobalProvider>
         <Router>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/contact" element={<Contact />} />
-
-            <Route path="/" element={<Layout />}>
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="transactions" element={<Transactions />} />
-              {/* Add more routes here */}
-            </Route>
-          </Routes>
+          <AnimatedRoutes />
+          <Toaster
+            position="bottom-right"
+            richColors
+            toastOptions={{
+              style: {
+                fontFamily: 'inherit',
+                fontWeight: 700,
+                borderRadius: '12px',
+                border: '2px solid #1a1a1a',
+                boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
+              },
+            }}
+          />
         </Router>
       </GlobalProvider>
     </ThemeProvider>

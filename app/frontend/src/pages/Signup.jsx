@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { HiOutlineMail, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
+import { HiOutlineMail, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeOff, HiOutlineUser } from 'react-icons/hi';
 import { FcGoogle } from 'react-icons/fc';
 import { FaGithub } from 'react-icons/fa';
-import { BsBarChartLineFill, BsWalletFill, BsShieldLockFill, BsArrowLeftShort, BsLightningChargeFill, BsPeopleFill, BsStarFill, BsCheckCircleFill } from 'react-icons/bs';
+import { BsBarChartLineFill, BsWalletFill, BsShieldLockFill, BsArrowLeftShort, BsLightningChargeFill, BsPeopleFill, BsStarFill, BsCheckCircleFill, BsArrowRight } from 'react-icons/bs';
 
 // Animation variants
 const staggerContainer = {
@@ -36,37 +36,32 @@ const floatAnimation = {
     }),
 };
 
-const stats = [
-    { value: '10K+', label: 'Students' },
-    { value: '₹2Cr+', label: 'Tracked' },
-    { value: '4.8', label: 'Rating', icon: <BsStarFill size={14} className="text-brand-yellow" /> },
+const benefits = [
+    { icon: <BsBarChartLineFill size={20} />, title: 'Smart Analytics', desc: 'See where every rupee goes with visual charts and weekly reports' },
+    { icon: <BsWalletFill size={20} />, title: 'Multi-Account', desc: 'Track cash, UPI, bank accounts and cards in one place' },
+    { icon: <BsShieldLockFill size={20} />, title: 'Private & Secure', desc: 'Your data stays yours. Bank-grade encryption, always.' },
+    { icon: <BsLightningChargeFill size={20} />, title: 'Quick Entry', desc: 'Log expenses in under 3 seconds with smart shortcuts' },
 ];
 
-const features = [
-    { icon: <BsBarChartLineFill size={18} />, text: 'Real-time expense analytics' },
-    { icon: <BsWalletFill size={18} />, text: 'Multi-account tracking' },
-    { icon: <BsShieldLockFill size={18} />, text: 'Bank-grade security' },
-    { icon: <BsLightningChargeFill size={18} />, text: '3-second quick entry' },
+const steps = [
+    { num: '01', text: 'Create your free account' },
+    { num: '02', text: 'Set your monthly budget' },
+    { num: '03', text: 'Track every transaction' },
 ];
 
-const testimonials = [
-    { name: 'Priya S.', college: 'MIT Pune', text: 'Finally an expense app that gets student life. Saved me ₹3000 last month!' },
-    { name: 'Rohit M.', college: 'VIT Vellore', text: 'Splitting hostel expenses was a nightmare. Not anymore. This is genius.' },
-];
-
-const Login = () => {
+const Signup = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [focusedField, setFocusedField] = useState(null);
 
-    const handleLogin = (e) => {
+    const handleSignup = (e) => {
         e.preventDefault();
         setLoading(true);
-        toast.loading('Signing you in...', { id: 'login' });
+        toast.loading('Creating your account...', { id: 'signup' });
         setTimeout(() => {
             setLoading(false);
-            toast.success('Welcome back! Redirecting to dashboard...', { id: 'login' });
+            toast.success('Account created! Welcome to BudgetTracko!', { id: 'signup' });
             navigate('/dashboard');
         }, 1500);
     };
@@ -90,21 +85,32 @@ const Login = () => {
                         <span className="text-white bg-black dark:bg-white dark:text-black px-1 transform -rotate-2 border-2 border-black dark:border-white">TRACKO</span>
                     </motion.span>
                 </Link>
-                <Link to="/">
-                    <motion.span
-                        whileHover={{ x: -4, boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)' }}
-                        whileTap={{ scale: 0.95 }}
-                        className="inline-flex items-center gap-1 text-sm font-bold border-2 border-brand-black dark:border-white px-3 py-1.5 sm:px-4 sm:py-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
-                    >
-                        <BsArrowLeftShort size={20} /> Home
-                    </motion.span>
-                </Link>
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <Link to="/login">
+                        <motion.span
+                            whileHover={{ y: -2 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="inline-flex items-center text-xs sm:text-sm font-bold hover:underline decoration-2 underline-offset-2"
+                        >
+                            Sign In
+                        </motion.span>
+                    </Link>
+                    <Link to="/">
+                        <motion.span
+                            whileHover={{ x: -4, boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)' }}
+                            whileTap={{ scale: 0.95 }}
+                            className="inline-flex items-center gap-1 text-sm font-bold border-2 border-brand-black dark:border-white px-3 py-1.5 sm:px-4 sm:py-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
+                        >
+                            <BsArrowLeftShort size={20} /> Home
+                        </motion.span>
+                    </Link>
+                </div>
             </motion.nav>
 
-            {/* Main content — two-panel on desktop, stacked on mobile */}
+            {/* Main content — two-panel layout */}
             <div className="min-h-screen flex flex-col lg:flex-row pt-16 sm:pt-20">
 
-                {/* ─── Left Panel: Info & Branding ─── */}
+                {/* ─── Left Panel: Why Join ─── */}
                 <motion.div
                     variants={slideFromLeft}
                     initial="hidden"
@@ -115,30 +121,31 @@ const Login = () => {
                     <motion.div custom={0} animate="animate" variants={floatAnimation} className="absolute top-28 right-10 opacity-10 pointer-events-none hidden lg:block">
                         <BsBarChartLineFill size={56} />
                     </motion.div>
-                    <motion.div custom={2} animate="animate" variants={floatAnimation} className="absolute bottom-32 left-10 opacity-10 pointer-events-none hidden lg:block">
+                    <motion.div custom={2.5} animate="animate" variants={floatAnimation} className="absolute bottom-32 left-10 opacity-10 pointer-events-none hidden lg:block">
                         <BsWalletFill size={44} />
                     </motion.div>
 
-                    {/* Tagline */}
+                    {/* Badge */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2, duration: 0.5 }}
                         className="inline-flex items-center gap-2 bg-black text-brand-yellow font-bold text-xs sm:text-sm px-4 py-2 border-2 border-black w-fit mb-6 sm:mb-8"
                     >
-                        <BsLightningChargeFill size={14} />
-                        <span>TRUSTED BY 10,000+ STUDENTS</span>
+                        <BsStarFill size={14} />
+                        <span>FREE FOREVER FOR STUDENTS</span>
                     </motion.div>
 
+                    {/* Headline */}
                     <motion.h1
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3, duration: 0.6 }}
                         className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-black uppercase tracking-tighter leading-[0.95] mb-4 sm:mb-6"
                     >
-                        Master your<br />
+                        Start your<br />
                         <span className="text-white bg-black px-2 py-1 inline-block transform -rotate-1 border-2 border-black mt-1">
-                            money.
+                            journey.
                         </span>
                     </motion.h1>
 
@@ -148,83 +155,84 @@ const Login = () => {
                         transition={{ delay: 0.45, duration: 0.5 }}
                         className="text-base sm:text-lg lg:text-xl font-bold text-gray-700 max-w-lg mb-8 sm:mb-10 leading-relaxed"
                     >
-                        Track every rupee, set budgets, and build real financial habits — all from one beautiful dashboard.
+                        Join thousands of students already crushing their finances. It takes less than 30 seconds to sign up.
                     </motion.p>
 
-                    {/* Stats row */}
+                    {/* How it works steps */}
                     <motion.div
-                        className="flex gap-4 sm:gap-6 mb-8 sm:mb-10"
+                        className="flex gap-3 sm:gap-4 mb-8 sm:mb-10"
                         variants={staggerContainer}
                         initial="hidden"
                         animate="visible"
                     >
-                        {stats.map((stat, i) => (
+                        {steps.map((step, i) => (
                             <motion.div
                                 key={i}
                                 variants={staggerItem}
                                 whileHover={{ y: -3, transition: { duration: 0.2 } }}
-                                className="bg-white border-2 sm:border-3 border-black px-4 sm:px-5 py-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                                className="bg-white border-2 sm:border-3 border-black px-3 sm:px-5 py-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex-1"
                             >
-                                <div className="flex items-center gap-1">
-                                    <span className="text-xl sm:text-2xl font-black">{stat.value}</span>
-                                    {stat.icon}
-                                </div>
-                                <p className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider">{stat.label}</p>
+                                <div className="text-xl sm:text-2xl font-black text-brand-yellow">{step.num}</div>
+                                <p className="text-xs sm:text-sm font-bold mt-1">{step.text}</p>
                             </motion.div>
                         ))}
                     </motion.div>
 
-                    {/* Features list */}
+                    {/* Benefits grid */}
                     <motion.div
-                        className="grid grid-cols-2 gap-3 sm:gap-4 mb-8 sm:mb-10"
+                        className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-8 sm:mb-10"
                         variants={staggerContainer}
                         initial="hidden"
                         animate="visible"
                     >
-                        {features.map((feat, i) => (
-                            <motion.div
-                                key={i}
-                                variants={staggerItem}
-                                className="flex items-center gap-2 sm:gap-3 text-sm sm:text-base font-bold"
-                            >
-                                <span className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 bg-black text-brand-yellow rounded-full flex items-center justify-center">
-                                    {feat.icon}
-                                </span>
-                                <span>{feat.text}</span>
-                            </motion.div>
-                        ))}
-                    </motion.div>
-
-                    {/* Testimonials */}
-                    <motion.div
-                        className="space-y-4 hidden sm:block"
-                        variants={staggerContainer}
-                        initial="hidden"
-                        animate="visible"
-                    >
-                        {testimonials.map((t, i) => (
+                        {benefits.map((b, i) => (
                             <motion.div
                                 key={i}
                                 variants={staggerItem}
                                 whileHover={{ x: 4, transition: { duration: 0.2 } }}
-                                className="bg-white border-2 border-black p-4 sm:p-5 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                                className="flex gap-3 items-start"
                             >
-                                <p className="text-sm font-semibold text-gray-700 mb-2 italic">"{t.text}"</p>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-7 h-7 bg-black text-brand-yellow rounded-full flex items-center justify-center text-xs font-black">
-                                        {t.name.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <span className="text-sm font-black">{t.name}</span>
-                                        <span className="text-xs text-gray-500 ml-2">{t.college}</span>
-                                    </div>
+                                <span className="flex-shrink-0 w-9 h-9 bg-black text-brand-yellow rounded-full flex items-center justify-center mt-0.5">
+                                    {b.icon}
+                                </span>
+                                <div>
+                                    <h4 className="font-black text-sm">{b.title}</h4>
+                                    <p className="text-xs text-gray-600 font-medium leading-snug">{b.desc}</p>
                                 </div>
                             </motion.div>
                         ))}
                     </motion.div>
+
+                    {/* Social proof bar */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.8, duration: 0.5 }}
+                        className="flex items-center gap-3 sm:gap-4 hidden sm:flex"
+                    >
+                        <div className="flex -space-x-2">
+                            {['P', 'R', 'A', 'S'].map((letter, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: 0.9 + i * 0.1, type: 'spring', stiffness: 300 }}
+                                    className="w-8 h-8 bg-black text-brand-yellow border-2 border-brand-yellow rounded-full flex items-center justify-center text-xs font-black"
+                                >
+                                    {letter}
+                                </motion.div>
+                            ))}
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-1">
+                                {[1, 2, 3, 4, 5].map(s => <BsStarFill key={s} size={12} className="text-black" />)}
+                            </div>
+                            <p className="text-xs font-bold text-gray-600">10,000+ students already budgeting</p>
+                        </div>
+                    </motion.div>
                 </motion.div>
 
-                {/* ─── Right Panel: Login Form ─── */}
+                {/* ─── Right Panel: Signup Form ─── */}
                 <motion.div
                     variants={slideFromRight}
                     initial="hidden"
@@ -232,12 +240,12 @@ const Login = () => {
                     className="lg:w-1/2 flex items-center justify-center px-4 sm:px-6 lg:px-10 py-8 sm:py-10 lg:py-0"
                 >
                     <div className="w-full max-w-md relative z-10">
-                        {/* Floating icons around the card */}
+                        {/* Floating icons */}
                         <motion.div custom={1} animate="animate" variants={floatAnimation} className="absolute -top-8 -right-4 opacity-15 pointer-events-none hidden sm:block">
-                            <BsShieldLockFill size={36} />
+                            <BsPeopleFill size={36} />
                         </motion.div>
                         <motion.div custom={3} animate="animate" variants={floatAnimation} className="absolute -bottom-6 -left-6 opacity-15 pointer-events-none hidden sm:block">
-                            <BsPeopleFill size={32} />
+                            <BsShieldLockFill size={32} />
                         </motion.div>
 
                         {/* Card */}
@@ -256,12 +264,12 @@ const Login = () => {
                                 initial="hidden"
                                 animate="visible"
                             >
-                                {/* Heading with letter reveal */}
+                                {/* Heading */}
                                 <motion.h2
                                     variants={staggerItem}
                                     className="text-2xl sm:text-3xl font-black uppercase tracking-tighter text-brand-black mb-1"
                                 >
-                                    {'WELCOME BACK'.split('').map((char, i) => (
+                                    {'CREATE ACCOUNT'.split('').map((char, i) => (
                                         <motion.span
                                             key={i}
                                             initial={{ opacity: 0, y: 20 }}
@@ -274,10 +282,10 @@ const Login = () => {
                                     ))}
                                 </motion.h2>
                                 <motion.p variants={staggerItem} className="text-gray-500 font-medium text-sm mb-5 sm:mb-6">
-                                    Sign in to continue tracking your expenses.
+                                    Sign up for free and start tracking today.
                                 </motion.p>
 
-                                {/* Social login buttons — shown first for quick access */}
+                                {/* Social signup buttons */}
                                 <motion.div variants={staggerItem} className="flex gap-3 mb-5 sm:mb-6">
                                     <motion.button
                                         type="button"
@@ -310,7 +318,30 @@ const Login = () => {
                                 </motion.div>
 
                                 {/* Form */}
-                                <motion.form onSubmit={handleLogin} className="space-y-4">
+                                <motion.form onSubmit={handleSignup} className="space-y-4">
+                                    {/* Full Name */}
+                                    <motion.div variants={staggerItem}>
+                                        <label htmlFor="fullname" className="block text-xs font-bold text-brand-black mb-1.5 uppercase tracking-wide">
+                                            Full Name
+                                        </label>
+                                        <motion.div
+                                            className="relative"
+                                            animate={focusedField === 'fullname' ? { scale: 1.01 } : { scale: 1 }}
+                                            transition={{ duration: 0.2 }}
+                                        >
+                                            <HiOutlineUser className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-black/35 pointer-events-none" aria-hidden />
+                                            <input
+                                                id="fullname"
+                                                type="text"
+                                                placeholder="Bhargav Karande"
+                                                required
+                                                onFocus={() => setFocusedField('fullname')}
+                                                onBlur={() => setFocusedField(null)}
+                                                className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-black/80 bg-gray-50 focus:bg-white focus:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1 text-brand-black placeholder-gray-400 font-medium text-sm transition-all"
+                                            />
+                                        </motion.div>
+                                    </motion.div>
+
                                     {/* Email */}
                                     <motion.div variants={staggerItem}>
                                         <label htmlFor="email" className="block text-xs font-bold text-brand-black mb-1.5 uppercase tracking-wide">
@@ -325,7 +356,7 @@ const Login = () => {
                                             <input
                                                 id="email"
                                                 type="email"
-                                                placeholder="username@gmail.com"
+                                                placeholder="you@college.edu"
                                                 required
                                                 onFocus={() => setFocusedField('email')}
                                                 onBlur={() => setFocusedField(null)}
@@ -336,14 +367,9 @@ const Login = () => {
 
                                     {/* Password */}
                                     <motion.div variants={staggerItem}>
-                                        <div className="flex justify-between items-center mb-1.5">
-                                            <label htmlFor="password" className="block text-xs font-bold text-brand-black uppercase tracking-wide">
-                                                Password
-                                            </label>
-                                            <Link to="/forgot-password" className="text-[11px] font-bold text-brand-black hover:underline decoration-2 underline-offset-2">
-                                                Forgot?
-                                            </Link>
-                                        </div>
+                                        <label htmlFor="password" className="block text-xs font-bold text-brand-black mb-1.5 uppercase tracking-wide">
+                                            Password
+                                        </label>
                                         <motion.div
                                             className="relative"
                                             animate={focusedField === 'password' ? { scale: 1.01 } : { scale: 1 }}
@@ -353,8 +379,9 @@ const Login = () => {
                                             <input
                                                 id="password"
                                                 type={showPassword ? 'text' : 'password'}
-                                                placeholder="Enter password"
+                                                placeholder="Min. 8 characters"
                                                 required
+                                                minLength={8}
                                                 onFocus={() => setFocusedField('password')}
                                                 onBlur={() => setFocusedField(null)}
                                                 className="w-full pl-10 pr-11 py-3 rounded-xl border-2 border-black/80 bg-gray-50 focus:bg-white focus:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1 text-brand-black placeholder-gray-400 font-medium text-sm transition-all"
@@ -370,6 +397,13 @@ const Login = () => {
                                             </motion.button>
                                         </motion.div>
                                     </motion.div>
+
+                                    {/* Terms */}
+                                    <motion.p variants={staggerItem} className="text-[11px] text-gray-500 font-medium leading-snug">
+                                        By signing up, you agree to our{' '}
+                                        <Link to="/privacy" className="font-bold underline underline-offset-2 hover:text-black">Privacy Policy</Link>
+                                        {' '}and Terms of Service.
+                                    </motion.p>
 
                                     {/* Submit */}
                                     <motion.div variants={staggerItem} className="pt-1">
@@ -388,11 +422,11 @@ const Login = () => {
                                                             transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
                                                             className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full inline-block"
                                                         />
-                                                        <span>Signing in...</span>
+                                                        <span>Creating account...</span>
                                                     </motion.div>
                                                 ) : (
-                                                    <motion.span key="signin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                                                        Sign In
+                                                    <motion.span key="create" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2">
+                                                        Create Account <BsArrowRight size={18} />
                                                     </motion.span>
                                                 )}
                                             </AnimatePresence>
@@ -400,11 +434,11 @@ const Login = () => {
                                     </motion.div>
                                 </motion.form>
 
-                                {/* Sign up link */}
+                                {/* Login link */}
                                 <motion.p variants={staggerItem} className="mt-5 text-center text-xs sm:text-sm font-medium text-brand-black">
-                                    Don't have an account?{' '}
-                                    <Link to="/signup" className="font-black underline decoration-2 underline-offset-2 hover:no-underline">
-                                        Sign up
+                                    Already have an account?{' '}
+                                    <Link to="/login" className="font-black underline decoration-2 underline-offset-2 hover:no-underline">
+                                        Sign in
                                     </Link>
                                 </motion.p>
 
@@ -417,10 +451,10 @@ const Login = () => {
                                         <BsShieldLockFill size={12} /> SSL Encrypted
                                     </span>
                                     <span className="flex items-center gap-1">
-                                        <BsCheckCircleFill size={12} /> GDPR Ready
+                                        <BsCheckCircleFill size={12} /> No Spam
                                     </span>
                                     <span className="flex items-center gap-1">
-                                        <BsStarFill size={12} /> 4.8 Rating
+                                        <BsStarFill size={12} /> 100% Free
                                     </span>
                                 </motion.div>
                             </motion.div>
@@ -432,4 +466,4 @@ const Login = () => {
     );
 };
 
-export default Login;
+export default Signup;

@@ -1,86 +1,249 @@
 
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { toast } from 'sonner';
+
+const staggerContainer = {
+    hidden: {},
+    visible: {
+        transition: {
+            staggerChildren: 0.15,
+            delayChildren: 0.2,
+        },
+    },
+};
+
+const staggerItem = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
+    },
+};
+
+const slideFromLeft = {
+    hidden: { opacity: 0, x: -80 },
+    visible: {
+        opacity: 1,
+        x: 0,
+        transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] },
+    },
+};
+
+const slideFromRight = {
+    hidden: { opacity: 0, x: 80 },
+    visible: {
+        opacity: 1,
+        x: 0,
+        transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94], delay: 0.15 },
+    },
+};
 
 const Contact = () => {
+    const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+    const [sending, setSending] = useState(false);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (!formData.name || !formData.email || !formData.message) {
+            toast.error('Please fill in all fields');
+            return;
+        }
+        setSending(true);
+        toast.loading('Sending your message...', { id: 'contact' });
+        setTimeout(() => {
+            setSending(false);
+            toast.success('Message sent! We\'ll get back to you soon.', { id: 'contact' });
+            setFormData({ name: '', email: '', message: '' });
+        }, 1500);
+    };
+
     return (
-        <div className="min-h-screen bg-brand-yellow font-sans text-brand-black flex flex-col selection:bg-black selection:text-brand-yellow">
-            <nav className="fixed top-0 w-full bg-brand-yellow/90 dark:bg-black/70 backdrop-blur-md z-50 border-b-2 border-brand-black dark:border-white/20 transition-colors shadow-sm dark:shadow-white/5">
-                <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-                    <Link to="/" className="text-2xl font-black tracking-tighter flex items-center gap-2 text-brand-black dark:text-white">
-                        <span className="text-[#1a1a1a] dark:text-white transition-colors">BUDGET</span><span className="text-white bg-black dark:bg-white dark:text-black px-1 transform -rotate-2 border-2 border-black dark:border-white transition-colors">TRACKO</span>
+        <div className="min-h-screen bg-brand-yellow font-sans text-brand-black flex flex-col selection:bg-black selection:text-brand-yellow overflow-hidden">
+            {/* Nav */}
+            <motion.nav
+                initial={{ y: -80, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+                className="fixed top-0 w-full bg-brand-yellow/90 dark:bg-black/70 backdrop-blur-md z-50 border-b-2 border-brand-black dark:border-white/20 transition-colors shadow-sm dark:shadow-white/5"
+            >
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
+                    <Link to="/" className="text-xl sm:text-2xl font-black tracking-tighter flex items-center gap-1 sm:gap-2 text-brand-black dark:text-white">
+                        <span className="text-[#1a1a1a] dark:text-white transition-colors">BUDGET</span>
+                        <span className="text-white bg-black dark:bg-white dark:text-black px-1 transform -rotate-2 border-2 border-black dark:border-white transition-colors">TRACKO</span>
                     </Link>
-                    <Link to="/" className="font-bold border-2 border-black dark:border-white px-4 py-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors">
-                        ← Back Home
+                    <Link to="/">
+                        <motion.span
+                            whileHover={{ x: -4, boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)' }}
+                            whileTap={{ scale: 0.95 }}
+                            className="inline-block font-bold border-2 border-black dark:border-white px-3 py-1.5 sm:px-4 sm:py-2 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors text-sm sm:text-base"
+                        >
+                            ← Back Home
+                        </motion.span>
                     </Link>
                 </div>
-            </nav>
+            </motion.nav>
 
             <div className="flex-grow flex items-center justify-center pt-24 px-6">
-                <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+                <div className="max-w-4xl w-full grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 items-start">
 
-                    {/* Contact Info */}
-                    <div>
-                        <h1 className="text-5xl md:text-7xl font-black mb-8 uppercase leading-none tracking-tighter">
-                            Let's<br />Talk.
-                        </h1>
-                        <p className="text-xl font-bold mb-12 max-w-md">
+                    {/* Contact Info — slides from left */}
+                    <motion.div
+                        variants={slideFromLeft}
+                        initial="hidden"
+                        animate="visible"
+                    >
+                        <motion.h1
+                            className="text-4xl sm:text-5xl md:text-7xl font-black mb-6 sm:mb-8 uppercase leading-none tracking-tighter"
+                        >
+                            {'Let\'s'.split('').map((char, i) => (
+                                <motion.span
+                                    key={`l-${i}`}
+                                    initial={{ opacity: 0, y: 30 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.4, delay: 0.3 + i * 0.06 }}
+                                    className="inline-block"
+                                >
+                                    {char}
+                                </motion.span>
+                            ))}
+                            <br />
+                            {'Talk.'.split('').map((char, i) => (
+                                <motion.span
+                                    key={`t-${i}`}
+                                    initial={{ opacity: 0, y: 30 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.4, delay: 0.6 + i * 0.06 }}
+                                    className="inline-block"
+                                >
+                                    {char}
+                                </motion.span>
+                            ))}
+                        </motion.h1>
+                        <motion.p
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.8 }}
+                            className="text-lg sm:text-xl font-bold mb-8 sm:mb-12 max-w-md"
+                        >
                             Have a question, suggestion, or just want to say hi? We'd love to hear from you.
-                        </p>
+                        </motion.p>
 
-                        <div className="space-y-8">
-                            <div className="border-l-4 border-black pl-6">
-                                <h3 className="font-black text-xl mb-1 uppercase">Email Us</h3>
-                                <p className="font-medium text-lg">hello@budgettracko.com</p>
-                            </div>
-                            <div className="border-l-4 border-black pl-6">
-                                <h3 className="font-black text-xl mb-1 uppercase">Visit Us</h3>
-                                <p className="font-medium text-lg">123 Finance Street,<br />Money City, NY 10001</p>
-                            </div>
-                        </div>
-                    </div>
+                        <motion.div
+                            className="space-y-5 sm:space-y-8"
+                            variants={staggerContainer}
+                            initial="hidden"
+                            animate="visible"
+                        >
+                            <motion.div
+                                variants={staggerItem}
+                                whileHover={{ x: 8, transition: { duration: 0.2 } }}
+                                className="border-l-4 border-black pl-6"
+                            >
+                                <h3 className="font-black text-lg sm:text-xl mb-1 uppercase">Email Us</h3>
+                                <p className="font-medium text-base sm:text-lg">bhargavk056@gmail.com</p>
+                            </motion.div>
+                            <motion.div
+                                variants={staggerItem}
+                                whileHover={{ x: 8, transition: { duration: 0.2 } }}
+                                className="border-l-4 border-black pl-6"
+                            >
+                                <h3 className="font-black text-lg sm:text-xl mb-1 uppercase">Visit Us</h3>
+                                <p className="font-medium text-base sm:text-lg">Kothrud, Pune,<br />Maharashtra 411038</p>
+                            </motion.div>
+                        </motion.div>
+                    </motion.div>
 
-                    {/* Contact Form */}
-                    <div className="bg-white border-4 border-black p-8 md:p-12 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] relative">
-                        <div className="absolute top-0 right-0 bg-black text-brand-yellow font-bold px-4 py-1 transform translate-x-2 -translate-y-2 rotate-2 border-2 border-white">
+                    {/* Contact Form — slides from right */}
+                    <motion.div
+                        variants={slideFromRight}
+                        initial="hidden"
+                        animate="visible"
+                        className="bg-white border-3 sm:border-4 border-black p-6 sm:p-8 md:p-12 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] relative"
+                    >
+                        {/* Badge bounces in */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0, rotate: 10 }}
+                            animate={{ opacity: 1, scale: 1, rotate: 2 }}
+                            transition={{
+                                type: 'spring',
+                                stiffness: 260,
+                                damping: 20,
+                                delay: 0.8,
+                            }}
+                            className="absolute top-0 right-0 bg-black text-brand-yellow font-bold px-3 py-1 sm:px-4 text-xs sm:text-sm transform translate-x-1 sm:translate-x-2 -translate-y-1 sm:-translate-y-2 border-2 border-white"
+                        >
                             We reply fast! ⚡
-                        </div>
+                        </motion.div>
 
-                        <form className="space-y-6">
-                            <div>
+                        <motion.form
+                            className="space-y-4 sm:space-y-6"
+                            variants={staggerContainer}
+                            initial="hidden"
+                            animate="visible"
+                            onSubmit={handleSubmit}
+                        >
+                            <motion.div variants={staggerItem}>
                                 <label className="block text-sm font-black uppercase tracking-wide mb-2">Your Name</label>
-                                <input
+                                <motion.input
+                                    whileFocus={{ scale: 1.02, x: -2, y: -2 }}
                                     type="text"
-                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-black focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:translate-x-[-2px] focus:translate-y-[-2px] outline-none transition-all font-bold placeholder-gray-400"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-black focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all font-bold placeholder-gray-400"
                                     placeholder="John Doe"
+                                    required
                                 />
-                            </div>
-                            <div>
+                            </motion.div>
+                            <motion.div variants={staggerItem}>
                                 <label className="block text-sm font-black uppercase tracking-wide mb-2">Email Address</label>
-                                <input
+                                <motion.input
+                                    whileFocus={{ scale: 1.02, x: -2, y: -2 }}
                                     type="email"
-                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-black focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:translate-x-[-2px] focus:translate-y-[-2px] outline-none transition-all font-bold placeholder-gray-400"
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-black focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all font-bold placeholder-gray-400"
                                     placeholder="john@example.com"
+                                    required
                                 />
-                            </div>
-                            <div>
+                            </motion.div>
+                            <motion.div variants={staggerItem}>
                                 <label className="block text-sm font-black uppercase tracking-wide mb-2">Message</label>
-                                <textarea
+                                <motion.textarea
+                                    whileFocus={{ scale: 1.02, x: -2, y: -2 }}
                                     rows="4"
-                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-black focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] focus:translate-x-[-2px] focus:translate-y-[-2px] outline-none transition-all font-bold placeholder-gray-400 resize-none"
+                                    value={formData.message}
+                                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                                    className="w-full px-4 py-3 bg-gray-50 border-2 border-black focus:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] outline-none transition-all font-bold placeholder-gray-400 resize-none"
                                     placeholder="How can we help you today?"
-                                ></textarea>
-                            </div>
-                            <button className="w-full bg-black text-white font-black text-lg py-4 border-2 border-black hover:bg-brand-yellow hover:text-black hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-widest">
-                                Send Message
-                            </button>
-                        </form>
-                    </div>
+                                    required
+                                ></motion.textarea>
+                            </motion.div>
+                            <motion.button
+                                variants={staggerItem}
+                                type="submit"
+                                disabled={sending}
+                                whileHover={!sending ? { y: -3, boxShadow: '8px 8px 0px 0px rgba(0,0,0,1)', backgroundColor: '#FFD700', color: '#000' } : {}}
+                                whileTap={!sending ? { scale: 0.97 } : {}}
+                                className="w-full bg-black text-white font-black text-lg py-4 border-2 border-black transition-all uppercase tracking-widest disabled:opacity-70"
+                            >
+                                {sending ? 'Sending...' : 'Send Message'}
+                            </motion.button>
+                        </motion.form>
+                    </motion.div>
                 </div>
             </div>
 
-            <footer className="py-8 text-center font-bold text-sm opacity-60">
+            <motion.footer
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+                className="py-8 text-center font-bold text-sm opacity-60"
+            >
                 &copy; 2026 BudgetTracko.
-            </footer>
+            </motion.footer>
         </div>
     );
 };

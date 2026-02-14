@@ -1,6 +1,7 @@
 
 import { useForm } from 'react-hook-form';
 import { useGlobalContext } from '../context/GlobalContext';
+import { toast } from 'sonner';
 
 const TransactionForm = ({ onClose }) => {
     const { register, handleSubmit, formState: { errors }, reset } = useForm();
@@ -16,6 +17,7 @@ const TransactionForm = ({ onClose }) => {
         };
 
         addTransaction(newTransaction);
+        toast.success(`${data.type === 'income' ? 'Income' : 'Expense'} of ₹${Math.abs(Number(data.amount))} added`);
         reset();
         if (onClose) onClose();
     };

@@ -1,5 +1,6 @@
 import { createContext, useReducer, useEffect, useContext } from 'react';
 import { mockApi } from '../services/mockApi';
+import { toast } from 'sonner';
 
 // Initial State
 const initialState = {
@@ -56,6 +57,7 @@ export const GlobalProvider = ({ children }) => {
                 payload: data,
             });
         } catch (err) {
+            toast.error('Failed to load transactions');
             dispatch({
                 type: 'TRANSACTION_ERROR',
                 payload: 'Error fetching transactions',
@@ -70,7 +72,9 @@ export const GlobalProvider = ({ children }) => {
                 type: 'ADD_TRANSACTION',
                 payload: data,
             });
+            toast.success('Transaction added successfully');
         } catch (err) {
+            toast.error('Failed to add transaction');
             dispatch({
                 type: 'TRANSACTION_ERROR',
                 payload: 'Error adding transaction',
@@ -85,7 +89,9 @@ export const GlobalProvider = ({ children }) => {
                 type: 'DELETE_TRANSACTION',
                 payload: id,
             });
+            toast.success('Transaction deleted');
         } catch (err) {
+            toast.error('Failed to delete transaction');
             dispatch({
                 type: 'TRANSACTION_ERROR',
                 payload: 'Error deleting transaction',
