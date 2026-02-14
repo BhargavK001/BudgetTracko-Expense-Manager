@@ -1,0 +1,118 @@
+import { createContext, useReducer, useEffect, useContext } from 'react';
+import { mockApi } from '../services/mockApi';
+
+// Initial State
+const initialState = {
+    transactions: [],
+    loading: true,
+    error: null,
+};
+
+// Create Context
+export const GlobalContext = createContext(initialState);
+
+// Reducer
+const AppReducer = (state, action) => {
+    switch (action.type) {
+        case 'GET_TRANSACTIONS':
+            return {
+                ...state,
+                loading: false,
+                transactions: action.payload,
+            };
+        case 'ADD_TRANSACTION':
+            return {
+                ...state,
+                transactions: [action.payload, ...state.transactions],
+            };
+        case 'DELETE_TRANSACTION':
+            return {
+                ...state,
+                transactions: state.transactions.filter(
+                    (transaction) => transaction.id !== action.payload
+                ),
+            };
+        case 'TRANSACTION_ERROR':
+            return {
+                ...state,
+                error: action.payload,
+                loading: false
+            };
+        default:
+            return state;
+    }
+};
+
+// Provider Component
+export const GlobalProvider = ({ children }) => {
+    const [state, dispatch] = useReducer(AppReducer, initialState);
+
+    // Actions
+    async function getTransactions() {
+        try {
+            const data = await mockApi.fetchTransactions();
+            dispatch({
+                type: 'GET_TRANSACTIONS',
+                payload: data,
+            });
+        } catch (err) {
+            dispatch({
+                type: 'TRANSACTION_ERROR',
+                payload: 'Error fetching transactions',
+            });
+        }
+    }
+
+    async function addTransaction(transaction) {
+        try {
+            const data = await mockApi.addTransaction(transaction);
+            dispatch({
+                type: 'ADD_TRANSACTION',
+                payload: data,
+            });
+        } catch (err) {
+            dispatch({
+                type: 'TRANSACTION_ERROR',
+                payload: 'Error adding transaction',
+            });
+        }
+    }
+
+    async function deleteTransaction(id) {
+        try {
+            await mockApi.deleteTransaction(id);
+            dispatch({
+                type: 'DELETE_TRANSACTION',
+                payload: id,
+            });
+        } catch (err) {
+            dispatch({
+                type: 'TRANSACTION_ERROR',
+                payload: 'Error deleting transaction',
+            });
+        }
+    }
+
+    useEffect(() => {
+        getTransactions();
+    }, []);
+
+    return (
+        <GlobalContext.Provider
+            value={{
+                transactions: state.transactions,
+                error: state.error,
+                loading: state.loading,
+                getTransactions,
+                addTransaction,
+                deleteTransaction,
+            }}
+        >
+            {children}
+        </GlobalContext.Provider>
+    );
+};
+
+export const useGlobalContext = () => {
+    return useContext(GlobalContext);
+};

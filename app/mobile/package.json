@@ -8,6 +8,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "start:tunnel": "expo start --tunnel",
+    "start:offline": "expo start --offline",
     "lint": "expo lint"
   },
   "dependencies": {
