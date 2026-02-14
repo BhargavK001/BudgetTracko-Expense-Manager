@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { useRef, useState } from 'react';
-import { BsMoonStarsFill, BsBank2, BsBarChartLineFill, BsShieldLockFill, BsCloudArrowUpFill, BsBellFill, BsArrowRepeat } from 'react-icons/bs';
+import { BsMoonStarsFill, BsBank2, BsBarChartLineFill, BsShieldLockFill, BsCloudArrowUpFill, BsBellFill, BsArrowRepeat, BsAndroid, BsQuestionCircle, BsChevronDown, BsChevronUp, BsCheckCircleFill, BsXCircleFill, BsShieldCheck, BsDownload, BsEnvelope, BsArrowRightShort, BsPersonFill } from 'react-icons/bs';
 
 // ─── Animation Variants ───────────────────────────────────
 const fadeUp = {
@@ -432,6 +432,24 @@ const LandingPage = () => {
                 </div>
             </div>
 
+            {/* ─── Security Trust Bar ─── */}
+            <div className="bg-black text-white py-3 sm:py-4 border-b-4 border-white overflow-hidden">
+                <div className="max-w-7xl mx-auto px-4 flex flex-wrap justify-center gap-6 sm:gap-12 text-xs sm:text-sm font-bold uppercase tracking-widest text-center">
+                    <span className="flex items-center gap-2">
+                        <BsShieldCheck size={18} className="text-brand-yellow" />
+                        Bank-Grade Encryption
+                    </span>
+                    <span className="flex items-center gap-2">
+                        <BsShieldLockFill size={18} className="text-brand-yellow" />
+                        100% Private Data
+                    </span>
+                    <span className="flex items-center gap-2">
+                        <BsCloudArrowUpFill size={18} className="text-brand-yellow" />
+                        Automatic Backups
+                    </span>
+                </div>
+            </div>
+
             {/* ─── How it Works Section ─── */}
             <section id="how-it-works" className="py-16 sm:py-24 px-4 sm:px-6 bg-white border-b-4 border-black text-black overflow-hidden">
                 <div className="max-w-7xl mx-auto">
@@ -462,9 +480,61 @@ const LandingPage = () => {
                         viewport={{ once: true, amount: 0.2 }}
                     >
                         {[
-                            { step: '1', title: 'Sign up free', desc: 'Create your account in seconds with Google or email. No credit card required. Your data stays private and secure.' },
-                            { step: '2', title: 'Track every rupee', desc: 'Add income and expenses in one tap. Use categories like Food, Transport, and Bills so you know exactly where your money goes.' },
-                            { step: '3', title: 'See where you stand', desc: 'Check your dashboard for monthly totals, spending trends, and category breakdowns. Make better decisions with real numbers.' }
+                            {
+                                step: '1',
+                                title: 'Sign up free',
+                                desc: 'Create your account in seconds. No credit card required.',
+                                visual: (
+                                    <div className="w-full h-32 bg-brand-yellow/20 rounded-lg border-2 border-black flex items-center justify-center relative overflow-hidden">
+                                        <div className="absolute inset-x-4 top-4 bottom-0 bg-white border-x-2 border-t-2 border-black rounded-t-lg p-3">
+                                            <div className="h-2 w-1/3 bg-black/10 rounded mb-2"></div>
+                                            <div className="space-y-2">
+                                                <div className="h-8 w-full border-2 border-black rounded bg-white"></div>
+                                                <div className="h-8 w-full border-2 border-black rounded bg-black/5"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            },
+                            {
+                                step: '2',
+                                title: 'Track Money',
+                                desc: 'Add income and expenses in one tap. Categorize everything.',
+                                visual: (
+                                    <div className="w-full h-32 bg-blue-100 rounded-lg border-2 border-black flex items-center justify-center relative overflow-hidden">
+                                        <div className="absolute inset-x-6 top-6 bottom-0 bg-white border-x-2 border-t-2 border-black rounded-t-lg p-2 flex flex-col gap-2">
+                                            <div className="flex justify-between items-center bg-red-50 p-1 rounded border border-red-200">
+                                                <div className="w-8 h-8 rounded bg-red-100 flex items-center justify-center text-xs">🍔</div>
+                                                <div className="h-2 w-12 bg-red-200 rounded"></div>
+                                                <div className="h-2 w-8 bg-red-200 rounded"></div>
+                                            </div>
+                                            <div className="flex justify-between items-center bg-green-50 p-1 rounded border border-green-200">
+                                                <div className="w-8 h-8 rounded bg-green-100 flex items-center justify-center text-xs">💰</div>
+                                                <div className="h-2 w-12 bg-green-200 rounded"></div>
+                                                <div className="h-2 w-8 bg-green-200 rounded"></div>
+                                            </div>
+                                        </div>
+                                        <div className="absolute bottom-2 right-2 w-8 h-8 bg-black rounded-full text-white flex items-center justify-center font-bold">+</div>
+                                    </div>
+                                )
+                            },
+                            {
+                                step: '3',
+                                title: 'See Trends',
+                                desc: 'Check your dashboard for monthly totals. Spot bad habits fast.',
+                                visual: (
+                                    <div className="w-full h-32 bg-green-100 rounded-lg border-2 border-black flex items-center justify-center relative overflow-hidden">
+                                        <div className="absolute inset-x-4 top-4 bottom-0 bg-white border-x-2 border-t-2 border-black rounded-t-lg p-3">
+                                            <div className="flex items-end justify-between h-16 gap-1">
+                                                <div className="w-full bg-black/10 rounded-t h-40%"></div>
+                                                <div className="w-full bg-brand-yellow rounded-t h-80%"></div>
+                                                <div className="w-full bg-black/10 rounded-t h-50%"></div>
+                                                <div className="w-full bg-black/10 rounded-t h-60%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )
+                            }
                         ].map((item, idx) => (
                             <motion.div
                                 key={idx}
@@ -474,25 +544,187 @@ const LandingPage = () => {
                                 <div className="absolute inset-0 bg-black translate-x-3 translate-y-3 rounded-lg group-hover:translate-x-5 group-hover:translate-y-5 transition-all z-0" aria-hidden="true"></div>
                                 <motion.div
                                     whileHover={{ y: -8, transition: { duration: 0.3 } }}
-                                    className="relative z-10 bg-white border-3 sm:border-4 border-black p-6 sm:p-8 h-full flex flex-col justify-between rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+                                    className="relative z-10 bg-white border-3 sm:border-4 border-black p-6 h-full flex flex-col rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
                                 >
-                                    <motion.span
-                                        initial={{ scale: 0 }}
-                                        whileInView={{ scale: 1 }}
-                                        viewport={{ once: true }}
-                                        transition={{ type: 'spring', stiffness: 300, damping: 15, delay: idx * 0.2 }}
-                                        className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-black text-white text-2xl font-black mb-6"
-                                    >
-                                        {item.step}
-                                    </motion.span>
+                                    <div className="flex justify-between items-start mb-4">
+                                        <motion.span
+                                            initial={{ scale: 0 }}
+                                            whileInView={{ scale: 1 }}
+                                            viewport={{ once: true }}
+                                            transition={{ type: 'spring', stiffness: 300, damping: 15, delay: idx * 0.2 }}
+                                            className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-black text-white text-lg font-black"
+                                        >
+                                            {item.step}
+                                        </motion.span>
+                                        <div className="w-16 h-1 bg-black/10 rounded-full"></div>
+                                    </div>
+
+                                    <div className="mb-6">
+                                        {item.visual}
+                                    </div>
+
                                     <div>
-                                        <h3 className="text-2xl font-black mb-3 uppercase text-black">{item.title}</h3>
-                                        <p className="text-base font-semibold leading-relaxed text-gray-800">{item.desc}</p>
+                                        <h3 className="text-xl font-black mb-2 uppercase text-black">{item.title}</h3>
+                                        <p className="text-sm font-semibold leading-relaxed text-gray-600">{item.desc}</p>
                                     </div>
                                 </motion.div>
                             </motion.div>
                         ))}
                     </motion.div>
+                </div>
+            </section>
+
+            {/* ─── Comparison Section ─── */}
+            <section className="py-16 sm:py-24 px-4 sm:px-6 bg-gray-50 border-b-4 border-black text-black">
+                <div className="max-w-4xl mx-auto">
+                    <div className="text-center mb-12">
+                        <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter mb-4">Why Switch?</h2>
+                        <p className="text-lg font-bold text-gray-600">See how BudgetTracko stacks up against the old ways.</p>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <div className="bg-white border-4 border-black rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] min-w-[600px]">
+                            <div className="grid grid-cols-3 border-b-4 border-black bg-gray-100">
+                                <div className="p-4 sm:p-6 font-black uppercase text-sm sm:text-base text-gray-500 flex items-center">Feature</div>
+                                <div className="p-4 sm:p-6 font-black uppercase text-sm sm:text-base text-gray-400 border-l-4 border-black">Excel / Notebook</div>
+                                <div className="p-4 sm:p-6 font-black uppercase text-sm sm:text-xl text-brand-black bg-brand-yellow border-l-4 border-black flex items-center gap-2">
+                                    BudgetTracko <span className="text-[10px] bg-black text-white px-2 py-0.5 rounded-full">PRO</span>
+                                </div>
+                            </div>
+                            {[
+                                { feat: 'Automated Charts', old: false, new: true },
+                                { feat: 'Cloud Backup', old: false, new: true },
+                                { feat: 'Mobile Access', old: false, new: true },
+                                { feat: 'Recurring Expenses', old: false, new: true },
+                                { feat: 'Bank-grade Security', old: false, new: true },
+                                { feat: 'Fun to use', old: false, new: true },
+                            ].map((row, i) => (
+                                <div key={i} className={`grid grid-cols-3 ${i !== 5 ? 'border-b-2 border-gray-200' : ''}`}>
+                                    <div className="p-4 sm:p-5 font-bold text-sm sm:text-base text-gray-700 flex items-center">{row.feat}</div>
+                                    <div className="p-4 sm:p-5 border-l-4 border-black flex items-center justify-center bg-gray-50 text-gray-400">
+                                        <BsXCircleFill size={24} />
+                                    </div>
+                                    <div className="p-4 sm:p-5 border-l-4 border-black flex items-center justify-center bg-yellow-50/50 text-green-600">
+                                        <BsCheckCircleFill size={28} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ─── Mobile App Teaser (Android) ─── */}
+            <section className="py-16 sm:py-24 px-4 sm:px-6 bg-black text-white relative overflow-hidden border-b-4 border-black">
+                {/* Background pattern */}
+                <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#ffffff 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-12 sm:gap-20 relative z-10">
+                    <div className="w-full md:w-1/2 text-center md:text-left">
+                        <div className="inline-flex items-center gap-2 bg-brand-yellow text-black font-black px-4 py-1 rounded-full text-xs uppercase tracking-widest mb-6 border-2 border-white">
+                            <BsAndroid size={16} /> Android Exclusive
+                        </div>
+                        <h2 className="text-4xl sm:text-6xl font-black mb-6 uppercase tracking-tighter leading-none">
+                            Pocket-Sized<br />Powerhouse.
+                        </h2>
+                        <p className="text-lg sm:text-xl text-gray-400 mb-8 font-medium max-w-md mx-auto md:mx-0">
+                            Track expenses on the go with our native Android app. Offline mode, fingerprint lock, and instant sync.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                            <button className="bg-brand-yellow text-black px-8 py-4 rounded-xl font-black flex items-center gap-3 border-2 border-white hover:scale-105 transition-transform shadow-[4px_4px_0px_0px_#ffffff]">
+                                <BsAndroid size={24} />
+                                <div className="text-left leading-tight">
+                                    <div className="text-[10px] uppercase font-bold">Get it on</div>
+                                    <div className="text-lg font-black">Google Play</div>
+                                </div>
+                            </button>
+                            <button className="bg-transparent text-white px-8 py-4 rounded-xl font-bold border-2 border-white/30 hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+                                <BsDownload size={20} /> Download APK
+                            </button>
+                        </div>
+                    </div>
+                    <div className="w-full md:w-1/2 flex justify-center">
+                        <div className="relative w-72 h-[580px] bg-black border-8 border-gray-800 rounded-[3rem] shadow-[0_0_50px_rgba(255,215,0,0.2)]">
+                            {/* Screen */}
+                            <div className="absolute inset-2 bg-brand-yellow rounded-[2.5rem] overflow-hidden flex flex-col border-4 border-black">
+                                <div className="bg-black/10 h-6 w-full flex justify-center items-center">
+                                    <div className="w-20 h-4 bg-black rounded-b-xl"></div>
+                                </div>
+                                <div className="flex-1 p-6 flex flex-col items-center justify-center text-black">
+                                    <div className="w-16 h-16 bg-black rounded-2xl mb-4 flex items-center justify-center">
+                                        <span className="text-brand-yellow font-black text-2xl">BT</span>
+                                    </div>
+                                    <h3 className="font-black text-2xl uppercase text-center mb-2">Budget<br />Tracko</h3>
+                                    <p className="text-xs font-bold text-center mb-8 opacity-70">Mobile Edition</p>
+                                    <div className="w-full space-y-3">
+                                        <div className="h-12 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
+                                        <div className="h-12 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
+                                        <div className="h-12 bg-black text-white flex items-center justify-center font-bold border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">Login</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ─── Testimonials ─── */}
+            <section className="py-16 sm:py-24 px-4 sm:px-6 bg-white border-b-4 border-black">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-16">
+                        <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter mb-4 text-black">Student Love</h2>
+                        <p className="text-lg font-bold text-gray-600">Join 10,000+ students taking control of their finances.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {[
+                            { name: 'Priya S.', college: 'MIT Pune', quote: "I used to be broke by the 20th of every month. BudgetTracko helped me find where my money was leaking in canteen bills! 🍔" },
+                            { name: 'Rohit M.', college: 'VIT Vellore', quote: "Simple, fast, and no ads. Perfect for splitting hostel expenses and tracking lending to friends. Highly recommend! 💯" }
+                        ].map((t, i) => (
+                            <motion.div
+                                key={i}
+                                whileHover={{ y: -4, rotate: i % 2 === 0 ? -1 : 1 }}
+                                className="bg-brand-yellow p-8 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] rounded-xl relative"
+                            >
+                                <div className="w-8 h-8 bg-black absolute -top-4 -left-4 flex items-center justify-center text-white font-serif text-2xl">"</div>
+                                <p className="text-lg sm:text-xl font-bold leading-tight mb-6 text-black">{t.quote}</p>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center text-white font-black text-xl">
+                                        {t.name.charAt(0)}
+                                    </div>
+                                    <div>
+                                        <div className="font-black text-black uppercase">{t.name}</div>
+                                        <div className="text-xs font-bold text-black/60 uppercase tracking-wider">{t.college}</div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* ─── FAQ Section ─── */}
+            <section className="py-16 sm:py-24 px-4 sm:px-6 bg-gray-50 border-b-4 border-black">
+                <div className="max-w-3xl mx-auto">
+                    <h2 className="text-3xl sm:text-5xl font-black uppercase tracking-tighter mb-10 text-center text-black">FAQ</h2>
+                    <div className="space-y-4">
+                        {[
+                            { q: "Is BudgetTracko really free?", a: "Yes! Our core features are 100% free for students forever. No hidden charges." },
+                            { q: "Is my data safe?", a: "Absolutely. We use bank-grade encryption and never sell your data to advertisers. Your financial privacy is our priority." },
+                            { q: "Can I use it offline?", a: "Yes, the Android app works perfectly offline. Data syncs automatically when you're back online." },
+                        ].map((item, i) => (
+                            <details key={i} className="group bg-white border-3 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] open:bg-brand-yellow/10 transition-all">
+                                <summary className="flex justify-between items-center p-6 font-black text-lg cursor-pointer list-none">
+                                    <span className="uppercase text-black">{item.q}</span>
+                                    <span className="transition-transform group-open:rotate-180">
+                                        <BsChevronDown size={20} />
+                                    </span>
+                                </summary>
+                                <div className="px-6 pb-6 pt-0 font-medium text-gray-700 leading-relaxed">
+                                    {item.a}
+                                </div>
+                            </details>
+                        ))}
+                    </div>
                 </div>
             </section>
 
@@ -583,8 +815,25 @@ const LandingPage = () => {
                 </div>
             </section>
 
+            {/* ─── Budget Widget ─── */}
+            <section className="py-16 sm:py-20 px-4 sm:px-6 bg-white border-b-4 border-black">
+                <div className="max-w-2xl mx-auto text-center">
+                    <h3 className="text-2xl font-black uppercase mb-6">Savings Calculator</h3>
+                    <div className="bg-gray-100 p-8 rounded-2xl border-2 border-dashed border-gray-400">
+                        <p className="text-gray-500 font-bold uppercase text-xs tracking-widest mb-2">If you save just</p>
+                        <div className="text-4xl sm:text-6xl font-black text-black mb-2 animate-pulse">₹ 500</div>
+                        <p className="text-gray-500 font-bold uppercase text-xs tracking-widest mb-6">per week...</p>
+
+                        <div className="bg-white p-4 rounded-xl border-2 border-gray-200 shadow-sm">
+                            <p className="text-sm font-bold text-gray-600 mb-1">In one year, you'll have:</p>
+                            <p className="text-3xl font-black text-green-600">₹ 26,000</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* ─── Call to Action ─── */}
-            <section className="py-20 sm:py-32 px-4 sm:px-6 bg-white border-t-4 border-black text-center text-black overflow-hidden relative">
+            <section className="py-20 sm:py-32 px-4 sm:px-6 bg-white text-center text-black overflow-hidden relative">
                 {/* Floating money elements */}
                 <FloatingMoney
                     className="animate-float top-16 left-10 hidden md:block opacity-15"
@@ -632,7 +881,7 @@ const LandingPage = () => {
                 </motion.div>
             </section>
 
-            {/* ─── Footer ─── */}
+            {/* ─── Footer with Newsletter ─── */}
             <motion.footer
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 1 }}
@@ -672,6 +921,20 @@ const LandingPage = () => {
                             <li><Link to="/privacy" className="hover:text-white hover:underline decoration-brand-yellow decoration-2">Privacy Policy</Link></li>
                             <li><a href="mailto:bhargavk056@gmail.com" className="hover:text-white hover:underline decoration-brand-yellow decoration-2">Email Us</a></li>
                         </ul>
+                    </motion.div>
+                    <motion.div variants={staggerItem} className="col-span-2 md:col-span-1">
+                        <h4 className="font-bold text-xl mb-6 uppercase tracking-wider text-brand-yellow">Stay Updated</h4>
+                        <div className="relative">
+                            <input
+                                type="email"
+                                placeholder="Enter email..."
+                                className="w-full bg-white/10 border-2 border-white/20 p-3 rounded text-sm text-white focus:outline-none focus:border-brand-yellow"
+                            />
+                            <button className="absolute right-2 top-2 p-1 bg-brand-yellow text-black rounded hover:bg-white transition-colors">
+                                <BsArrowRightShort size={20} />
+                            </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">Get tips on saving money. No spam.</p>
                     </motion.div>
                 </motion.div>
                 <div className="max-w-7xl mx-auto mt-10 sm:mt-16 pt-6 sm:pt-8 border-t border-gray-800 flex flex-col sm:flex-row justify-between items-center gap-4 text-gray-500 text-xs sm:text-sm">
