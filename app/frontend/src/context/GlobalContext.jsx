@@ -33,6 +33,13 @@ const AppReducer = (state, action) => {
                     (transaction) => transaction.id !== action.payload
                 ),
             };
+        case 'UPDATE_TRANSACTION':
+            return {
+                ...state,
+                transactions: state.transactions.map(
+                    (transaction) => transaction.id === action.payload.id ? action.payload : transaction
+                ),
+            };
         case 'TRANSACTION_ERROR':
             return {
                 ...state,
@@ -99,6 +106,23 @@ export const GlobalProvider = ({ children }) => {
         }
     }
 
+    async function updateTransaction(transaction) {
+        try {
+            const data = await mockApi.updateTransaction(transaction);
+            dispatch({
+                type: 'UPDATE_TRANSACTION',
+                payload: data,
+            });
+            toast.success('Transaction updated successfully');
+        } catch (err) {
+            toast.error('Failed to update transaction');
+            dispatch({
+                type: 'TRANSACTION_ERROR',
+                payload: 'Error updating transaction',
+            });
+        }
+    }
+
     useEffect(() => {
         getTransactions();
     }, []);
@@ -112,6 +136,7 @@ export const GlobalProvider = ({ children }) => {
                 getTransactions,
                 addTransaction,
                 deleteTransaction,
+                updateTransaction
             }}
         >
             {children}

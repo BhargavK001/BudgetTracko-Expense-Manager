@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Enable class-based dark mode (ThemeContext adds .dark to <html>) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary: #007AFF;
   --color-secondary: #666666;
@@ -7,27 +10,34 @@
   --color-danger: #F44336;
   --color-warning: #FFC107;
   --color-info: #2196F3;
-  --color-light-bg: #FFFFFF;
-  --color-light-card: #F5F5F5;
-  --color-light-text: #333333;
+  --color-light-bg: #f5f5f0;
+  --color-light-card: #FFFFFF;
+  --color-light-text: #1a1a1a;
   --color-light-text-secondary: #666666;
-  --color-dark-bg: #121212;
-  --color-dark-card: #1E1E1E;
-  --color-dark-text: #FFFFFF;
-  --color-dark-text-secondary: #B0B0B0;
-  --color-brand-yellow: #FFD700;
+  --color-dark-bg: #0d0d0d;
+  --color-dark-card: #1a1a1a;
+  --color-dark-text: #f5f5f5;
+  --color-dark-text-secondary: #a0a0a0;
+  --color-brand-yellow: #facc15;
+  --color-brand-lime: #a3e635;
   --color-brand-black: #1a1a1a;
+  --color-brand-violet: #a78bfa;
+  --color-brand-pink: #f472b6;
 }
 
 @layer base {
   body {
-    @apply bg-light-bg text-light-text dark:bg-dark-bg dark:text-dark-text transition-colors duration-200;
+    @apply bg-light-bg text-light-text dark:bg-dark-bg dark:text-dark-text transition-colors duration-300;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  ::selection {
+    @apply bg-brand-yellow text-brand-black;
   }
 }
 
-/* ─── Keyframe Animations ─────────────────────────────────── */
+/* ─── Keyframe Animations ─── */
 
-/* Infinite horizontal marquee scroll */
 @keyframes marquee {
   0% {
     transform: translateX(0);
@@ -38,16 +48,15 @@
   }
 }
 
-/* Gentle floating up and down */
 @keyframes float {
 
   0%,
   100% {
-    transform: translateY(0px) rotate(0deg);
+    transform: translateY(0px);
   }
 
   50% {
-    transform: translateY(-20px) rotate(3deg);
+    transform: translateY(-12px);
   }
 }
 
@@ -55,15 +64,14 @@
 
   0%,
   100% {
-    transform: translateY(0px) rotate(0deg);
+    transform: translateY(0px);
   }
 
   50% {
-    transform: translateY(20px) rotate(-3deg);
+    transform: translateY(12px);
   }
 }
 
-/* Slow rotation for decorative shapes */
 @keyframes spin-slow {
   from {
     transform: rotate(0deg);
@@ -74,20 +82,18 @@
   }
 }
 
-/* Pulsing glow for CTA buttons */
 @keyframes pulse-glow {
 
   0%,
   100% {
-    box-shadow: 0 0 5px rgba(255, 215, 0, 0.3), 0 0 15px rgba(255, 215, 0, 0.1);
+    box-shadow: 0 0 5px rgba(250, 204, 21, 0.3);
   }
 
   50% {
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.6), 0 0 40px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 0 25px rgba(250, 204, 21, 0.5);
   }
 }
 
-/* Gradient background shift */
 @keyframes gradient-shift {
   0% {
     background-position: 0% 50%;
@@ -102,57 +108,158 @@
   }
 }
 
-/* Scale ping for badges */
-@keyframes ping-soft {
+@keyframes slide-up-fade {
   0% {
-    transform: scale(1);
-    opacity: 1;
+    opacity: 0;
+    transform: translateY(20px);
   }
 
-  75%,
   100% {
-    transform: scale(1.15);
-    opacity: 0;
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-/* ─── Utility Classes ─────────────────────────────────────── */
+/* ─── Custom Utilities (Tailwind v4 @utility) ─── */
 
-@layer utilities {
-  .text-shadow-black {
-    text-shadow: 4px 4px 0px #000000;
-  }
+@utility text-shadow-black {
+  text-shadow: 3px 3px 0px #000000;
+}
 
-  .text-shadow-black-sm {
-    text-shadow: 2px 2px 0px #000000;
-  }
+@utility animate-marquee {
+  animation: marquee 25s linear infinite;
+}
 
-  .animate-marquee {
-    animation: marquee 25s linear infinite;
-  }
+@utility animate-float {
+  animation: float 6s ease-in-out infinite;
+}
 
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
+@utility animate-float-reverse {
+  animation: float-reverse 7s ease-in-out infinite;
+}
 
-  .animate-float-reverse {
-    animation: float-reverse 7s ease-in-out infinite;
-  }
+@utility animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
 
-  .animate-float-slow {
-    animation: float 8s ease-in-out infinite;
-  }
+@utility animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
 
-  .animate-spin-slow {
-    animation: spin-slow 20s linear infinite;
-  }
+@utility animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
 
-  .animate-pulse-glow {
-    animation: pulse-glow 2s ease-in-out infinite;
-  }
+@utility animate-slide-up {
+  animation: slide-up-fade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 
-  .animate-gradient {
-    background-size: 200% 200%;
-    animation: gradient-shift 8s ease infinite;
-  }
+@utility neo-shadow {
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+
+@utility neo-shadow-sm {
+  box-shadow: 2px 2px 0px 0px #000000;
+}
+
+@utility neo-shadow-lg {
+  box-shadow: 8px 8px 0px 0px #000000;
+}
+
+/* ─── Component-level (plain CSS, dark-mode aware) ─── */
+
+.neo-card {
+  background-color: #FFFFFF;
+  border: 2px solid #1a1a1a;
+  border-radius: 1rem;
+  transition: all 0.25s ease;
+  box-shadow: 4px 4px 0px 0px #1a1a1a;
+}
+
+html.dark .neo-card {
+  background-color: #1a1a1a;
+  border-color: #333;
+  box-shadow: 4px 4px 0px 0px #333;
+}
+
+.neo-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px #1a1a1a;
+}
+
+html.dark .neo-card:hover {
+  box-shadow: 6px 6px 0px 0px #444;
+}
+
+.neo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-weight: 800;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 2px solid #1a1a1a;
+  border-radius: 0.75rem;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.neo-btn-primary {
+  background-color: #facc15;
+  color: #1a1a1a;
+  box-shadow: 3px 3px 0px 0px #1a1a1a;
+}
+
+.neo-btn-primary:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px 0px #1a1a1a;
+}
+
+.neo-btn-primary:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px 0px #1a1a1a;
+}
+
+.neo-btn-dark {
+  background-color: #1a1a1a;
+  color: #facc15;
+  box-shadow: 3px 3px 0px 0px #333;
+}
+
+html.dark .neo-btn-dark {
+  background-color: #facc15;
+  color: #1a1a1a;
+}
+
+.glass-panel {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  background-color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+html.dark .glass-panel {
+  background-color: rgba(20, 20, 20, 0.7);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 999px;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #444;
 }

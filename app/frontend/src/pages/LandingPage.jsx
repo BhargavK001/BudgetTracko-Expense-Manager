@@ -144,6 +144,7 @@ const LandingPage = () => {
     const { theme } = useTheme();
     const heroRef = useRef(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [savingsAmount, setSavingsAmount] = useState(500);
     const { scrollYProgress } = useScroll({
         target: heroRef,
         offset: ['start start', 'end start'],
@@ -523,14 +524,42 @@ const LandingPage = () => {
                                 title: 'See Trends',
                                 desc: 'Check your dashboard for monthly totals. Spot bad habits fast.',
                                 visual: (
-                                    <div className="w-full h-32 bg-green-100 rounded-lg border-2 border-black flex items-center justify-center relative overflow-hidden">
-                                        <div className="absolute inset-x-4 top-4 bottom-0 bg-white border-x-2 border-t-2 border-black rounded-t-lg p-3">
-                                            <div className="flex items-end justify-between h-16 gap-1">
-                                                <div className="w-full bg-black/10 rounded-t h-40%"></div>
-                                                <div className="w-full bg-brand-yellow rounded-t h-80%"></div>
-                                                <div className="w-full bg-black/10 rounded-t h-50%"></div>
-                                                <div className="w-full bg-black/10 rounded-t h-60%"></div>
-                                            </div>
+                                    <div className="w-full h-32 bg-white rounded-lg border-2 border-black flex items-center justify-center relative overflow-hidden">
+                                        {/* Trend Line Visual */}
+                                        <div className="absolute inset-x-0 bottom-0 top-0 p-4 flex items-end">
+                                            <svg viewBox="0 0 100 40" className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                                                <defs>
+                                                    <linearGradient id="trendGradientSmall" x1="0%" y1="0%" x2="0%" y2="100%">
+                                                        <stop offset="0%" stopColor="#22c55e" stopOpacity="0.2" />
+                                                        <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
+                                                    </linearGradient>
+                                                </defs>
+                                                {/* Grid lines */}
+                                                <line x1="0" y1="10" x2="100" y2="10" stroke="#f0f0f0" strokeWidth="0.5" />
+                                                <line x1="0" y1="20" x2="100" y2="20" stroke="#f0f0f0" strokeWidth="0.5" />
+                                                <line x1="0" y1="30" x2="100" y2="30" stroke="#f0f0f0" strokeWidth="0.5" />
+
+                                                {/* The Trend Line */}
+                                                <path
+                                                    d="M 0 35 Q 20 30, 40 25 T 70 15 T 100 5"
+                                                    fill="none"
+                                                    stroke="#16a34a"
+                                                    strokeWidth="3"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                />
+                                                <path
+                                                    d="M 0 35 Q 20 30, 40 25 T 70 15 T 100 5 L 100 40 L 0 40 Z"
+                                                    fill="url(#trendGradientSmall)"
+                                                    stroke="none"
+                                                />
+
+                                                {/* Data Points */}
+                                                <circle cx="0" cy="35" r="2" fill="#16a34a" />
+                                                <circle cx="40" cy="25" r="2" fill="#16a34a" />
+                                                <circle cx="70" cy="15" r="2" fill="#16a34a" />
+                                                <circle cx="100" cy="5" r="2" fill="#16a34a" />
+                                            </svg>
                                         </div>
                                     </div>
                                 )
@@ -657,8 +686,12 @@ const LandingPage = () => {
                                     <h3 className="font-black text-2xl uppercase text-center mb-2">Budget<br />Tracko</h3>
                                     <p className="text-xs font-bold text-center mb-8 opacity-70">Mobile Edition</p>
                                     <div className="w-full space-y-3">
-                                        <div className="h-12 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
-                                        <div className="h-12 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"></div>
+                                        <div className="h-12 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center px-3">
+                                            <span className="text-gray-400 text-xs font-bold">Email</span>
+                                        </div>
+                                        <div className="h-12 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] flex items-center px-3">
+                                            <span className="text-gray-400 text-xs font-bold">Password</span>
+                                        </div>
                                         <div className="h-12 bg-black text-white flex items-center justify-center font-bold border-2 border-black rounded-xl shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">Login</div>
                                     </div>
                                 </div>
@@ -820,13 +853,35 @@ const LandingPage = () => {
                 <div className="max-w-2xl mx-auto text-center">
                     <h3 className="text-2xl font-black uppercase mb-6">Savings Calculator</h3>
                     <div className="bg-gray-100 p-8 rounded-2xl border-2 border-dashed border-gray-400">
-                        <p className="text-gray-500 font-bold uppercase text-xs tracking-widest mb-2">If you save just</p>
-                        <div className="text-4xl sm:text-6xl font-black text-black mb-2 animate-pulse">₹ 500</div>
-                        <p className="text-gray-500 font-bold uppercase text-xs tracking-widest mb-6">per week...</p>
+                        <p className="text-gray-500 font-bold uppercase text-xs tracking-widest mb-4">If you save just</p>
 
-                        <div className="bg-white p-4 rounded-xl border-2 border-gray-200 shadow-sm">
-                            <p className="text-sm font-bold text-gray-600 mb-1">In one year, you'll have:</p>
-                            <p className="text-3xl font-black text-green-600">₹ 26,000</p>
+                        <div className="relative mb-8">
+                            <div className="text-5xl sm:text-7xl font-black text-black mb-4">
+                                ₹ <span className="tabular-nums">{savingsAmount}</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="100"
+                                max="5000"
+                                step="100"
+                                value={savingsAmount}
+                                onChange={(e) => setSavingsAmount(Number(e.target.value))}
+                                className="w-full max-w-sm h-3 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-black hover:accent-brand-yellow transition-all"
+                            />
+                        </div>
+
+                        <p className="text-gray-500 font-bold uppercase text-xs tracking-widest mb-8">per week...</p>
+
+                        <div className="bg-white p-6 rounded-xl border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] transform rotate-1 transition-transform hover:rotate-0">
+                            <p className="text-sm font-bold text-gray-600 mb-2 uppercase tracking-wide">In one year, you'll have:</p>
+                            <motion.p
+                                key={savingsAmount}
+                                initial={{ scale: 1.2, color: '#16a34a' }}
+                                animate={{ scale: 1, color: '#000000' }}
+                                className="text-4xl sm:text-5xl font-black text-black tabular-nums"
+                            >
+                                ₹ {(savingsAmount * 52).toLocaleString('en-IN')}
+                            </motion.p>
                         </div>
                     </div>
                 </div>

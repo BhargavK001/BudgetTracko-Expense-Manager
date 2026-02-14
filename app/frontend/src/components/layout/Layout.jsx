@@ -1,93 +1,185 @@
 import { useTheme } from '../../context/ThemeContext';
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+    BsGrid1X2Fill,
+    BsCreditCardFill,
+    BsMoonStarsFill,
+    BsSunFill,
+    BsGearFill,
+    BsGraphUp,
+    BsPiggyBank,
+    BsWallet2,
+} from 'react-icons/bs';
+
+const navItems = [
+    { to: '/dashboard', icon: BsGrid1X2Fill, label: 'Dashboard' },
+    { to: '/analytics', icon: BsGraphUp, label: 'Analytics' },
+    { to: '/transactions', icon: BsCreditCardFill, label: 'Transactions' },
+    { to: '/budgets', icon: BsPiggyBank, label: 'Budgets' },
+    { to: '/accounts', icon: BsWallet2, label: 'Accounts' },
+    { to: '/settings', icon: BsGearFill, label: 'Settings' },
+];
+
+const SidebarItem = ({ to, icon: Icon, label, isActive }) => (
+    <Link to={to} className="w-full block">
+        <motion.div
+            whileHover={{ x: 4 }}
+            whileTap={{ scale: 0.97 }}
+            className={`flex items-center gap-3.5 px-4 py-3 rounded-xl font-bold text-sm transition-all duration-200 ${isActive
+                ? 'bg-brand-yellow text-brand-black border-2 border-brand-black neo-shadow-sm'
+                : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'
+                }`}
+        >
+            <Icon size={18} />
+            <span>{label}</span>
+        </motion.div>
+    </Link>
+);
+
+const MobileNavItem = ({ to, icon: Icon, label, isActive }) => (
+    <Link to={to} className="flex-1">
+        <motion.div
+            whileTap={{ scale: 0.9 }}
+            className="flex flex-col items-center justify-center py-2"
+        >
+            <motion.div
+                animate={isActive ? { y: -2, scale: 1.15 } : { y: 0, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                className={`p-2.5 rounded-xl transition-colors duration-200 ${isActive
+                    ? 'bg-brand-yellow text-brand-black border-2 border-brand-black neo-shadow-sm'
+                    : 'text-light-text-secondary dark:text-dark-text-secondary'
+                    }`}
+            >
+                <Icon size={18} />
+            </motion.div>
+            <span className={`text-[10px] font-bold mt-1 uppercase tracking-wider ${isActive ? 'text-brand-black dark:text-brand-yellow' : 'text-light-text-secondary dark:text-dark-text-secondary'
+                }`}>{label}</span>
+        </motion.div>
+    </Link>
+);
 
 const Layout = () => {
     const { theme, toggleTheme } = useTheme();
     const location = useLocation();
 
     return (
-        <div className="min-h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-200 font-sans">
-            {/* Animated Header */}
-            <motion.header
-                initial={{ y: -60, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-white dark:bg-dark-card shadow-sm"
-            >
-                <motion.h1
-                    whileHover={{ scale: 1.05 }}
-                    className="text-lg sm:text-xl font-bold text-primary"
-                >
-                    <Link to="/dashboard">BudgetTracko</Link>
-                </motion.h1>
-                <div className="flex items-center gap-3 sm:gap-6">
-                    {/* Desktop nav links */}
-                    <nav className="hidden sm:flex gap-4">
-                        <Link to="/dashboard">
-                            <motion.span
-                                whileHover={{ y: -2, color: '#007AFF' }}
-                                className={`inline-block transition ${location.pathname === '/dashboard' ? 'text-primary font-bold' : 'text-gray-600 dark:text-gray-300'}`}
-                            >
-                                Dashboard
-                            </motion.span>
-                        </Link>
-                        <Link to="/transactions">
-                            <motion.span
-                                whileHover={{ y: -2, color: '#007AFF' }}
-                                className={`inline-block transition ${location.pathname === '/transactions' ? 'text-primary font-bold' : 'text-gray-600 dark:text-gray-300'}`}
-                            >
-                                Transactions
-                            </motion.span>
-                        </Link>
-                    </nav>
-                    <motion.button
-                        whileHover={{ scale: 1.1, rotate: 15 }}
-                        whileTap={{ scale: 0.9, rotate: -15 }}
-                        onClick={toggleTheme}
-                        className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition text-sm sm:text-base"
-                    >
-                        {theme === 'light' ? '🌙' : '☀️'}
-                    </motion.button>
-                </div>
-            </motion.header>
+        <div className="min-h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-300">
 
-            <main className="container mx-auto p-3 sm:p-4 pb-20 sm:pb-4">
-                <Outlet />
+            {/* ─── Desktop Sidebar ─── */}
+            <aside className="hidden lg:flex flex-col w-60 fixed left-0 top-0 bottom-0 bg-light-card dark:bg-dark-card border-r-2 border-brand-black dark:border-gray-800 z-50 p-5">
+                {/* Logo */}
+                <div className="mb-8 pl-1">
+                    <Link to="/dashboard">
+                        <motion.div
+                            whileHover={{ scale: 1.05, rotate: -1 }}
+                            className="text-xl font-black tracking-tighter flex items-center gap-1 cursor-pointer"
+                        >
+                            <span className="text-brand-black dark:text-white transition-colors">BUDGET</span>
+                            <motion.span
+                                whileHover={{ rotate: 2 }}
+                                className="text-white bg-black dark:bg-white dark:text-black px-1 transform -rotate-2 border-2 border-black dark:border-white transition-colors"
+                            >
+                                TRACKO
+                            </motion.span>
+                        </motion.div>
+                    </Link>
+                </div>
+
+                {/* Nav */}
+                <nav className="flex-1 space-y-1.5">
+                    {navItems.map(item => (
+                        <SidebarItem
+                            key={item.to}
+                            {...item}
+                            isActive={location.pathname === item.to}
+                        />
+                    ))}
+                </nav>
+
+                {/* Footer */}
+                <div className="mt-auto pt-5 border-t-2 border-gray-200 dark:border-gray-800 space-y-3">
+                    <button
+                        onClick={toggleTheme}
+                        className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors font-bold text-sm"
+                    >
+                        {theme === 'light' ? <BsMoonStarsFill size={16} /> : <BsSunFill size={16} />}
+                        <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+                    </button>
+
+                    <div className="flex items-center gap-3 px-3 py-3 bg-brand-yellow border-2 border-brand-black rounded-xl neo-shadow-sm cursor-pointer hover:translate-x-[-1px] hover:translate-y-[-1px] transition-transform">
+                        <img
+                            src="https://ui-avatars.com/api/?name=Student&background=1a1a1a&color=facc15&bold=true&format=svg"
+                            alt="Profile"
+                            className="w-8 h-8 rounded-full border-2 border-brand-black"
+                        />
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-black truncate text-brand-black">Student</p>
+                            <p className="text-[11px] font-bold opacity-60 truncate text-brand-black">Free Plan</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            {/* ─── Mobile Top Bar ─── */}
+            <header className="lg:hidden fixed top-0 left-0 right-0 z-40 glass-panel border-b-2 border-brand-black dark:border-gray-800 px-4 py-3 flex justify-between items-center">
+                <Link to="/dashboard">
+                    <motion.div
+                        className="text-lg font-black tracking-tighter flex items-center gap-1"
+                    >
+                        <span className="text-brand-black dark:text-white transition-colors">BUDGET</span>
+                        <motion.span
+                            className="text-white bg-black dark:bg-white dark:text-black px-1 transform -rotate-2 border-2 border-black dark:border-white transition-colors"
+                        >
+                            TRACKO
+                        </motion.span>
+                    </motion.div>
+                </Link>
+                <div className="flex items-center gap-2">
+                    <motion.button
+                        whileTap={{ scale: 0.85, rotate: 15 }}
+                        onClick={toggleTheme}
+                        className="p-2.5 rounded-xl bg-light-card dark:bg-dark-card border-2 border-brand-black dark:border-gray-700 neo-shadow-sm"
+                    >
+                        {theme === 'light' ? <BsMoonStarsFill size={14} /> : <BsSunFill size={14} className="text-brand-yellow" />}
+                    </motion.button>
+                    <Link to="/settings">
+                        <img
+                            src="https://ui-avatars.com/api/?name=Student&background=1a1a1a&color=facc15&bold=true&format=svg"
+                            alt="Profile"
+                            className="w-8 h-8 rounded-full border-2 border-brand-black"
+                        />
+                    </Link>
+                </div>
+            </header>
+
+            {/* ─── Main Content ─── */}
+            <main className="lg:pl-60 pt-[68px] lg:pt-0 min-h-screen pb-28 lg:pb-8">
+                <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={location.pathname}
+                            initial={{ opacity: 0, y: 16, filter: 'blur(6px)' }}
+                            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                            exit={{ opacity: 0, y: -16, filter: 'blur(6px)' }}
+                            transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }}
+                        >
+                            <Outlet />
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
             </main>
 
-            {/* Mobile bottom navigation */}
-            <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-dark-card border-t border-gray-200 dark:border-gray-700 z-50 shadow-lg">
-                <div className="flex justify-around items-center py-2">
-                    <Link to="/dashboard" className="flex flex-col items-center gap-0.5 py-1 px-3">
-                        <motion.div
-                            whileTap={{ scale: 0.9 }}
-                            className={`text-2xl ${location.pathname === '/dashboard' ? 'text-primary' : 'text-gray-400 dark:text-gray-500'}`}
-                        >
-                            📊
-                        </motion.div>
-                        <span className={`text-[10px] font-semibold ${location.pathname === '/dashboard' ? 'text-primary' : 'text-gray-400 dark:text-gray-500'}`}>Dashboard</span>
-                    </Link>
-                    <Link to="/transactions" className="flex flex-col items-center gap-0.5 py-1 px-3">
-                        <motion.div
-                            whileTap={{ scale: 0.9 }}
-                            className={`text-2xl ${location.pathname === '/transactions' ? 'text-primary' : 'text-gray-400 dark:text-gray-500'}`}
-                        >
-                            💳
-                        </motion.div>
-                        <span className={`text-[10px] font-semibold ${location.pathname === '/transactions' ? 'text-primary' : 'text-gray-400 dark:text-gray-500'}`}>Transactions</span>
-                    </Link>
-                </div>
+            {/* ─── Mobile Bottom Dock ─── */}
+            <nav className="lg:hidden fixed bottom-4 left-3 right-3 bg-light-card dark:bg-dark-card border-2 border-brand-black dark:border-gray-700 rounded-2xl neo-shadow z-50 px-2 py-1 flex justify-around items-center">
+                {navItems.slice(0, 5).map(item => (
+                    <MobileNavItem
+                        key={item.to}
+                        {...item}
+                        isActive={location.pathname === item.to}
+                    />
+                ))}
             </nav>
-
-            <motion.footer
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="hidden sm:block p-4 text-center text-sm text-gray-500 dark:text-gray-400 mt-8 border-t border-gray-200 dark:border-gray-700"
-            >
-                &copy; {new Date().getFullYear()} BudgetTracko. All rights reserved.
-            </motion.footer>
         </div>
     );
 };

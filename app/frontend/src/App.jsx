@@ -6,6 +6,10 @@ import { Toaster } from 'sonner';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
+import Analytics from './pages/Analytics';
+import Budgets from './pages/Budgets';
+import Accounts from './pages/Accounts';
+import Settings from './pages/Settings';
 
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
@@ -16,6 +20,8 @@ import About from './pages/About';
 import Privacy from './pages/Privacy';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
+import AuthCallback from './pages/AuthCallback';
+import NotFound from './pages/NotFound';
 
 // Page transition variants
 const pageVariants = {
@@ -71,12 +77,19 @@ const AnimatedRoutes = () => {
         <Route path="/privacy" element={<PageTransition><Privacy /></PageTransition>} />
         <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
         <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+        <Route path="/auth/callback" element={<PageTransition><AuthCallback /></PageTransition>} />
 
         <Route path="/" element={<Layout />}>
           <Route path="dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
           <Route path="transactions" element={<PageTransition><Transactions /></PageTransition>} />
+          <Route path="analytics" element={<PageTransition><Analytics /></PageTransition>} />
+          <Route path="budgets" element={<PageTransition><Budgets /></PageTransition>} />
+          <Route path="accounts" element={<PageTransition><Accounts /></PageTransition>} />
+          <Route path="settings" element={<PageTransition><Settings /></PageTransition>} />
           {/* Add more routes here */}
         </Route>
+
+        <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>
   );
