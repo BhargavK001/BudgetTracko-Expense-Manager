@@ -1,9 +1,12 @@
-
 import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, useScroll, useTransform, AnimatePresence, useSpring, useInView } from 'framer-motion';
 import { useRef, useState } from 'react';
 import { BsMoonStarsFill, BsBank2, BsBarChartLineFill, BsShieldLockFill, BsCloudArrowUpFill, BsBellFill, BsArrowRepeat, BsAndroid, BsQuestionCircle, BsChevronDown, BsChevronUp, BsCheckCircleFill, BsXCircleFill, BsShieldCheck, BsDownload, BsEnvelope, BsArrowRightShort, BsPersonFill } from 'react-icons/bs';
+import { FaChartLine, FaShieldAlt, FaMobileAlt, FaWallet, FaPiggyBank, FaExchangeAlt, FaArrowRight, FaCheck, FaStar, FaQuoteLeft, FaQuestionCircle, FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
+import { SiMongodb, SiExpress, SiReact, SiNodedotjs, SiTailwindcss, SiFramer } from 'react-icons/si';
+import SEO from '../components/common/SEO';
 
 // ─── Animation Variants ───────────────────────────────────
 const fadeUp = {
@@ -154,6 +157,10 @@ const LandingPage = () => {
 
     return (
         <div className="min-h-screen bg-brand-yellow font-sans text-brand-black flex flex-col selection:bg-black selection:text-brand-yellow dark:bg-brand-yellow dark:text-brand-black overflow-hidden">
+            <SEO
+                title="BudgetTracko - Smart Expense Manager"
+                description="Take control of your finances with BudgetTracko. Track expenses, set budgets, and achieve your financial goals with our intuitive and powerful expense manager."
+            />
             {/* Navigation */}
             <motion.nav
                 initial={{ y: -80, opacity: 0 }}

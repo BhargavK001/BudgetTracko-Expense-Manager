@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BsMoonStars, BsSun, BsPerson, BsShieldLock, BsBell, BsCloudDownload, BsTrash, BsInfoCircle, BsChevronRight, BsToggleOn, BsToggleOff } from 'react-icons/bs';
 import { toast } from 'sonner';
+import SEO from '../components/common/SEO';
 
 import ProfileModal from '../components/ProfileModal';
 import SecurityModal from '../components/SecurityModal';
@@ -40,24 +41,24 @@ const Settings = () => {
     };
 
     const Section = ({ title, children }) => (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="neo-card p-5 mb-5">
-            <h3 className="text-sm font-black uppercase tracking-wider text-gray-400 mb-4">{title}</h3>
-            <div className="space-y-4">{children}</div>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="neo-card p-3 sm:p-5 mb-4 sm:mb-5">
+            <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-400 mb-3 sm:mb-4">{title}</h3>
+            <div className="space-y-2 sm:space-y-4">{children}</div>
         </motion.div>
     );
 
     const SettingItem = ({ icon: Icon, title, desc, action, danger }) => (
-        <div className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer" onClick={typeof action === 'function' ? action : undefined}>
-            <div className="flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg ${danger ? 'bg-red-100 dark:bg-red-900/20 text-red-500' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
-                    <Icon size={18} />
+        <div className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer gap-3" onClick={typeof action === 'function' ? action : undefined}>
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className={`w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-lg flex items-center justify-center text-base sm:text-lg ${danger ? 'bg-red-100 dark:bg-red-900/20 text-red-500' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+                    <Icon size={16} />
                 </div>
-                <div>
-                    <h4 className={`font-bold text-sm ${danger ? 'text-red-500' : ''}`}>{title}</h4>
-                    {desc && <p className="text-xs font-medium text-gray-500">{desc}</p>}
+                <div className="min-w-0">
+                    <h4 className={`font-bold text-xs sm:text-sm ${danger ? 'text-red-500' : ''}`}>{title}</h4>
+                    {desc && <p className="text-[10px] sm:text-xs font-medium text-gray-500 truncate">{desc}</p>}
                 </div>
             </div>
-            <div className="text-gray-400">
+            <div className="text-gray-400 shrink-0">
                 {/* Fixed: If action is valid React element, render it. Else render Chevron */}
                 {action && typeof action !== 'function' ? action : <BsChevronRight />}
             </div>
@@ -71,10 +72,15 @@ const Settings = () => {
                 {isSecurityOpen && <SecurityModal onClose={() => setIsSecurityOpen(false)} />}
             </AnimatePresence>
 
+            <SEO
+                title="Settings | BudgetTracko"
+                description="Configure your application preferences, profile, and security settings."
+            />
+
             {/* Header */}
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-                <h2 className="text-3xl font-black uppercase tracking-tight">Settings</h2>
-                <p className="text-light-text-secondary dark:text-dark-text-secondary font-semibold text-sm">Preferences & Control</p>
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-5 sm:mb-8">
+                <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">Settings</h2>
+                <p className="text-light-text-secondary dark:text-dark-text-secondary font-semibold text-xs sm:text-sm">Preferences & Control</p>
             </motion.div>
 
             <Section title="Account">

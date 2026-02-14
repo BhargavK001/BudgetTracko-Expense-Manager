@@ -61,17 +61,17 @@ const TransactionForm = ({ onClose, initialData }) => {
     const labelClass = "block text-[11px] font-black uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1";
 
     return (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-4">
             {/* Type Toggle */}
-            <div className="flex gap-3 mb-4">
-                <label className={`flex-1 cursor-pointer p-3 text-center rounded-xl border-2 font-bold text-sm transition-all ${type === 'income'
+            <div className="flex gap-2 sm:gap-3 mb-3 sm:mb-4">
+                <label className={`flex-1 cursor-pointer p-2.5 sm:p-3 text-center rounded-xl border-2 font-bold text-xs sm:text-sm transition-all ${type === 'income'
                     ? 'bg-green-100 dark:bg-green-900/30 border-green-500 text-green-700 dark:text-green-400 neo-shadow-sm'
                     : 'border-gray-200 dark:border-gray-700 text-light-text-secondary dark:text-dark-text-secondary hover:border-gray-400'
                     }`}>
                     <input type="radio" value="income" {...register('type', { required: 'Type is required' })} className="hidden" />
                     💰 Income
                 </label>
-                <label className={`flex-1 cursor-pointer p-3 text-center rounded-xl border-2 font-bold text-sm transition-all ${type === 'expense'
+                <label className={`flex-1 cursor-pointer p-2.5 sm:p-3 text-center rounded-xl border-2 font-bold text-xs sm:text-sm transition-all ${type === 'expense'
                     ? 'bg-red-100 dark:bg-red-900/30 border-red-500 text-red-700 dark:text-red-400 neo-shadow-sm'
                     : 'border-gray-200 dark:border-gray-700 text-light-text-secondary dark:text-dark-text-secondary hover:border-gray-400'
                     }`}>
@@ -93,7 +93,7 @@ const TransactionForm = ({ onClose, initialData }) => {
             </div>
 
             {/* Category & Amount Row */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                     <label className={labelClass}>Category</label>
                     <select
@@ -121,7 +121,7 @@ const TransactionForm = ({ onClose, initialData }) => {
             </div>
 
             {/* Date & Payment Mode */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                     <label className={labelClass}>Date</label>
                     <input
@@ -169,11 +169,11 @@ const TransactionForm = ({ onClose, initialData }) => {
             {/* Submit */}
             <button
                 type="submit"
-                className={`w-full p-3 rounded-xl font-black text-sm uppercase tracking-wider border-2 border-brand-black transition-all ${type === 'income'
+                className={`w-full p-2.5 sm:p-3 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider border-2 border-brand-black transition-all ${type === 'income'
                     ? 'bg-green-500 text-white hover:bg-green-600'
                     : 'bg-red-500 text-white hover:bg-red-600'
                     }`}
-                style={{ boxShadow: '4px 4px 0px 0px #1a1a1a' }}
+                style={{ boxShadow: '3px 3px 0px 0px #1a1a1a' }}
             >
                 {initialData ? (type === 'income' ? 'Update Income' : 'Update Expense') : (type === 'income' ? '+ Add Income' : '+ Add Expense')}
             </button>

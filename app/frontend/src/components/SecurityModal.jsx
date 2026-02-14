@@ -24,22 +24,22 @@ const SecurityModal = ({ onClose }) => {
     return (
         <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm"
         >
             <motion.div
-                initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
-                className="w-full max-w-md bg-white dark:bg-dark-card rounded-2xl p-6 shadow-2xl border-2 border-brand-black dark:border-gray-700 relative"
+                initial={{ scale: 0.95, y: 30 }} animate={{ scale: 1, y: 0 }}
+                className="w-full sm:max-w-md bg-white dark:bg-dark-card rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 shadow-2xl border-2 border-brand-black dark:border-gray-700 relative max-h-[92vh] sm:max-h-[85vh] overflow-y-auto"
             >
                 <button onClick={onClose} className="absolute top-4 right-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                     <BsX size={24} />
                 </button>
 
-                <div className="text-center mb-6">
-                    <div className="w-16 h-16 mx-auto bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center text-2xl text-brand-primary mb-3">
+                <div className="text-center mb-5 sm:mb-6">
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center text-xl sm:text-2xl text-brand-primary mb-2 sm:mb-3">
                         <BsShieldLock />
                     </div>
-                    <h3 className="text-xl font-black uppercase tracking-tight">Security</h3>
-                    <p className="text-sm text-gray-500 font-medium">Update your password</p>
+                    <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight">Security</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 font-medium">Update your password</p>
                 </div>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

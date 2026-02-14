@@ -29,10 +29,26 @@
   body {
     @apply bg-light-bg text-light-text dark:bg-dark-bg dark:text-dark-text transition-colors duration-300;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+
+  /* Ensure viewport meta handles safe areas */
+  html {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
 
   ::selection {
     @apply bg-brand-yellow text-brand-black;
+  }
+
+  /* Better touch targets for mobile */
+  @media (max-width: 640px) {
+    input, select, textarea, button {
+      font-size: 16px; /* Prevents iOS zoom on focus */
+    }
   }
 }
 
@@ -262,4 +278,93 @@ html.dark .glass-panel {
 
 html.dark ::-webkit-scrollbar-thumb {
   background: #444;
+}
+
+/* ─── Mobile-optimized neo-card ─── */
+@media (max-width: 640px) {
+  .neo-card {
+    box-shadow: 3px 3px 0px 0px #1a1a1a;
+    border-radius: 0.75rem;
+  }
+
+  html.dark .neo-card {
+    box-shadow: 3px 3px 0px 0px #333;
+  }
+
+  .neo-card:hover {
+    transform: none;
+    box-shadow: 3px 3px 0px 0px #1a1a1a;
+  }
+
+  html.dark .neo-card:hover {
+    box-shadow: 3px 3px 0px 0px #333;
+  }
+
+  .neo-btn {
+    padding: 0.5rem 0.875rem;
+    font-size: 0.6875rem;
+  }
+
+  .neo-btn-primary {
+    box-shadow: 2px 2px 0px 0px #1a1a1a;
+  }
+}
+
+/* ─── Safe area padding for notched phones ─── */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ─── Neo Input Styling ─── */
+.neo-input {
+  display: block;
+  width: 100%;
+  border-radius: 0.75rem;
+  background-color: #f5f5f0;
+  border: 2px solid #1a1a1a;
+  color: #1a1a1a;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.neo-input:focus {
+  border-color: #facc15;
+  box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.2);
+}
+
+html.dark .neo-input {
+  background-color: #0d0d0d;
+  border-color: #444;
+  color: #f5f5f5;
+}
+
+html.dark .neo-input:focus {
+  border-color: #facc15;
+}
+
+/* ─── Prevent horizontal overflow ─── */
+* {
+  max-width: 100vw;
+}
+
+main, .neo-card, section {
+  max-width: 100%;
+}
+
+/* ─── Mobile-specific chart adjustments ─── */
+@media (max-width: 640px) {
+  .recharts-wrapper {
+    font-size: 10px;
+  }
+
+  .recharts-legend-wrapper {
+    font-size: 9px !important;
+  }
 }

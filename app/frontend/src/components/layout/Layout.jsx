@@ -38,22 +38,22 @@ const SidebarItem = ({ to, icon: Icon, label, isActive }) => (
 );
 
 const MobileNavItem = ({ to, icon: Icon, label, isActive }) => (
-    <Link to={to} className="flex-1">
+    <Link to={to} className="flex-1 min-w-0">
         <motion.div
             whileTap={{ scale: 0.9 }}
-            className="flex flex-col items-center justify-center py-2"
+            className="flex flex-col items-center justify-center py-1.5"
         >
             <motion.div
-                animate={isActive ? { y: -2, scale: 1.15 } : { y: 0, scale: 1 }}
+                animate={isActive ? { y: -2, scale: 1.1 } : { y: 0, scale: 1 }}
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className={`p-2.5 rounded-xl transition-colors duration-200 ${isActive
+                className={`p-2 rounded-xl transition-colors duration-200 ${isActive
                     ? 'bg-brand-yellow text-brand-black border-2 border-brand-black neo-shadow-sm'
                     : 'text-light-text-secondary dark:text-dark-text-secondary'
                     }`}
             >
-                <Icon size={18} />
+                <Icon size={16} />
             </motion.div>
-            <span className={`text-[10px] font-bold mt-1 uppercase tracking-wider ${isActive ? 'text-brand-black dark:text-brand-yellow' : 'text-light-text-secondary dark:text-dark-text-secondary'
+            <span className={`text-[9px] font-bold mt-0.5 uppercase tracking-wider truncate max-w-full ${isActive ? 'text-brand-black dark:text-brand-yellow' : 'text-light-text-secondary dark:text-dark-text-secondary'
                 }`}>{label}</span>
         </motion.div>
     </Link>
@@ -122,7 +122,7 @@ const Layout = () => {
             </aside>
 
             {/* ─── Mobile Top Bar ─── */}
-            <header className="lg:hidden fixed top-0 left-0 right-0 z-40 glass-panel border-b-2 border-brand-black dark:border-gray-800 px-4 py-3 flex justify-between items-center">
+            <header className="lg:hidden fixed top-0 left-0 right-0 z-40 glass-panel border-b-2 border-brand-black dark:border-gray-800 px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center safe-area-top">
                 <Link to="/dashboard">
                     <motion.div
                         className="text-lg font-black tracking-tighter flex items-center gap-1"
@@ -154,8 +154,8 @@ const Layout = () => {
             </header>
 
             {/* ─── Main Content ─── */}
-            <main className="lg:pl-60 pt-[68px] lg:pt-0 min-h-screen pb-28 lg:pb-8">
-                <div className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
+            <main className="lg:pl-60 pt-[60px] sm:pt-[68px] lg:pt-0 min-h-screen pb-32 lg:pb-8">
+                <div className="max-w-5xl mx-auto px-3 py-4 sm:p-6 lg:p-8">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={location.pathname}
@@ -171,7 +171,7 @@ const Layout = () => {
             </main>
 
             {/* ─── Mobile Bottom Dock ─── */}
-            <nav className="lg:hidden fixed bottom-4 left-3 right-3 bg-light-card dark:bg-dark-card border-2 border-brand-black dark:border-gray-700 rounded-2xl neo-shadow z-50 px-2 py-1 flex justify-around items-center">
+            <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-light-card dark:bg-dark-card border-t-2 border-brand-black dark:border-gray-700 z-50 px-1 sm:px-2 py-1 flex justify-around items-center safe-area-bottom">
                 {navItems.slice(0, 5).map(item => (
                     <MobileNavItem
                         key={item.to}

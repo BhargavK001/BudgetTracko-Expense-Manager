@@ -8,6 +8,7 @@ import {
 } from 'recharts';
 import { format, parseISO, startOfMonth, subMonths, isSameMonth } from 'date-fns';
 import { BsArrowDownLeft, BsArrowUpRight, BsGraphUp, BsPieChartFill } from 'react-icons/bs';
+import SEO from '../components/common/SEO';
 
 const Analytics = () => {
     const { transactions } = useGlobalContext();
@@ -79,25 +80,29 @@ const Analytics = () => {
     };
 
     return (
-        <div className="space-y-6 pb-20">
+        <div className="space-y-4 sm:space-y-6 pb-20">
+            <SEO
+                title="Analytics | BudgetTracko"
+                description="Visualize your financial data with detailed analytics and charts."
+            />
             {/* Header */}
             <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
+                className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4"
             >
                 <div>
-                    <h2 className="text-3xl font-black uppercase tracking-tight">Analytics</h2>
-                    <p className="text-light-text-secondary dark:text-dark-text-secondary font-semibold text-sm">Financial insights & trends</p>
+                    <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">Analytics</h2>
+                    <p className="text-light-text-secondary dark:text-dark-text-secondary font-semibold text-xs sm:text-sm">Financial insights & trends</p>
                 </div>
 
                 {/* Time Range Toggle */}
-                <div className="flex bg-light-card dark:bg-dark-card border-2 border-brand-black dark:border-gray-700 rounded-xl p-1 neo-shadow-sm">
+                <div className="flex bg-light-card dark:bg-dark-card border-2 border-brand-black dark:border-gray-700 rounded-xl p-1 neo-shadow-sm shrink-0">
                     {['6m', '1y', 'all'].map(r => (
                         <button key={r} onClick={() => setTimeRange(r)}
-                            className={`px-3.5 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${timeRange === r
-                                    ? 'bg-brand-yellow text-brand-black border-2 border-brand-black neo-shadow-sm'
-                                    : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
+                            className={`px-3 sm:px-3.5 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all ${timeRange === r
+                                ? 'bg-brand-yellow text-brand-black border-2 border-brand-black neo-shadow-sm'
+                                : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
                                 }`}
                         >{r}</button>
                     ))}
@@ -109,15 +114,15 @@ const Analytics = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="neo-card p-5 h-80"
+                className="neo-card p-3 sm:p-5 h-64 sm:h-80"
             >
-                <div className="flex items-center gap-2 mb-4">
-                    <BsGraphUp size={18} />
-                    <h3 className="text-base font-black uppercase tracking-tight">Income vs Expense Trend</h3>
+                <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                    <BsGraphUp size={16} />
+                    <h3 className="text-sm sm:text-base font-black uppercase tracking-tight">Income vs Expense Trend</h3>
                 </div>
-                <div className="w-full h-64">
+                <div className="w-full h-48 sm:h-64">
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={trendData} margin={{ top: 5, right: 20, left: -20, bottom: 0 }}>
+                        <LineChart data={trendData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
                             <XAxis dataKey="name" tick={{ fontSize: 11, fill: axisColor, fontWeight: 700 }} axisLine={false} tickLine={false} dy={10} />
                             <YAxis tick={{ fontSize: 11, fill: axisColor, fontWeight: 700 }} axisLine={false} tickLine={false} tickFormatter={v => `₹${v / 1000}k`} />
@@ -131,28 +136,28 @@ const Analytics = () => {
             </motion.div>
 
             {/* Category Breakdown Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
 
                 {/* Pie Chart */}
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="neo-card p-5"
+                    className="neo-card p-3 sm:p-5"
                 >
-                    <div className="flex items-center gap-2 mb-4">
-                        <BsPieChartFill size={18} />
-                        <h3 className="text-base font-black uppercase tracking-tight">Expense Distribution</h3>
+                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                        <BsPieChartFill size={16} />
+                        <h3 className="text-sm sm:text-base font-black uppercase tracking-tight">Expense Distribution</h3>
                     </div>
-                    <div className="h-64 w-full relative">
+                    <div className="h-56 sm:h-64 w-full relative">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
                                     data={categoryData}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={80}
+                                    innerRadius={50}
+                                    outerRadius={70}
                                     paddingAngle={5}
                                     dataKey="value"
                                 >
@@ -161,7 +166,7 @@ const Analytics = () => {
                                     ))}
                                 </Pie>
                                 <Tooltip content={<CustomTooltip />} />
-                                <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '11px', fontWeight: 700 }} />
+                                <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: '10px', fontWeight: 700, right: 0 }} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -172,18 +177,18 @@ const Analytics = () => {
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.3 }}
-                    className="neo-card p-5"
+                    className="neo-card p-3 sm:p-5"
                 >
-                    <div className="flex items-center gap-2 mb-4">
-                        <BsArrowUpRight size={18} />
-                        <h3 className="text-base font-black uppercase tracking-tight">Top Expenses</h3>
+                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                        <BsArrowUpRight size={16} />
+                        <h3 className="text-sm sm:text-base font-black uppercase tracking-tight">Top Expenses</h3>
                     </div>
-                    <div className="h-64 w-full">
+                    <div className="h-56 sm:h-64 w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={categoryData.slice(0, 5)} layout="vertical" margin={{ top: 0, right: 30, left: 10, bottom: 0 }}>
+                            <BarChart data={categoryData.slice(0, 5)} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={gridColor} />
                                 <XAxis type="number" hide />
-                                <YAxis dataKey="name" type="category" tick={{ fontSize: 11, fontWeight: 700, fill: axisColor }} axisLine={false} tickLine={false} width={80} />
+                                <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fontWeight: 700, fill: axisColor }} axisLine={false} tickLine={false} width={70} />
                                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'transparent' }} />
                                 <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
                                     {categoryData.slice(0, 5).map((entry, index) => (
@@ -201,10 +206,10 @@ const Analytics = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="neo-card p-5"
+                className="neo-card p-3 sm:p-5"
             >
-                <h3 className="text-base font-black uppercase tracking-tight mb-4">Monthly Savings</h3>
-                <div className="w-full h-48">
+                <h3 className="text-sm sm:text-base font-black uppercase tracking-tight mb-3 sm:mb-4">Monthly Savings</h3>
+                <div className="w-full h-40 sm:h-48">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={trendData}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />

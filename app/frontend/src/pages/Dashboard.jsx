@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 
 import SkeletonLoader from '../components/SkeletonLoader';
 import WelcomeModal from '../components/WelcomeModal';
+import SEO from '../components/common/SEO';
 
 /* ─── animation variants ─── */
 const fadeUp = (delay = 0) => ({
@@ -197,24 +198,24 @@ const Dashboard = () => {
 
     if (loading) {
         return (
-            <div className="space-y-6 pb-20">
-                <div className="flex justify-between items-end mb-8">
+            <div className="space-y-4 sm:space-y-6 pb-20">
+                <div className="flex justify-between items-end mb-6 sm:mb-8">
                     <div className="space-y-2">
                         <SkeletonLoader width={150} height={20} />
-                        <SkeletonLoader width={300} height={40} />
+                        <SkeletonLoader width={250} height={36} />
                     </div>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[1, 2, 3, 4].map(i => <SkeletonLoader key={i} height={112} />)}
+                <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+                    {[1, 2, 3, 4].map(i => <SkeletonLoader key={i} height={100} />)}
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-6">
-                        <SkeletonLoader height={320} />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+                    <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+                        <SkeletonLoader height={280} />
                         <SkeletonLoader height={200} />
                     </div>
-                    <div className="space-y-6">
-                        <SkeletonLoader height={300} />
-                        <SkeletonLoader height={250} />
+                    <div className="space-y-4 sm:space-y-6">
+                        <SkeletonLoader height={260} />
+                        <SkeletonLoader height={220} />
                     </div>
                 </div>
             </div>
@@ -222,31 +223,35 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="space-y-6 pb-20">
+        <div className="space-y-4 sm:space-y-6 pb-20">
+            <SEO
+                title="Dashboard | BudgetTracko"
+                description="View your financial overview, track spending trends, and manage your budget on the BudgetTracko dashboard."
+            />
             <WelcomeModal />
 
             {/* Header with Greeting & Date */}
             <motion.div variants={fadeUp(0)} initial="hidden" animate="visible"
-                className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-2">
-                <div>
+                className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 sm:gap-4 mb-1 sm:mb-2">
+                <div className="min-w-0 w-full sm:w-auto">
                     <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
+                        <span className="text-xs sm:text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
                             {format(new Date(), 'EEEE, dd MMM')}
                         </span>
                     </div>
-                    <h2 className="text-3xl md:text-4xl font-black tracking-tight">
+                    <h2 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight">
                         {greeting}, <span className="text-brand-primary">Student</span> 👋
                     </h2>
-                    <p className="text-light-text-secondary dark:text-dark-text-secondary font-medium mt-1">
+                    <p className="text-light-text-secondary dark:text-dark-text-secondary font-medium mt-1 text-xs sm:text-sm">
                         You've saved <span className="text-green-500 font-bold">{savingsRate}%</span> of your income this {dateRange}.
                     </p>
                 </div>
 
                 {/* Date Range Toggle */}
-                <div className="flex bg-light-card dark:bg-dark-card border-2 border-brand-black dark:border-gray-700 rounded-xl p-1 neo-shadow-sm self-start md:self-auto">
+                <div className="flex bg-light-card dark:bg-dark-card border-2 border-brand-black dark:border-gray-700 rounded-xl p-1 neo-shadow-sm self-start sm:self-auto shrink-0">
                     {['month', 'year', 'all'].map(r => (
                         <button key={r} onClick={() => setDateRange(r)}
-                            className={`px-3.5 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all ${dateRange === r
+                            className={`px-3 sm:px-3.5 py-1.5 rounded-lg text-[10px] sm:text-[11px] font-black uppercase tracking-wider transition-all ${dateRange === r
                                 ? 'bg-brand-yellow text-brand-black border-2 border-brand-black neo-shadow-sm'
                                 : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
                                 }`}
@@ -257,20 +262,20 @@ const Dashboard = () => {
 
             {/* Quick Stats Bar */}
             <motion.div variants={fadeUp(0.1)} initial="hidden" animate="visible"
-                className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
                 {[
                     { label: 'Total Balance', value: total, icon: BsWallet2, color: 'text-blue-500' },
                     { label: 'Monthly Income', value: income, icon: BsArrowDownLeft, color: 'text-green-500' },
                     { label: 'Monthly Expense', value: expense, icon: BsArrowUpRight, color: 'text-red-500' },
                     { label: 'Daily Avg Spend', value: dailyAvg, icon: BsLightningChargeFill, color: 'text-brand-yellow' }
                 ].map((stat, i) => (
-                    <div key={i} className="neo-card p-4 flex flex-col justify-between h-28">
-                        <div className={`p-2 w-fit rounded-lg bg-light-bg dark:bg-dark-bg ${stat.color} mb-2`}>
-                            <stat.icon size={18} />
+                    <div key={i} className="neo-card p-3 sm:p-4 flex flex-col justify-between min-h-[100px] sm:h-28">
+                        <div className={`p-1.5 sm:p-2 w-fit rounded-lg bg-light-bg dark:bg-dark-bg ${stat.color} mb-1.5 sm:mb-2`}>
+                            <stat.icon size={16} />
                         </div>
-                        <div>
-                            <p className="text-[10px] uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary">{stat.label}</p>
-                            <h4 className="text-xl font-black">
+                        <div className="min-w-0">
+                            <p className="text-[9px] sm:text-[10px] uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary truncate">{stat.label}</p>
+                            <h4 className="text-base sm:text-xl font-black truncate">
                                 <AnimatedNumber value={stat.value} prefix="₹" />
                             </h4>
                         </div>
@@ -279,20 +284,20 @@ const Dashboard = () => {
             </motion.div>
 
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
 
                 {/* Left Column (Charts - Takes 2/3 width on large screens) */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                     {/* Spending Trends */}
-                    <motion.div variants={fadeUp(0.2)} initial="hidden" animate="visible" className="neo-card p-5 h-80">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
+                    <motion.div variants={fadeUp(0.2)} initial="hidden" animate="visible" className="neo-card p-3 sm:p-5 h-64 sm:h-80">
+                        <div className="flex justify-between items-center mb-3 sm:mb-4">
+                            <h3 className="text-sm sm:text-base font-black uppercase tracking-tight flex items-center gap-2">
                                 <BsActivity /> Spending Trends
                             </h3>
                         </div>
-                        <div className="h-64 w-full">
+                        <div className="h-48 sm:h-64 w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={spendingData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                                <AreaChart data={spendingData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="spendGrad" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
@@ -310,37 +315,37 @@ const Dashboard = () => {
                     </motion.div>
 
                     {/* Recent Transactions List */}
-                    <motion.div variants={fadeUp(0.3)} initial="hidden" animate="visible" className="neo-card p-5">
-                        <div className="flex justify-between items-center mb-5 pb-3 border-b-2 border-gray-200 dark:border-gray-700">
-                            <h3 className="text-base font-black uppercase tracking-tight">Recent Activity</h3>
+                    <motion.div variants={fadeUp(0.3)} initial="hidden" animate="visible" className="neo-card p-3 sm:p-5">
+                        <div className="flex justify-between items-center mb-3 sm:mb-5 pb-2 sm:pb-3 border-b-2 border-gray-200 dark:border-gray-700">
+                            <h3 className="text-sm sm:text-base font-black uppercase tracking-tight">Recent Activity</h3>
                             <Link className="neo-btn neo-btn-primary text-[10px]" to="/transactions">View All</Link>
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-1 sm:space-y-2">
                             {filteredTransactions.length === 0 && (
-                                <div className="text-center py-10 text-light-text-secondary dark:text-dark-text-secondary font-bold text-sm">
+                                <div className="text-center py-8 sm:py-10 text-light-text-secondary dark:text-dark-text-secondary font-bold text-sm">
                                     No transactions found for this period
                                 </div>
                             )}
                             {filteredTransactions.slice(0, 5).map(t => (
-                                <div key={t.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors group">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-light-card dark:bg-dark-bg border-2 border-brand-black dark:border-gray-600 rounded-xl flex items-center justify-center text-lg neo-shadow-sm">
+                                <div key={t.id} className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl hover:bg-black/[0.03] dark:hover:bg-white/[0.03] transition-colors group">
+                                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                                        <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 bg-light-card dark:bg-dark-bg border-2 border-brand-black dark:border-gray-600 rounded-xl flex items-center justify-center text-base sm:text-lg neo-shadow-sm">
                                             {CAT_ICON[t.category] || '📦'}
                                         </div>
-                                        <div>
-                                            <h4 className="font-bold text-sm">{t.text}</h4>
+                                        <div className="min-w-0">
+                                            <h4 className="font-bold text-xs sm:text-sm truncate">{t.text}</h4>
                                             <div className="flex items-center gap-1.5 mt-0.5">
-                                                <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 bg-light-bg dark:bg-dark-bg border border-gray-200 dark:border-gray-700 rounded text-light-text-secondary dark:text-dark-text-secondary">
+                                                <span className="text-[9px] sm:text-[10px] font-bold uppercase px-1 sm:px-1.5 py-0.5 bg-light-bg dark:bg-dark-bg border border-gray-200 dark:border-gray-700 rounded text-light-text-secondary dark:text-dark-text-secondary">
                                                     {t.category || 'General'}
                                                 </span>
-                                                <span className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary">
+                                                <span className="text-[9px] sm:text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary">
                                                     {format(parseISO(t.date), 'MMM dd')}
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
-                                    <span className={`font-black text-sm ${t.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+                                    <span className={`font-black text-xs sm:text-sm shrink-0 ml-2 ${t.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
                                         {t.amount > 0 ? '+' : ''}₹{Math.abs(t.amount).toLocaleString()}
                                     </span>
                                 </div>
@@ -350,12 +355,12 @@ const Dashboard = () => {
                 </div>
 
                 {/* Right Column (Widgets - Takes 1/3 width) */}
-                <div className="space-y-6">
+                <div className="space-y-4 sm:space-y-6">
 
                     {/* Category Donut Chart */}
-                    <motion.div variants={fadeUp(0.25)} initial="hidden" animate="visible" className="neo-card p-5">
-                        <h3 className="text-base font-black uppercase tracking-tight mb-4">Expenses by Category</h3>
-                        <div className="h-48 w-full relative">
+                    <motion.div variants={fadeUp(0.25)} initial="hidden" animate="visible" className="neo-card p-3 sm:p-5">
+                        <h3 className="text-sm sm:text-base font-black uppercase tracking-tight mb-3 sm:mb-4">Expenses by Category</h3>
+                        <div className="h-40 sm:h-48 w-full relative">
                             {categoryData.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
@@ -385,9 +390,9 @@ const Dashboard = () => {
                     </motion.div>
 
                     {/* Budget Progress */}
-                    <motion.div variants={fadeUp(0.3)} initial="hidden" animate="visible" className="neo-card p-5">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-base font-black uppercase tracking-tight flex items-center gap-2">
+                    <motion.div variants={fadeUp(0.3)} initial="hidden" animate="visible" className="neo-card p-3 sm:p-5">
+                        <div className="flex justify-between items-center mb-3 sm:mb-4">
+                            <h3 className="text-sm sm:text-base font-black uppercase tracking-tight flex items-center gap-2">
                                 <BsPiggyBank /> Monthly Budgets
                             </h3>
                             <button className="text-[10px] font-bold text-brand-primary uppercase hover:underline">Manage</button>
@@ -418,8 +423,8 @@ const Dashboard = () => {
                     </motion.div>
 
                     {/* Upcoming Bills */}
-                    <motion.div variants={fadeUp(0.35)} initial="hidden" animate="visible" className="neo-card p-5">
-                        <h3 className="text-base font-black uppercase tracking-tight mb-4 flex items-center gap-2">
+                    <motion.div variants={fadeUp(0.35)} initial="hidden" animate="visible" className="neo-card p-3 sm:p-5">
+                        <h3 className="text-sm sm:text-base font-black uppercase tracking-tight mb-3 sm:mb-4 flex items-center gap-2">
                             <BsCalendarCheck /> Upcoming Bills
                         </h3>
                         <div className="space-y-3">

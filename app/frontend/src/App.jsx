@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { ThemeProvider } from './context/ThemeContext';
 import { GlobalProvider } from './context/GlobalContext';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -99,22 +100,24 @@ function App() {
   return (
     <ThemeProvider>
       <GlobalProvider>
-        <Router>
-          <AnimatedRoutes />
-          <Toaster
-            position="bottom-right"
-            richColors
-            toastOptions={{
-              style: {
-                fontFamily: 'inherit',
-                fontWeight: 700,
-                borderRadius: '12px',
-                border: '2px solid #1a1a1a',
-                boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
-              },
-            }}
-          />
-        </Router>
+        <HelmetProvider>
+          <Router>
+            <AnimatedRoutes />
+            <Toaster
+              position="bottom-right"
+              richColors
+              toastOptions={{
+                style: {
+                  fontFamily: 'inherit',
+                  fontWeight: 700,
+                  borderRadius: '12px',
+                  border: '2px solid #1a1a1a',
+                  boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
+                },
+              }}
+            />
+          </Router>
+        </HelmetProvider>
       </GlobalProvider>
     </ThemeProvider>
   );

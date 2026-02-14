@@ -3,6 +3,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { BsPencil, BsPlus, BsWallet, BsExclamationTriangleFill, BsCheckCircleFill } from 'react-icons/bs';
+import SEO from '../components/common/SEO';
 
 const Budgets = () => {
     const { transactions } = useGlobalContext();
@@ -52,39 +53,43 @@ const Budgets = () => {
     };
 
     return (
-        <div className="space-y-6 pb-20">
+        <div className="space-y-4 sm:space-y-6 pb-20">
+            <SEO
+                title="Budgets | BudgetTracko"
+                description="Set and manage your monthly budget limits."
+            />
             {/* Header */}
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-                <h2 className="text-3xl font-black uppercase tracking-tight">Budgets</h2>
-                <p className="text-light-text-secondary dark:text-dark-text-secondary font-semibold text-sm">Manage your monthly spending limits</p>
+                <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">Budgets</h2>
+                <p className="text-light-text-secondary dark:text-dark-text-secondary font-semibold text-xs sm:text-sm">Manage your monthly spending limits</p>
             </motion.div>
 
             {/* Total Budget Overview */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-                className="neo-card p-6 bg-brand-black text-white relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-brand-yellow blur-[80px] opacity-10 pointer-events-none" />
+                className="neo-card p-4 sm:p-6 bg-brand-black text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-48 sm:w-64 h-48 sm:h-64 bg-brand-yellow blur-[80px] opacity-10 pointer-events-none" />
                 <div className="relative z-10">
-                    <div className="flex justify-between items-end mb-2">
-                        <div>
-                            <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Total Monthly Budget</p>
-                            <h3 className="text-3xl font-black">₹{totalSpent.toLocaleString()} <span className="text-lg text-gray-500 font-bold">/ ₹{totalBudget.toLocaleString()}</span></h3>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2 sm:gap-0 mb-2">
+                        <div className="min-w-0">
+                            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">Total Monthly Budget</p>
+                            <h3 className="text-xl sm:text-3xl font-black">₹{totalSpent.toLocaleString()} <span className="text-sm sm:text-lg text-gray-500 font-bold">/ ₹{totalBudget.toLocaleString()}</span></h3>
                         </div>
-                        <div className="text-right">
-                            <span className={`text-sm font-black px-2 py-1 rounded bg-white/10 ${totalPercent > 90 ? 'text-red-400' : 'text-green-400'}`}>
+                        <div className="sm:text-right">
+                            <span className={`text-xs sm:text-sm font-black px-2 py-1 rounded bg-white/10 ${totalPercent > 90 ? 'text-red-400' : 'text-green-400'}`}>
                                 {totalPercent.toFixed(0)}% Used
                             </span>
                         </div>
                     </div>
                     {/* Progress Bar */}
-                    <div className="w-full h-4 bg-gray-800 rounded-full overflow-hidden border border-gray-700">
+                    <div className="w-full h-3 sm:h-4 bg-gray-800 rounded-full overflow-hidden border border-gray-700">
                         <div
                             className={`h-full transition-all duration-700 ease-out ${totalPercent > 90 ? 'bg-red-500' : totalPercent > 70 ? 'bg-brand-yellow' : 'bg-green-500'}`}
                             style={{ width: `${totalPercent}%` }}
                         />
                     </div>
                     {totalPercent > 90 && (
-                        <div className="flex items-center gap-2 mt-3 text-red-400 text-sm font-bold bg-red-400/10 p-2 rounded-lg border border-red-400/20">
-                            <BsExclamationTriangleFill />
+                        <div className="flex items-center gap-2 mt-2.5 sm:mt-3 text-red-400 text-xs sm:text-sm font-bold bg-red-400/10 p-2 rounded-lg border border-red-400/20">
+                            <BsExclamationTriangleFill className="shrink-0" />
                             <span>You are close to exceeding your total budget!</span>
                         </div>
                     )}
@@ -92,7 +97,7 @@ const Budgets = () => {
             </motion.div>
 
             {/* Category Budgets Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-5">
                 {Object.entries(budgets).map(([category, limit], index) => {
                     const spent = categorySpending[category] || 0;
                     const percent = Math.min((spent / limit) * 100, 100);
@@ -105,12 +110,12 @@ const Budgets = () => {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             transition={{ delay: index * 0.05 + 0.2 }}
-                            className="neo-card p-5"
+                            className="neo-card p-4 sm:p-5"
                         >
-                            <div className="flex justify-between items-start mb-4">
+                            <div className="flex justify-between items-start mb-3 sm:mb-4">
                                 <div>
-                                    <h4 className="font-black text-lg">{category}</h4>
-                                    <p className="text-xs font-bold text-gray-400">Monthly Limit</p>
+                                    <h4 className="font-black text-base sm:text-lg">{category}</h4>
+                                    <p className="text-[10px] sm:text-xs font-bold text-gray-400">Monthly Limit</p>
                                 </div>
                                 <button
                                     onClick={() => handleEdit(category, limit)}
@@ -133,8 +138,8 @@ const Budgets = () => {
                                 </div>
                             ) : (
                                 <div className="flex justify-between items-end mb-2">
-                                    <span className="text-2xl font-black">₹{spent.toLocaleString()}</span>
-                                    <span className="text-sm font-bold text-gray-400">/ ₹{limit.toLocaleString()}</span>
+                                    <span className="text-xl sm:text-2xl font-black">₹{spent.toLocaleString()}</span>
+                                    <span className="text-xs sm:text-sm font-bold text-gray-400">/ ₹{limit.toLocaleString()}</span>
                                 </div>
                             )}
 
