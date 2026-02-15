@@ -44,6 +44,14 @@ api.interceptors.response.use(
     }
 );
 
+// ─── Authentication ───
+export const authApi = {
+    signup: (data) => api.post('/auth/signup', data),
+    login: (data) => api.post('/auth/login', data),
+    logout: () => api.get('/auth/logout'),
+    getMe: () => api.get('/auth/me')
+};
+
 // ─── Transactions ───
 export const transactionApi = {
     getAll: (params) => api.get('/api/transactions', { params }),

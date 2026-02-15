@@ -2,6 +2,11 @@ const express = require('express');
 const passport = require('passport');
 const router = express.Router();
 const { generateToken, getCookieOptions } = require('../utils/authUtils');
+const authController = require('../controllers/authController');
+
+// Local Auth
+router.post('/signup', authController.signup);
+router.post('/login', authController.login);
 
 // Google Auth
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));

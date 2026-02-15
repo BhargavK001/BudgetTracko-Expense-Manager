@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { HiOutlineMail, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeOff } from 'react-icons/hi';
 import { FcGoogle } from 'react-icons/fc';
 import { FaGithub } from 'react-icons/fa';
 import { BsBarChartLineFill, BsWalletFill, BsShieldLockFill, BsArrowLeftShort, BsLightningChargeFill, BsPeopleFill, BsStarFill, BsCheckCircleFill } from 'react-icons/bs';
+import { authApi } from '../services/api';
 
 // Animation variants
 const staggerContainer = {
@@ -56,25 +58,42 @@ const testimonials = [
 
 const Login = () => {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [focusedField, setFocusedField] = useState(null);
+    const [formData, setFormData] = useState({
+        email: '',
+        password: ''
+    });
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.id]: e.target.value });
+    };
 
     // Get redirect path from URL query params
     const searchParams = new URLSearchParams(window.location.search);
     const redirectPath = searchParams.get('redirect') || '/dashboard';
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
         toast.loading('Signing you in...', { id: 'login' });
-        setTimeout(() => {
+
+        try {
+            const response = await authApi.login(formData);
+            if (response.data.success) {
+                await login(); // Refresh user state in AuthContext
+                toast.success('Welcome back! Redirecting to dashboard...', { id: 'login' });
+                navigate(redirectPath);
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            const message = error.response?.data?.message || 'Invalid email or password';
+            toast.error(message, { id: 'login' });
+        } finally {
             setLoading(false);
-            toast.success('Welcome back! Redirecting to dashboard...', { id: 'login' });
-            setLoading(false);
-            toast.success('Welcome back!', { id: 'login' });
-            navigate(redirectPath);
-        }, 1500);
+        }
     };
 
     return (
@@ -333,6 +352,8 @@ const Login = () => {
                                                 type="email"
                                                 placeholder="username@gmail.com"
                                                 required
+                                                value={formData.email}
+                                                onChange={handleChange}
                                                 onFocus={() => setFocusedField('email')}
                                                 onBlur={() => setFocusedField(null)}
                                                 className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-black/80 bg-gray-50 focus:bg-white focus:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1 text-brand-black placeholder-gray-400 font-medium text-sm transition-all"
@@ -361,6 +382,8 @@ const Login = () => {
                                                 type={showPassword ? 'text' : 'password'}
                                                 placeholder="Enter password"
                                                 required
+                                                value={formData.password}
+                                                onChange={handleChange}
                                                 onFocus={() => setFocusedField('password')}
                                                 onBlur={() => setFocusedField(null)}
                                                 className="w-full pl-10 pr-11 py-3 rounded-xl border-2 border-black/80 bg-gray-50 focus:bg-white focus:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1 text-brand-black placeholder-gray-400 font-medium text-sm transition-all"
