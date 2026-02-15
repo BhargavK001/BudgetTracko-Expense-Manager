@@ -3,7 +3,7 @@ const router = express.Router();
 const passport = require('passport');
 const { getCategories, addCategory, updateCategory, deleteCategory } = require('../controllers/categoryController');
 
-const auth = passport.authenticate('jwt', { session: false });
+const auth = require('../middleware/authMiddleware');
 
 router.get('/', auth, getCategories);
 router.post('/', auth, addCategory);

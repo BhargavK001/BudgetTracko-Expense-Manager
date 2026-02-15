@@ -981,6 +981,7 @@ const LandingPage = () => {
                         <ul className="space-y-4 text-gray-300">
                             <li><Link to="/contact" className="hover:text-white hover:underline decoration-brand-yellow decoration-2">Contact</Link></li>
                             <li><Link to="/privacy" className="hover:text-white hover:underline decoration-brand-yellow decoration-2">Privacy Policy</Link></li>
+                            <li><Link to="/terms" className="hover:text-white hover:underline decoration-brand-yellow decoration-2">Terms of Service</Link></li>
                             <li><a href="mailto:bhargavk056@gmail.com" className="hover:text-white hover:underline decoration-brand-yellow decoration-2">Email Us</a></li>
                         </ul>
                     </motion.div>

@@ -10,7 +10,7 @@ const {
 } = require('../controllers/accountController');
 
 // All routes are protected
-const auth = passport.authenticate('jwt', { session: false });
+const auth = require('../middleware/authMiddleware');
 
 router.route('/')
     .get(auth, getAccounts)

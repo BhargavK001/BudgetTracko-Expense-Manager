@@ -2,6 +2,12 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// In-memory CSRF token (fallback when cross-origin cookie isn't readable from document.cookie)
+let _csrfToken = null;
+
+/** Set CSRF token from the /api/csrf-token response body */
+export const setCsrfToken = (token) => { _csrfToken = token; };
+
 // Helper: read a cookie value by name
 function getCookie(name) {
     const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
@@ -17,7 +23,8 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
     const method = (config.method || '').toUpperCase();
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
-        const csrfToken = getCookie('csrf-token');
+        // Prefer cookie, fall back to in-memory token from /api/csrf-token response
+        const csrfToken = getCookie('csrf-token') || _csrfToken;
         if (csrfToken) {
             config.headers['X-CSRF-Token'] = csrfToken;
         }
