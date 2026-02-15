@@ -11,7 +11,6 @@ require('./config/passport'); // Passport config
 
 const authRoutes = require('./routes/auth');
 const accountRoutes = require('./routes/accounts');
-const accountRoutes = require('./routes/accounts');
 const transactionRoutes = require('./routes/transactions');
 const categoryRoutes = require('./routes/categories');
 const budgetRoutes = require('./routes/budgets');
@@ -168,7 +167,6 @@ app.use('/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/transactions', transactionRoutes);
-app.use('/api/categories', categoryRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/payments', paymentRoutes);
