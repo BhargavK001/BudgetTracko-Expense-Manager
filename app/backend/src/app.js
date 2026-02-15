@@ -143,22 +143,11 @@ app.use((req, res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
         if (!req.cookies['csrf-token']) {
             const csrfToken = crypto.randomBytes(32).toString('hex');
-<<<<<<< Updated upstream
-            res.cookie('csrf-token', csrfToken, {
-                httpOnly: false,         // Frontend JS must read this
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                domain: getCookieDomain(),
-                maxAge: 3 * 24 * 60 * 60 * 1000,
-                path: '/',
-            });
-=======
             res.cookie('csrf-token', csrfToken, csrfCookieOptions());
             // Store on req so downstream handlers can access the newly generated token
             req.csrfToken = csrfToken;
         } else {
             req.csrfToken = req.cookies['csrf-token'];
->>>>>>> Stashed changes
         }
         return next();
     }
@@ -173,8 +162,7 @@ app.use((req, res, next) => {
     const headerToken = req.headers['x-csrf-token'];
 
     if (!cookieToken || !headerToken || cookieToken !== headerToken) {
-<<<<<<< Updated upstream
-        console.error(`CSRF Verification Failed for ${req.path}`);
+        console.error(`CSRF Verification Failed for ${req.path}: cookie=${!!cookieToken}, header=${!!headerToken}, match=${cookieToken === headerToken}`);
 
         return res.status(403).json({
             success: false,
@@ -185,10 +173,6 @@ app.use((req, res, next) => {
                 headerReceived: !!headerToken
             }
         });
-=======
-        console.error(`CSRF Verification Failed for ${req.path}: cookie=${!!cookieToken}, header=${!!headerToken}, match=${cookieToken === headerToken}`);
-        return res.status(403).json({ success: false, message: 'CSRF token validation failed' });
->>>>>>> Stashed changes
     }
 
     next();
