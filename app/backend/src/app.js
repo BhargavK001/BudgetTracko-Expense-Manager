@@ -36,6 +36,9 @@ const getCookieDomain = () => {
 // Initialize app
 const app = express();
 
+// Trust proxy is required for secure cookies and rate limiting behind load balancers/proxies
+app.set('trust proxy', 1);
+
 // ─── Security Headers (Helmet - strict config) ───
 app.use(helmet({
     contentSecurityPolicy: {
@@ -132,10 +135,7 @@ app.use((req, res, next) => {
             res.cookie('csrf-token', csrfToken, {
                 httpOnly: false,         // Frontend JS must read this
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Must be none for distinct subdomains if cross-site? Actually if subdomain, lax is fine usually, but none is safer for cross-origin if needed.
-                // However, for subdomains sharing cookies, 'Lax' is often enough IF base domain matches. 
-                // But let's stick to user's existing logic slightly modified.
-                // If we want cross-subdomain, we MUST set domain.
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
                 domain: getCookieDomain(),
                 maxAge: 3 * 24 * 60 * 60 * 1000,
                 path: '/',
@@ -149,7 +149,17 @@ app.use((req, res, next) => {
     const headerToken = req.headers['x-csrf-token'];
 
     if (!cookieToken || !headerToken || cookieToken !== headerToken) {
-        return res.status(403).json({ success: false, message: 'CSRF token validation failed' });
+        console.error(`CSRF Verification Failed for ${req.path}`);
+
+        return res.status(403).json({
+            success: false,
+            message: 'CSRF token validation failed',
+            debug: {
+                reason: !cookieToken ? 'Cookie missing' : !headerToken ? 'Header missing' : 'Mismatch',
+                cookieReceived: !!cookieToken,
+                headerReceived: !!headerToken
+            }
+        });
     }
 
     next();
