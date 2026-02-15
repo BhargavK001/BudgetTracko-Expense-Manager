@@ -4,7 +4,7 @@ const passport = require('passport');
 const paymentController = require('../controllers/paymentController');
 
 // Middleware to protect routes
-const auth = passport.authenticate('jwt', { session: false });
+const auth = require('../middleware/authMiddleware');
 
 router.post('/create-order', auth, paymentController.createOrder);
 router.post('/verify', auth, paymentController.verifyPayment);

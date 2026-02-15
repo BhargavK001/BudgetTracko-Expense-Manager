@@ -3,7 +3,7 @@ const router = express.Router();
 const passport = require('passport');
 const { getBudgets, addBudget, updateBudget, deleteBudget } = require('../controllers/budgetController');
 
-const auth = passport.authenticate('jwt', { session: false });
+const auth = require('../middleware/authMiddleware');
 
 router.get('/', auth, getBudgets);
 router.post('/', auth, addBudget);

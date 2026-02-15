@@ -12,7 +12,7 @@ const {
 } = require('../controllers/transactionController');
 
 // All routes are protected
-const auth = passport.authenticate('jwt', { session: false });
+const auth = require('../middleware/authMiddleware');
 
 // Account-specific transactions (must be before /:id to avoid conflict)
 router.get('/account/:accountId', auth, getAccountTransactions);

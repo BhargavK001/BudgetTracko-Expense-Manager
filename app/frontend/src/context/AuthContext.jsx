@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useContext, useCallback } from 'react';
-import api from '../services/api';
+import api, { setCsrfToken } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -31,7 +31,12 @@ export const AuthProvider = ({ children }) => {
         const initAuth = async () => {
             try {
                 // Ensure CSRF token is set by making a GET request
-                await api.get('/api/csrf-token');
+                const { data } = await api.get('/api/csrf-token');
+                // Store the token in memory so it can be used even if the
+                // cross-origin cookie isn't readable from document.cookie
+                if (data?.csrfToken) {
+                    setCsrfToken(data.csrfToken);
+                }
             } catch (e) {
                 console.error("Failed to initialize CSRF token", e);
             }

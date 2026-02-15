@@ -9,7 +9,7 @@ const Budget = require('../models/Budget');
 const router = express.Router();
 
 // Middleware: Authenticate all routes
-router.use(passport.authenticate('jwt', { session: false }));
+router.use(require('../middleware/authMiddleware'));
 
 // ─── GET /api/user/profile ───
 // Get current user profile

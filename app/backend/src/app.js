@@ -126,12 +126,24 @@ app.use('/auth', (req, res, next) => {
 });
 
 // ─── CSRF Protection (Double-Submit Cookie Pattern) ───
-// Generate CSRF token on every GET request (readable cookie + compared to header)
+// Paths exempt from CSRF verification (e.g. external webhooks)
+const csrfExemptPaths = ['/api/payments/webhook'];
+
+const csrfCookieOptions = () => ({
+    httpOnly: false,         // Frontend JS must read this
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    domain: getCookieDomain(),
+    maxAge: 3 * 24 * 60 * 60 * 1000,
+    path: '/',
+});
+
 app.use((req, res, next) => {
     // For GET/HEAD/OPTIONS: set or refresh the CSRF cookie
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
         if (!req.cookies['csrf-token']) {
             const csrfToken = crypto.randomBytes(32).toString('hex');
+<<<<<<< Updated upstream
             res.cookie('csrf-token', csrfToken, {
                 httpOnly: false,         // Frontend JS must read this
                 secure: process.env.NODE_ENV === 'production',
@@ -140,7 +152,19 @@ app.use((req, res, next) => {
                 maxAge: 3 * 24 * 60 * 60 * 1000,
                 path: '/',
             });
+=======
+            res.cookie('csrf-token', csrfToken, csrfCookieOptions());
+            // Store on req so downstream handlers can access the newly generated token
+            req.csrfToken = csrfToken;
+        } else {
+            req.csrfToken = req.cookies['csrf-token'];
+>>>>>>> Stashed changes
         }
+        return next();
+    }
+
+    // Skip CSRF for exempt paths (e.g. payment webhooks that verify their own signature)
+    if (csrfExemptPaths.some(p => req.path === p || req.originalUrl.endsWith(p))) {
         return next();
     }
 
@@ -149,6 +173,7 @@ app.use((req, res, next) => {
     const headerToken = req.headers['x-csrf-token'];
 
     if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+<<<<<<< Updated upstream
         console.error(`CSRF Verification Failed for ${req.path}`);
 
         return res.status(403).json({
@@ -160,6 +185,10 @@ app.use((req, res, next) => {
                 headerReceived: !!headerToken
             }
         });
+=======
+        console.error(`CSRF Verification Failed for ${req.path}: cookie=${!!cookieToken}, header=${!!headerToken}, match=${cookieToken === headerToken}`);
+        return res.status(403).json({ success: false, message: 'CSRF token validation failed' });
+>>>>>>> Stashed changes
     }
 
     next();
@@ -184,9 +213,9 @@ app.use('/api/payments', paymentRoutes);
 app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' })); // Simple health check
 // CSRF Token Endpoint - Explicitly fetch token
 app.get('/api/csrf-token', (req, res) => {
-    // The middleware above already sets the cookie if missing
-    // We just return it in JSON for convenience if needed, or just status ok
-    res.json({ csrfToken: req.cookies['csrf-token'] });
+    // req.csrfToken is set by the CSRF middleware (works even on first request)
+    const token = req.csrfToken || req.cookies['csrf-token'];
+    res.json({ csrfToken: token });
 });
 app.use('/api/status', statusRoutes);
 

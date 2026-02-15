@@ -1,23 +1,7 @@
 const express = require('express');
 const passport = require('passport');
-const jwt = require('jsonwebtoken');
 const router = express.Router();
-
-// Cookie options for secure HTTP-only cookies
-const getCookieOptions = () => ({
-    httpOnly: true,                              // Not accessible via JavaScript
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Cross-site in prod
-    maxAge: 3 * 24 * 60 * 60 * 1000,            // 3 days in milliseconds
-    path: '/',
-});
-
-// Generate JWT Token (3-day expiry)
-const generateToken = (user) => {
-    return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, {
-        expiresIn: '3d',
-    });
-};
+const { generateToken, getCookieOptions } = require('../utils/authUtils');
 
 // Google Auth
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
@@ -56,11 +40,15 @@ router.get('/logout', (req, res) => {
     res.status(200).json({ message: 'Logged out successfully' });
 });
 
-// Get Current User
+// Get Current User & Refresh Session
 router.get(
     '/me',
     passport.authenticate('jwt', { session: false }),
     (req, res) => {
+        // Sliding session: Issue a new token and refresh the cookie
+        const newToken = generateToken(req.user);
+        res.cookie('token', newToken, getCookieOptions());
+
         res.json({
             user: req.user
         });

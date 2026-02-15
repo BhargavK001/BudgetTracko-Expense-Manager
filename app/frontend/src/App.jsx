@@ -25,6 +25,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
 import StatusPage from './pages/StatusPage';
+import PublicRoute from './components/PublicRoute';
 
 
 // Page transition variants
@@ -72,18 +73,22 @@ const AnimatedRoutes = () => {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
-        <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+        {/* Public Routes - Redirect to dashboard if logged in */}
+        <Route element={<PublicRoute />}>
+          <Route path="/" element={<PageTransition><LandingPage /></PageTransition>} />
+          <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
+          <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
+          <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+        </Route>
+
         <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
         <Route path="/features" element={<PageTransition><Features /></PageTransition>} />
         <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
         <Route path="/about" element={<PageTransition><About /></PageTransition>} />
         <Route path="/privacy" element={<PageTransition><Privacy /></PageTransition>} />
-        <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
-        <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+
         <Route path="/auth/callback" element={<PageTransition><AuthCallback /></PageTransition>} />
         <Route path="/system-status" element={<PageTransition><StatusPage /></PageTransition>} />
-
 
         <Route path="/" element={<Layout />}>
           <Route path="dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
@@ -93,7 +98,6 @@ const AnimatedRoutes = () => {
           <Route path="accounts" element={<PageTransition><Accounts /></PageTransition>} />
           <Route path="settings" element={<PageTransition><Settings /></PageTransition>} />
           <Route path="billing" element={<PageTransition><Billing /></PageTransition>} />
-          {/* Add more routes here */}
         </Route>
 
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
