@@ -1,6 +1,10 @@
 import { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BsPencilSquare, BsTrash, BsX, BsCalendar3, BsTag, BsWallet2, BsSticky, BsArrowUpRight, BsArrowDownLeft } from 'react-icons/bs';
+import {
+    BsPencilSquare, BsTrash, BsX, BsCalendar3, BsTag, BsWallet2,
+    BsSticky, BsArrowUpRight, BsArrowDownLeft, BsArrowLeftRight,
+    BsClock, BsPaperclip, BsImage
+} from 'react-icons/bs';
 import { format, parseISO } from 'date-fns';
 
 const TransactionDetailModal = ({ transaction, onClose, onEdit, onDelete }) => {
@@ -20,9 +24,11 @@ const TransactionDetailModal = ({ transaction, onClose, onEdit, onDelete }) => {
     if (!transaction) return null;
 
     const isExpense = transaction.type === 'expense';
-    const colorClass = isExpense ? 'text-red-500' : 'text-green-500';
-    const bgClass = isExpense ? 'bg-red-50 dark:bg-red-900/10' : 'bg-green-50 dark:bg-green-900/10';
-    const Icon = isExpense ? BsArrowUpRight : BsArrowDownLeft;
+    const isTransfer = transaction.type === 'transfer';
+    const colorClass = isTransfer ? 'text-blue-500' : isExpense ? 'text-red-500' : 'text-green-500';
+    const bgClass = isTransfer ? 'bg-blue-50 dark:bg-blue-900/10' : isExpense ? 'bg-red-50 dark:bg-red-900/10' : 'bg-green-50 dark:bg-green-900/10';
+    const Icon = isTransfer ? BsArrowLeftRight : isExpense ? BsArrowUpRight : BsArrowDownLeft;
+    const txId = transaction._id || transaction.id;
 
     return (
         <motion.div
@@ -45,7 +51,9 @@ const TransactionDetailModal = ({ transaction, onClose, onEdit, onDelete }) => {
                             <Icon />
                         </div>
                         <div className="min-w-0">
-                            <p className="text-[10px] sm:text-xs font-black uppercase tracking-wider opacity-60">{transaction.category}</p>
+                            <p className="text-[10px] sm:text-xs font-black uppercase tracking-wider opacity-60">
+                                {isTransfer ? 'Transfer' : transaction.category}
+                            </p>
                             <h3 className="text-lg sm:text-2xl font-black truncate">{transaction.text}</h3>
                         </div>
                     </div>
@@ -60,9 +68,31 @@ const TransactionDetailModal = ({ transaction, onClose, onEdit, onDelete }) => {
                     <div className="text-center">
                         <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Amount</p>
                         <h2 className={`text-2xl sm:text-4xl font-black ${colorClass}`}>
-                            {isExpense ? '-' : '+'}₹{Math.abs(transaction.amount).toLocaleString()}
+                            {isTransfer ? '' : isExpense ? '-' : '+'}₹{Math.abs(transaction.amount).toLocaleString()}
                         </h2>
                     </div>
+
+                    {/* Transfer Details */}
+                    {isTransfer && (
+                        <div className="neo-card p-3 sm:p-4">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase mb-2">Transfer Details</p>
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="text-center flex-1">
+                                    <p className="text-xs font-black text-red-500">From</p>
+                                    <p className="text-sm font-bold mt-1">
+                                        {transaction.fromAccountId?.name || 'Unknown'}
+                                    </p>
+                                </div>
+                                <BsArrowLeftRight className="text-blue-500 shrink-0" size={20} />
+                                <div className="text-center flex-1">
+                                    <p className="text-xs font-black text-green-500">To</p>
+                                    <p className="text-sm font-bold mt-1">
+                                        {transaction.toAccountId?.name || 'Unknown'}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Meta Grid */}
                     <div className="grid grid-cols-2 gap-4">
@@ -70,16 +100,31 @@ const TransactionDetailModal = ({ transaction, onClose, onEdit, onDelete }) => {
                             <BsCalendar3 className="text-gray-400" />
                             <div>
                                 <p className="text-[10px] font-bold text-gray-400 uppercase">Date</p>
-                                <p className="text-sm font-bold">{format(parseISO(transaction.date), 'MMM dd, yyyy')}</p>
+                                <p className="text-sm font-bold">
+                                    {format(new Date(transaction.date), 'MMM dd, yyyy')}
+                                </p>
                             </div>
                         </div>
-                        <div className="neo-card p-3 flex items-center gap-3">
-                            <BsWallet2 className="text-gray-400" />
-                            <div>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase">Payment</p>
-                                <p className="text-sm font-bold">{transaction.paymentMode || 'Cash'}</p>
+                        {transaction.time && (
+                            <div className="neo-card p-3 flex items-center gap-3">
+                                <BsClock className="text-gray-400" />
+                                <div>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Time</p>
+                                    <p className="text-sm font-bold">{transaction.time}</p>
+                                </div>
                             </div>
-                        </div>
+                        )}
+                        {!isTransfer && (
+                            <div className="neo-card p-3 flex items-center gap-3">
+                                <BsWallet2 className="text-gray-400" />
+                                <div>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase">Payment</p>
+                                    <p className="text-sm font-bold">
+                                        {transaction.accountId?.name || transaction.paymentMode || 'Cash'}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Tags */}
@@ -90,7 +135,7 @@ const TransactionDetailModal = ({ transaction, onClose, onEdit, onDelete }) => {
                             </p>
                             <div className="flex flex-wrap gap-2">
                                 {transaction.tags.map((tag, i) => (
-                                    <span key={i} className="px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-xs font-bold text-gray-600 dark:text-gray-300">
+                                    <span key={i} className="px-2.5 py-1 rounded-lg bg-brand-yellow/15 text-brand-black dark:text-brand-yellow border border-brand-yellow/30 text-xs font-bold">
                                         #{tag}
                                     </span>
                                 ))}
@@ -98,14 +143,36 @@ const TransactionDetailModal = ({ transaction, onClose, onEdit, onDelete }) => {
                         </div>
                     )}
 
+                    {/* Attachments */}
+                    {transaction.attachments && transaction.attachments.length > 0 && (
+                        <div>
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <BsPaperclip /> Attachments
+                            </p>
+                            <div className="grid grid-cols-3 gap-2">
+                                {transaction.attachments.map((att, i) => (
+                                    <a key={i} href={att.url} target="_blank" rel="noopener noreferrer"
+                                        className="block rounded-xl overflow-hidden border-2 border-gray-200 dark:border-gray-700 hover:border-brand-primary transition-colors group">
+                                        <img src={att.url} alt={att.name || 'Receipt'} className="w-full h-20 object-cover group-hover:scale-105 transition-transform" />
+                                        <div className="p-1.5 bg-gray-50 dark:bg-gray-800">
+                                            <p className="text-[9px] font-bold text-gray-500 truncate flex items-center gap-1">
+                                                <BsImage size={8} /> {att.name || 'Receipt'}
+                                            </p>
+                                        </div>
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Notes */}
-                    {transaction.notes && (
+                    {(transaction.note || transaction.notes) && (
                         <div>
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                                 <BsSticky /> Notes
                             </p>
                             <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl text-sm italic border-l-4 border-gray-300 dark:border-gray-600">
-                                "{transaction.notes}"
+                                "{transaction.note || transaction.notes}"
                             </div>
                         </div>
                     )}
@@ -120,7 +187,7 @@ const TransactionDetailModal = ({ transaction, onClose, onEdit, onDelete }) => {
                         <BsPencilSquare /> Edit
                     </button>
                     <button
-                        onClick={() => { onDelete(transaction.id); onClose(); }}
+                        onClick={() => { onDelete(txId); onClose(); }}
                         className="flex-1 py-2.5 sm:py-3 rounded-xl font-bold text-sm bg-white dark:bg-dark-card text-red-500 border-2 border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors flex items-center justify-center gap-2"
                     >
                         <BsTrash /> Delete

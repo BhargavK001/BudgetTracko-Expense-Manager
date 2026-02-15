@@ -1,7 +1,12 @@
 
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BsCheckCircleFill } from 'react-icons/bs';
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
+import { toast } from 'sonner';
+import SuccessAnimation from '../components/SuccessAnimation';
 
 const fadeUp = {
     hidden: { opacity: 0, y: 50 },
@@ -23,6 +28,7 @@ const staggerItem = {
 
 const plans = [
     {
+        id: 'free',
         name: 'Starter 🎒',
         price: '₹0',
         period: 'forever',
@@ -37,6 +43,7 @@ const plans = [
         ],
     },
     {
+        id: 'pro',
         name: 'Campus Pro 🎓',
         price: '₹49',
         period: '/month',
@@ -53,6 +60,7 @@ const plans = [
         ],
     },
     {
+        id: 'squad',
         name: 'Hostel Squad 🏠',
         price: '₹99',
         period: '/month',
@@ -70,8 +78,112 @@ const plans = [
 ];
 
 const Pricing = () => {
+    const { user, refreshUser } = useAuth();
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [searchParams] = useSearchParams();
+    const hasTriggeredAutoPayment = useRef(false);
+
+    // Check for auto-payment trigger (e.g. returning from login)
+    useEffect(() => {
+        const planId = searchParams.get('plan');
+        if (planId && user && !hasTriggeredAutoPayment.current) {
+            const planToBuy = plans.find(p => p.id === planId);
+            if (planToBuy) {
+                hasTriggeredAutoPayment.current = true;
+                handleSubscribe(planToBuy);
+            }
+        }
+    }, [user, searchParams]);
+
+    const handleSubscribe = async (plan) => {
+        if (!user) {
+            // Redirect to login with return path
+            navigate(`/login?redirect=/pricing?plan=${plan.id}`);
+            return;
+        }
+
+        if (plan.price === '₹0') {
+            navigate('/dashboard');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            // 1. Create Order
+            const { data: orderData } = await api.post('/api/payments/create-order', {
+                amount: parseInt(plan.price.replace('₹', '')),
+                plan: plan.id
+            });
+
+            const prefillData = {
+                name: user.displayName,
+                email: user.email
+            };
+            if (user.phone && user.phone.replace(/\D/g, '').length >= 10) {
+                prefillData.contact = user.phone;
+            }
+
+            const cleanPlanName = plan.name.replace(/[^\w\s]/g, '').trim(); // Remove emojis
+
+            const options = {
+                key: orderData.key,
+                amount: Number(orderData.amount), // Ensure number
+                currency: orderData.currency,
+                name: "BudgetTracko",
+                description: `Subscription for ${cleanPlanName}`,
+                order_id: orderData.order_id,
+                retry: { enabled: false }, // Disable retry to see if it helps debug
+                handler: async function (response) {
+                    try {
+                        console.log("Razorpay Response:", response);
+                        // 2. Verify Payment
+                        const verifyRes = await api.post('/api/payments/verify', {
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature
+                        });
+
+                        if (verifyRes.data.success) {
+                            await refreshUser(); // Refresh user state to show new plan
+                            setShowSuccess(true);
+                            toast.success('Subscription activated successfully! 🎉');
+                            setTimeout(() => {
+                                navigate('/dashboard');
+                            }, 3500); // 3.5s for animation
+                        }
+                    } catch (error) {
+                        console.error("Verification Error", error);
+                        toast.error('Payment verification failed. Please contact support.');
+                    }
+                },
+                prefill: prefillData,
+                theme: {
+                    color: "#FFDE59"
+                }
+            };
+
+            console.log("Razorpay Options:", options);
+
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                toast.error(response.error.description);
+            });
+            rzp.open();
+
+        } catch (error) {
+            console.error("Payment Error", error);
+            toast.error('Something went wrong initiating payment.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-brand-yellow font-sans text-brand-black selection:bg-black selection:text-brand-yellow overflow-hidden">
+            {showSuccess && <SuccessAnimation />}
+
             {/* Nav */}
             <motion.nav
                 initial={{ y: -80, opacity: 0 }}
@@ -97,12 +209,12 @@ const Pricing = () => {
             </motion.nav>
 
             {/* Hero */}
-            <div className="pt-24 sm:pt-32 pb-12 sm:pb-16 px-4 sm:px-6 text-center max-w-4xl mx-auto">
+            <div className="pt-20 sm:pt-32 pb-8 sm:pb-16 px-4 sm:px-6 text-center max-w-4xl mx-auto">
                 <motion.h1
                     variants={fadeUp}
                     initial="hidden"
                     animate="visible"
-                    className="text-4xl sm:text-5xl md:text-7xl font-black uppercase tracking-tighter mb-4 sm:mb-6"
+                    className="text-3xl sm:text-5xl md:text-7xl font-black uppercase tracking-tighter mb-3 sm:mb-6"
                 >
                     Student Pricing
                 </motion.h1>
@@ -111,16 +223,16 @@ const Pricing = () => {
                     initial="hidden"
                     animate="visible"
                     custom={0.2}
-                    className="text-lg sm:text-xl md:text-2xl font-bold max-w-2xl mx-auto leading-relaxed"
+                    className="text-sm sm:text-xl md:text-2xl font-bold max-w-2xl mx-auto leading-relaxed"
                 >
                     Built for students & college life. Affordable plans that won't burn a hole in your pocket. 🔥
                 </motion.p>
             </div>
 
             {/* Pricing Cards */}
-            <section className="pb-20 sm:pb-32 px-4 sm:px-6">
+            <section className="pb-16 sm:pb-32 px-4 sm:px-6">
                 <motion.div
-                    className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 items-stretch"
+                    className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 sm:gap-8 items-stretch"
                     variants={staggerContainer}
                     initial="hidden"
                     animate="visible"
@@ -130,8 +242,8 @@ const Pricing = () => {
                             key={idx}
                             variants={staggerItem}
                             whileHover={{ y: -8, transition: { duration: 0.2 } }}
-                            className={`relative p-6 sm:p-8 border-4 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col ${plan.highlight
-                                ? 'bg-black text-white scale-100 md:scale-105 z-10'
+                            className={`relative p-5 sm:p-8 border-3 sm:border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] flex flex-col ${plan.highlight
+                                ? 'bg-black text-white scale-100 sm:scale-105 z-10'
                                 : 'bg-white'
                                 }`}
                         >
@@ -145,31 +257,32 @@ const Pricing = () => {
                                     MOST POPULAR ⭐
                                 </motion.div>
                             )}
-                            <h3 className={`text-xl sm:text-2xl font-black uppercase mb-2 ${plan.highlight ? 'text-brand-yellow' : ''}`}>{plan.name}</h3>
-                            <div className="mb-6">
-                                <span className="text-4xl sm:text-5xl font-black">{plan.price}</span>
+                            <h3 className={`text-lg sm:text-2xl font-black uppercase mb-1.5 sm:mb-2 ${plan.highlight ? 'text-brand-yellow' : ''}`}>{plan.name}</h3>
+                            <div className="mb-4 sm:mb-6">
+                                <span className="text-3xl sm:text-5xl font-black">{plan.price}</span>
                                 <span className={`text-base sm:text-lg font-bold ml-1 ${plan.highlight ? 'text-gray-400' : 'text-gray-500'}`}>{plan.period}</span>
                             </div>
-                            <ul className="space-y-3 mb-8 flex-1">
+                            <ul className="space-y-2 sm:space-y-3 mb-6 sm:mb-8 flex-1">
                                 {plan.features.map((feat, i) => (
-                                    <li key={i} className="flex items-start gap-2 text-sm sm:text-base font-semibold">
+                                    <li key={i} className="flex items-start gap-2 text-xs sm:text-base font-semibold">
                                         <BsCheckCircleFill className={`mt-0.5 flex-shrink-0 ${plan.highlight ? 'text-brand-yellow' : 'text-green-600'}`} size={16} />
                                         {feat}
                                     </li>
                                 ))}
                             </ul>
-                            <Link to="/login" className="block">
-                                <motion.span
-                                    whileHover={{ y: -3, boxShadow: '6px 6px 0px 0px rgba(0,0,0,1)' }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className={`block text-center font-black text-base sm:text-lg py-3 sm:py-4 border-3 sm:border-4 border-black transition-all ${plan.highlight
-                                        ? 'bg-brand-yellow text-black'
-                                        : 'bg-black text-white hover:bg-brand-yellow hover:text-black'
-                                        }`}
-                                >
-                                    Get Started
-                                </motion.span>
-                            </Link>
+
+                            <motion.button
+                                whileHover={{ y: -3, boxShadow: '6px 6px 0px 0px rgba(0,0,0,1)' }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleSubscribe(plan)}
+                                disabled={loading}
+                                className={`block w-full text-center font-black text-base sm:text-lg py-3 sm:py-4 border-3 sm:border-4 border-black transition-all ${plan.highlight
+                                    ? 'bg-brand-yellow text-black'
+                                    : 'bg-black text-white hover:bg-brand-yellow hover:text-black'
+                                    } ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            >
+                                {loading && plan.id !== 'free' ? 'Processing...' : 'Get Started'}
+                            </motion.button>
                         </motion.div>
                     ))}
                 </motion.div>

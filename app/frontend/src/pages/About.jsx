@@ -49,12 +49,12 @@ const About = () => {
             </motion.nav>
 
             {/* Hero */}
-            <div className="pt-24 sm:pt-32 pb-12 sm:pb-16 px-4 sm:px-6 text-center max-w-4xl mx-auto">
+            <div className="pt-20 sm:pt-32 pb-8 sm:pb-16 px-4 sm:px-6 text-center max-w-4xl mx-auto">
                 <motion.h1
                     variants={fadeUp}
                     initial="hidden"
                     animate="visible"
-                    className="text-4xl sm:text-5xl md:text-7xl font-black uppercase tracking-tighter mb-4 sm:mb-6"
+                    className="text-3xl sm:text-5xl md:text-7xl font-black uppercase tracking-tighter mb-3 sm:mb-6"
                 >
                     About Us
                 </motion.h1>
@@ -63,7 +63,7 @@ const About = () => {
                     initial="hidden"
                     animate="visible"
                     custom={0.2}
-                    className="text-lg sm:text-xl md:text-2xl font-bold max-w-2xl mx-auto leading-relaxed"
+                    className="text-base sm:text-xl md:text-2xl font-bold max-w-2xl mx-auto leading-relaxed"
                 >
                     We believe managing money should be simple, visual, and even enjoyable. That's why we built BudgetTracko.
                 </motion.p>
@@ -77,10 +77,10 @@ const About = () => {
                         initial="hidden"
                         whileInView="visible"
                         viewport={{ once: true }}
-                        className="bg-white border-4 border-black p-6 sm:p-10 md:p-14 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] mb-12 sm:mb-16"
+                        className="bg-white border-3 sm:border-4 border-black p-5 sm:p-10 md:p-14 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] mb-10 sm:mb-16"
                     >
-                        <h2 className="text-2xl sm:text-3xl font-black uppercase mb-4 sm:mb-6">Our Story</h2>
-                        <div className="space-y-4 text-base sm:text-lg font-semibold text-gray-700 leading-relaxed">
+                        <h2 className="text-xl sm:text-3xl font-black uppercase mb-3 sm:mb-6">Our Story</h2>
+                        <div className="space-y-3 sm:space-y-4 text-sm sm:text-lg font-semibold text-gray-700 leading-relaxed">
                             <p>
                                 BudgetTracko was born out of frustration. After trying dozens of expense tracking apps that were either
                                 too complicated, too ugly, or too expensive, we decided to build something different.
@@ -102,12 +102,12 @@ const About = () => {
                         initial="hidden"
                         whileInView="visible"
                         viewport={{ once: true }}
-                        className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tighter text-center mb-10 sm:mb-14"
+                        className="text-2xl sm:text-4xl md:text-5xl font-black uppercase tracking-tighter text-center mb-8 sm:mb-14"
                     >
                         What We Believe
                     </motion.h2>
                     <motion.div
-                        className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-8"
+                        className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8"
                         variants={staggerContainer}
                         initial="hidden"
                         whileInView="visible"
@@ -123,12 +123,12 @@ const About = () => {
                                 key={idx}
                                 variants={staggerItem}
                                 whileHover={{ y: -6, transition: { duration: 0.2 } }}
-                                className="bg-white border-3 sm:border-4 border-black p-6 sm:p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+                                className="bg-white border-2 sm:border-4 border-black p-5 sm:p-8 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
                             >
-                                <div className="w-12 h-12 bg-black text-brand-yellow flex items-center justify-center mb-4 rounded-full">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-black text-brand-yellow flex items-center justify-center mb-3 sm:mb-4 rounded-full">
                                     {val.icon}
                                 </div>
-                                <h3 className="text-xl sm:text-2xl font-black uppercase mb-2">{val.title}</h3>
+                                <h3 className="text-lg sm:text-2xl font-black uppercase mb-1.5 sm:mb-2">{val.title}</h3>
                                 <p className="text-sm sm:text-base font-semibold text-gray-700 leading-relaxed">{val.desc}</p>
                             </motion.div>
                         ))}
@@ -137,14 +137,14 @@ const About = () => {
             </section>
 
             {/* Creator Section */}
-            <section className="py-16 sm:py-24 px-4 sm:px-6 bg-black text-white text-center">
+            <section className="py-12 sm:py-24 px-4 sm:px-6 bg-black text-white text-center">
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.6 }}
                 >
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-brand-yellow text-black rounded-full flex items-center justify-center text-3xl sm:text-4xl font-black mx-auto mb-6">
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 bg-brand-yellow text-black rounded-full flex items-center justify-center text-2xl sm:text-4xl font-black mx-auto mb-4 sm:mb-6">
                         BK
                     </div>
                     <h3 className="text-2xl sm:text-3xl font-black text-brand-yellow mb-2">Bhargav Karande</h3>

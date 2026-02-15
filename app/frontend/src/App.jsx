@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { HelmetProvider } from 'react-helmet-async';
 import { ThemeProvider } from './context/ThemeContext';
 import { GlobalProvider } from './context/GlobalContext';
+import { AuthProvider } from './context/AuthContext';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'sonner';
 import Layout from './components/layout/Layout';
@@ -11,7 +12,7 @@ import Analytics from './pages/Analytics';
 import Budgets from './pages/Budgets';
 import Accounts from './pages/Accounts';
 import Settings from './pages/Settings';
-
+import Billing from './pages/Billing';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Contact from './pages/Contact';
@@ -23,6 +24,8 @@ import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
+import StatusPage from './pages/StatusPage';
+
 
 // Page transition variants
 const pageVariants = {
@@ -79,6 +82,8 @@ const AnimatedRoutes = () => {
         <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
         <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
         <Route path="/auth/callback" element={<PageTransition><AuthCallback /></PageTransition>} />
+        <Route path="/system-status" element={<PageTransition><StatusPage /></PageTransition>} />
+
 
         <Route path="/" element={<Layout />}>
           <Route path="dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
@@ -87,6 +92,7 @@ const AnimatedRoutes = () => {
           <Route path="budgets" element={<PageTransition><Budgets /></PageTransition>} />
           <Route path="accounts" element={<PageTransition><Accounts /></PageTransition>} />
           <Route path="settings" element={<PageTransition><Settings /></PageTransition>} />
+          <Route path="billing" element={<PageTransition><Billing /></PageTransition>} />
           {/* Add more routes here */}
         </Route>
 
@@ -99,26 +105,28 @@ const AnimatedRoutes = () => {
 function App() {
   return (
     <ThemeProvider>
-      <GlobalProvider>
-        <HelmetProvider>
-          <Router>
-            <AnimatedRoutes />
-            <Toaster
-              position="bottom-right"
-              richColors
-              toastOptions={{
-                style: {
-                  fontFamily: 'inherit',
-                  fontWeight: 700,
-                  borderRadius: '12px',
-                  border: '2px solid #1a1a1a',
-                  boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
-                },
-              }}
-            />
-          </Router>
-        </HelmetProvider>
-      </GlobalProvider>
+      <AuthProvider>
+        <GlobalProvider>
+          <HelmetProvider>
+            <Router>
+              <AnimatedRoutes />
+              <Toaster
+                position="bottom-right"
+                richColors
+                toastOptions={{
+                  style: {
+                    fontFamily: 'inherit',
+                    fontWeight: 700,
+                    borderRadius: '12px',
+                    border: '2px solid #1a1a1a',
+                    boxShadow: '4px 4px 0px 0px rgba(0,0,0,1)',
+                  },
+                }}
+              />
+            </Router>
+          </HelmetProvider>
+        </GlobalProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

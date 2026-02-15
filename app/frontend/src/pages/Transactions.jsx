@@ -5,13 +5,18 @@ import { useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { format, parseISO, isToday, isYesterday, isSameMonth, subMonths } from 'date-fns';
 import { BsPlus, BsX, BsSearch, BsFilter, BsTrash3, BsFunnel } from 'react-icons/bs';
+import { getCategoryIcon } from '../utils/iconMap';
 import SEO from '../components/common/SEO';
 
-/* ─── Category Icons ─── */
-const CAT_ICON = {
-    Food: '🍔', Transport: '🚌', Bills: '💡', Shopping: '🛍️',
-    Entertainment: '🎬', Health: '🏥', Education: '📚', Salary: '💰',
-    Investment: '📈', Gift: '🎁', Other: '📦',
+/* ─── Render Category Icon ─── */
+const RenderCatIcon = ({ category, size = 16 }) => {
+    const Icon = getCategoryIcon(category || 'Other');
+    return <Icon size={size} />;
+};
+
+const safeParse = (d) => {
+    if (!d) return new Date();
+    try { return typeof d === 'string' ? parseISO(d) : new Date(d); } catch { return new Date(d); }
 };
 
 /* ─── Animation variants ─── */
@@ -37,6 +42,7 @@ const Transactions = () => {
         return transactions.filter(t => {
             // Search
             const matchesSearch = t.text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (t.note && t.note.toLowerCase().includes(searchTerm.toLowerCase())) ||
                 (t.notes && t.notes.toLowerCase().includes(searchTerm.toLowerCase()));
 
             // Category
@@ -44,10 +50,11 @@ const Transactions = () => {
 
             // Date
             let matchesDate = true;
+            const d = safeParse(t.date);
             if (filterDate === 'thisMonth') {
-                matchesDate = isSameMonth(parseISO(t.date), new Date());
+                matchesDate = isSameMonth(d, new Date());
             } else if (filterDate === 'lastMonth') {
-                matchesDate = isSameMonth(parseISO(t.date), subMonths(new Date(), 1));
+                matchesDate = isSameMonth(d, subMonths(new Date(), 1));
             }
 
             return matchesSearch && matchesCategory && matchesDate;
@@ -59,7 +66,7 @@ const Transactions = () => {
         const groups = {};
         filteredTransactions.forEach(t => {
             if (!t.date) return;
-            const d = parseISO(t.date);
+            const d = safeParse(t.date);
             let label;
             if (isToday(d)) label = 'Today';
             else if (isYesterday(d)) label = 'Yesterday';
@@ -76,7 +83,7 @@ const Transactions = () => {
         setShowForm(true);
     };
 
-    const categories = ['All', 'Food', 'Transport', 'Bills', 'Shopping', 'Entertainment', 'Health', 'Education', 'Salary', 'Investment', 'Other'];
+    const categories = ['All', 'Food', 'Transport', 'Bills', 'Shopping', 'Entertainment', 'Health', 'Education', 'Salary', 'Investment', 'Transfer', 'Other'];
 
     return (
         <div className="space-y-4 sm:space-y-6 pb-20">
@@ -111,7 +118,7 @@ const Transactions = () => {
                             placeholder="Search transactions..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full neo-input pl-9 py-2.5 text-sm"
+                            className="w-full neo-input !pl-10 py-2.5 text-sm"
                         />
                     </div>
                     <div className="flex gap-2">
@@ -120,7 +127,7 @@ const Transactions = () => {
                             <select
                                 value={filterCategory}
                                 onChange={(e) => setFilterCategory(e.target.value)}
-                                className="neo-input pl-9 py-2.5 text-xs sm:text-sm appearance-none pr-8 cursor-pointer w-full"
+                                className="neo-input !pl-10 py-2.5 text-xs sm:text-sm appearance-none pr-8 cursor-pointer w-full"
                             >
                                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>
@@ -177,15 +184,15 @@ const Transactions = () => {
                                 <AnimatePresence>
                                     {items.map(t => (
                                         <motion.div
-                                            key={t.id}
+                                            key={t._id || t.id}
                                             variants={listItem}
                                             initial="hidden" animate="visible" exit="exit" layout
                                             onClick={() => setSelectedTransaction(t)}
                                             className="flex items-center justify-between p-3 sm:p-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group cursor-pointer"
                                         >
                                             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                                                <div className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 bg-light-bg dark:bg-dark-bg border-2 border-brand-black dark:border-gray-600 rounded-xl flex items-center justify-center text-base sm:text-lg">
-                                                    {CAT_ICON[t.category] || '📦'}
+                                                <div className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 bg-light-bg dark:bg-dark-bg border-2 border-brand-black dark:border-gray-600 rounded-xl flex items-center justify-center">
+                                                    <RenderCatIcon category={t.category} size={16} />
                                                 </div>
                                                 <div className="min-w-0">
                                                     <p className="font-bold text-xs sm:text-sm truncate">{t.text}</p>
@@ -203,8 +210,8 @@ const Transactions = () => {
                                             </div>
 
                                             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-2">
-                                                <span className={`font-black text-xs sm:text-sm ${t.amount < 0 ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                                                    {t.amount > 0 ? '+' : ''}₹{Math.abs(t.amount).toLocaleString()}
+                                                <span className={`font-black text-xs sm:text-sm ${t.type === 'transfer' ? 'text-blue-500 dark:text-blue-400' : t.amount < 0 ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                                                    {t.type === 'transfer' ? '' : t.amount > 0 ? '+' : ''}₹{Math.abs(t.amount).toLocaleString()}
                                                 </span>
                                             </div>
                                         </motion.div>

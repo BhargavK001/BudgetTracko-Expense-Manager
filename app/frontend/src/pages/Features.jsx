@@ -64,12 +64,12 @@ const Features = () => {
             </motion.nav>
 
             {/* Hero */}
-            <div className="pt-24 sm:pt-32 pb-12 sm:pb-16 px-4 sm:px-6 text-center max-w-4xl mx-auto">
+            <div className="pt-20 sm:pt-32 pb-8 sm:pb-16 px-4 sm:px-6 text-center max-w-4xl mx-auto">
                 <motion.h1
                     variants={fadeUp}
                     initial="hidden"
                     animate="visible"
-                    className="text-4xl sm:text-5xl md:text-7xl font-black uppercase tracking-tighter mb-4 sm:mb-6"
+                    className="text-3xl sm:text-5xl md:text-7xl font-black uppercase tracking-tighter mb-3 sm:mb-6"
                 >
                     All Features
                 </motion.h1>
@@ -78,16 +78,16 @@ const Features = () => {
                     initial="hidden"
                     animate="visible"
                     custom={0.2}
-                    className="text-lg sm:text-xl md:text-2xl font-bold max-w-2xl mx-auto leading-relaxed"
+                    className="text-sm sm:text-xl md:text-2xl font-bold max-w-2xl mx-auto leading-relaxed"
                 >
                     Everything you need to take full control of your finances — built with simplicity and power in mind.
                 </motion.p>
             </div>
 
             {/* Features Grid */}
-            <section className="pb-20 sm:pb-32 px-4 sm:px-6">
+            <section className="pb-16 sm:pb-32 px-4 sm:px-6">
                 <motion.div
-                    className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8"
+                    className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8"
                     variants={staggerContainer}
                     initial="hidden"
                     animate="visible"
@@ -97,7 +97,7 @@ const Features = () => {
                             key={idx}
                             variants={staggerItem}
                             whileHover={{ y: -6, boxShadow: '10px 10px 0px 0px rgba(0,0,0,1)', transition: { duration: 0.2 } }}
-                            className="bg-white border-3 sm:border-4 border-black p-6 sm:p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all cursor-default"
+                            className="bg-white border-2 sm:border-4 border-black p-5 sm:p-8 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] sm:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all cursor-default"
                         >
                             <motion.div
                                 whileHover={{ rotate: 360, scale: 1.2 }}
@@ -106,7 +106,7 @@ const Features = () => {
                             >
                                 {feat.icon}
                             </motion.div>
-                            <h3 className="text-xl sm:text-2xl font-black mb-2 sm:mb-3 uppercase">{feat.title}</h3>
+                            <h3 className="text-lg sm:text-2xl font-black mb-1.5 sm:mb-3 uppercase">{feat.title}</h3>
                             <p className="text-sm sm:text-base font-semibold text-gray-700 leading-relaxed">{feat.desc}</p>
                         </motion.div>
                     ))}
@@ -114,13 +114,13 @@ const Features = () => {
             </section>
 
             {/* CTA */}
-            <section className="py-16 sm:py-24 px-4 sm:px-6 bg-black text-center">
+            <section className="py-12 sm:py-24 px-4 sm:px-6 bg-black text-center">
                 <motion.h2
                     initial={{ opacity: 0, scale: 0.8 }}
                     whileInView={{ opacity: 1, scale: 1 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.6 }}
-                    className="text-3xl sm:text-5xl md:text-6xl font-black text-brand-yellow mb-8 uppercase tracking-tighter"
+                    className="text-2xl sm:text-5xl md:text-6xl font-black text-brand-yellow mb-6 sm:mb-8 uppercase tracking-tighter"
                 >
                     Ready to try it?
                 </motion.h2>
@@ -128,7 +128,7 @@ const Features = () => {
                     <motion.span
                         whileHover={{ y: -4, boxShadow: '12px 12px 0px 0px rgba(255,215,0,0.5)' }}
                         whileTap={{ scale: 0.95 }}
-                        className="inline-block bg-brand-yellow text-black text-lg sm:text-xl font-black px-10 sm:px-14 py-4 sm:py-5 border-4 border-brand-yellow rounded-full transition-all"
+                        className="inline-block bg-brand-yellow text-black text-base sm:text-xl font-black px-8 sm:px-14 py-3.5 sm:py-5 border-4 border-brand-yellow rounded-full transition-all"
                     >
                         Start Free Today
                     </motion.span>

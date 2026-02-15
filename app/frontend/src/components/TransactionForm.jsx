@@ -1,60 +1,173 @@
 import { useForm } from 'react-hook-form';
 import { useGlobalContext } from '../context/GlobalContext';
 import { toast } from 'sonner';
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BsX, BsPaperclip, BsClock, BsImage, BsCashCoin, BsWallet2, BsArrowLeftRight, BsChevronDown, BsCart, BsHouse, BsPiggyBank, BsController, BsHeartPulse, BsBook, BsBriefcase, BsCreditCard, BsGift, BsGlobe, BsMusicNote, BsPhone, BsTools, BsTruck } from 'react-icons/bs';
 
 const TransactionForm = ({ onClose, initialData }) => {
-    const { register, handleSubmit, watch, formState: { errors }, reset } = useForm({
+    const { register, handleSubmit, watch, formState: { errors }, reset, setValue } = useForm({
         defaultValues: {
             type: 'expense',
             date: new Date().toISOString().split('T')[0],
-            paymentMode: 'Cash',
-            tags: '',
+            time: new Date().toTimeString().slice(0, 5),
             notes: ''
         }
     });
 
-    const { addTransaction, updateTransaction } = useGlobalContext();
+    const { addTransaction, updateTransaction, accounts, categories: userCategories } = useGlobalContext();
     const type = watch('type');
+    const fileInputRef = useRef(null);
+
+    // Tags state
+    const [tags, setTags] = useState([]);
+    const [tagInput, setTagInput] = useState('');
+    const [showCatDropdown, setShowCatDropdown] = useState(false);
+
+    // Attachments state
+    const [selectedFiles, setSelectedFiles] = useState([]);
+    const [existingAttachments, setExistingAttachments] = useState([]);
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         if (initialData) {
             reset({
                 ...initialData,
                 amount: Math.abs(initialData.amount),
-                tags: initialData.tags ? initialData.tags.join(', ') : ''
+                date: initialData.date ? new Date(initialData.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                time: initialData.time || '',
+                accountId: initialData.accountId?._id || initialData.accountId || '',
+                fromAccountId: initialData.fromAccountId?._id || initialData.fromAccountId || '',
+                toAccountId: initialData.toAccountId?._id || initialData.toAccountId || '',
+                notes: initialData.note || initialData.notes || ''
             });
+            setTags(initialData.tags || []);
+            setExistingAttachments(initialData.attachments || []);
         }
     }, [initialData, reset]);
 
-    const categories = {
-        income: ['Salary', 'Business', 'Investment', 'Gift', 'Other'],
-        expense: ['Food', 'Transport', 'Bills', 'Shopping', 'Entertainment', 'Health', 'Education', 'Other']
+    // Icon Map
+    const iconMap = {
+        'BsCart': BsCart,
+        'BsHouse': BsHouse,
+        'BsCashCoin': BsCashCoin,
+        'BsPiggyBank': BsPiggyBank,
+        'BsController': BsController,
+        'BsHeartPulse': BsHeartPulse,
+        'BsBook': BsBook,
+        'BsBriefcase': BsBriefcase,
+        'BsCreditCard': BsCreditCard,
+        'BsGift': BsGift,
+        'BsGlobe': BsGlobe,
+        'BsMusicNote': BsMusicNote,
+        'BsPhone': BsPhone,
+        'BsTools': BsTools,
+        'BsTruck': BsTruck,
+        'BsWallet2': BsWallet2,
     };
 
-    const paymentModes = ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Net Banking'];
+    // Dynamic categories from API, with fallback defaults
+    const defaultCats = {
+        income: ['Salary', 'Business', 'Investment', 'Gift', 'Other'],
+        expense: ['Food', 'Transport', 'Bills', 'Shopping', 'Entertainment', 'Health', 'Education', 'Other'],
+        transfer: []
+    };
 
-    const onSubmit = (data) => {
-        const transactionData = {
-            id: initialData ? initialData.id : Date.now(),
-            text: data.text,
-            amount: data.type === 'expense' ? -Math.abs(Number(data.amount)) : Math.abs(Number(data.amount)),
-            date: data.date,
-            type: data.type,
-            category: data.category,
-            paymentMode: data.paymentMode,
-            notes: data.notes,
-            tags: data.tags ? data.tags.split(',').map(t => t.trim()).filter(t => t) : []
-        };
+    const categories = {
+        income: userCategories.length > 0
+            ? userCategories.filter(c => c.type === 'income' || c.type === 'both')
+            : defaultCats.income.map(name => ({ name, icon: 'BsCashCoin', color: '#10b981' })),
+        expense: userCategories.length > 0
+            ? userCategories.filter(c => c.type === 'expense' || c.type === 'both')
+            : defaultCats.expense.map(name => ({ name, icon: 'BsCart', color: '#ef4444' })),
+        transfer: []
+    };
 
-        if (initialData) {
-            updateTransaction(transactionData);
-        } else {
-            addTransaction(transactionData);
+    // Tag handlers
+    const addTag = () => {
+        const trimmed = tagInput.trim();
+        if (trimmed && !tags.includes(trimmed)) {
+            setTags([...tags, trimmed]);
+            setTagInput('');
         }
+    };
 
-        reset();
-        if (onClose) onClose();
+    const removeTag = (tagToRemove) => {
+        setTags(tags.filter(t => t !== tagToRemove));
+    };
+
+    const handleTagKeyDown = (e) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addTag();
+        }
+        if (e.key === 'Backspace' && tagInput === '' && tags.length > 0) {
+            removeTag(tags[tags.length - 1]);
+        }
+    };
+
+    // File handlers
+    const handleFileSelect = (e) => {
+        const files = Array.from(e.target.files);
+        const totalFiles = selectedFiles.length + existingAttachments.length + files.length;
+        if (totalFiles > 3) {
+            toast.error('Maximum 3 attachments allowed');
+            return;
+        }
+        // Validate file sizes (2MB each for Cloudinary free plan)
+        for (const file of files) {
+            if (file.size > 2 * 1024 * 1024) {
+                toast.error(`"${file.name}" exceeds 2MB limit`);
+                return;
+            }
+        }
+        setSelectedFiles(prev => [...prev, ...files]);
+    };
+
+    const removeFile = (index) => {
+        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const onSubmit = async (data) => {
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('type', data.type);
+            formData.append('text', data.text);
+            formData.append('amount', data.amount);
+            formData.append('date', data.date);
+            formData.append('time', data.time || '');
+            formData.append('note', data.notes || '');
+            formData.append('tags', tags.join(','));
+
+            if (data.type === 'transfer') {
+                formData.append('fromAccountId', data.fromAccountId);
+                formData.append('toAccountId', data.toAccountId);
+            } else {
+                formData.append('category', data.category);
+                formData.append('accountId', data.accountId);
+            }
+
+            // Append files
+            selectedFiles.forEach(file => {
+                formData.append('attachments', file);
+            });
+
+            if (initialData) {
+                await updateTransaction(initialData._id, formData);
+            } else {
+                await addTransaction(formData);
+            }
+
+            reset();
+            setTags([]);
+            setSelectedFiles([]);
+            if (onClose) onClose();
+        } catch (err) {
+            // Error already handled in context
+        } finally {
+            setUploading(false);
+        }
     };
 
     const inputClass = "mt-1 block w-full rounded-xl bg-light-bg dark:bg-dark-bg border-2 border-brand-black dark:border-gray-600 text-light-text dark:text-dark-text p-2.5 text-sm font-semibold focus:outline-none focus:border-brand-yellow focus:ring-2 focus:ring-brand-yellow/30 transition-all placeholder:text-light-text-secondary/50 dark:placeholder:text-dark-text-secondary/50";
@@ -69,14 +182,21 @@ const TransactionForm = ({ onClose, initialData }) => {
                     : 'border-gray-200 dark:border-gray-700 text-light-text-secondary dark:text-dark-text-secondary hover:border-gray-400'
                     }`}>
                     <input type="radio" value="income" {...register('type', { required: 'Type is required' })} className="hidden" />
-                    💰 Income
+                    <BsCashCoin className="inline mr-1" size={14} /> Income
                 </label>
                 <label className={`flex-1 cursor-pointer p-2.5 sm:p-3 text-center rounded-xl border-2 font-bold text-xs sm:text-sm transition-all ${type === 'expense'
                     ? 'bg-red-100 dark:bg-red-900/30 border-red-500 text-red-700 dark:text-red-400 neo-shadow-sm'
                     : 'border-gray-200 dark:border-gray-700 text-light-text-secondary dark:text-dark-text-secondary hover:border-gray-400'
                     }`}>
                     <input type="radio" value="expense" {...register('type', { required: 'Type is required' })} className="hidden" />
-                    💸 Expense
+                    <BsWallet2 className="inline mr-1" size={14} /> Expense
+                </label>
+                <label className={`flex-1 cursor-pointer p-2.5 sm:p-3 text-center rounded-xl border-2 font-bold text-xs sm:text-sm transition-all ${type === 'transfer'
+                    ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-400 neo-shadow-sm'
+                    : 'border-gray-200 dark:border-gray-700 text-light-text-secondary dark:text-dark-text-secondary hover:border-gray-400'
+                    }`}>
+                    <input type="radio" value="transfer" {...register('type', { required: 'Type is required' })} className="hidden" />
+                    <BsArrowLeftRight className="inline mr-1" size={14} /> Transfer
                 </label>
             </div>
 
@@ -87,72 +207,236 @@ const TransactionForm = ({ onClose, initialData }) => {
                     type="text"
                     {...register('text', { required: 'Description is required' })}
                     className={inputClass}
-                    placeholder="e.g. Coffee at Starbucks"
+                    placeholder={type === 'transfer' ? 'e.g. Transfer to savings' : 'e.g. Coffee at Starbucks'}
                 />
                 {errors.text && <p className="text-red-500 text-xs font-bold mt-1">{errors.text.message}</p>}
             </div>
 
-            {/* Category & Amount Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                    <label className={labelClass}>Category</label>
-                    <select
-                        {...register('category', { required: 'Category is required' })}
-                        className={inputClass}
-                    >
-                        <option value="">Select</option>
-                        {categories[type]?.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                    </select>
-                    {errors.category && <p className="text-red-500 text-xs font-bold mt-1">{errors.category.message}</p>}
+            {/* Transfer: From & To Account */}
+            {type === 'transfer' ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label className={labelClass}>From Account</label>
+                        <select {...register('fromAccountId', { required: type === 'transfer' ? 'From account is required' : false })} className={inputClass}>
+                            <option value="">Select</option>
+                            {accounts.map(acc => (
+                                <option key={acc._id} value={acc._id}>{acc.name} (₹{acc.balance?.toLocaleString()})</option>
+                            ))}
+                        </select>
+                        {errors.fromAccountId && <p className="text-red-500 text-xs font-bold mt-1">{errors.fromAccountId.message}</p>}
+                    </div>
+                    <div>
+                        <label className={labelClass}>To Account</label>
+                        <select {...register('toAccountId', { required: type === 'transfer' ? 'To account is required' : false })} className={inputClass}>
+                            <option value="">Select</option>
+                            {accounts.map(acc => (
+                                <option key={acc._id} value={acc._id}>{acc.name} (₹{acc.balance?.toLocaleString()})</option>
+                            ))}
+                        </select>
+                        {errors.toAccountId && <p className="text-red-500 text-xs font-bold mt-1">{errors.toAccountId.message}</p>}
+                    </div>
                 </div>
-                <div>
-                    <label className={labelClass}>Amount (₹)</label>
-                    <input
-                        type="number"
-                        step="0.01"
-                        {...register('amount', { required: 'Amount is required', min: 0.01 })}
-                        className={inputClass}
-                        placeholder="0.00"
-                    />
-                    {errors.amount && <p className="text-red-500 text-xs font-bold mt-1">{errors.amount.message}</p>}
+            ) : (
+                /* Category & Amount Row */
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="relative">
+                        <label className={labelClass}>Category</label>
+                        <input
+                            type="hidden"
+                            {...register('category', { required: type !== 'transfer' ? 'Category is required' : false })}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowCatDropdown(!showCatDropdown)}
+                            className={`${inputClass} text-left flex items-center justify-between`}
+                        >
+                            {watch('category') ? (
+                                (() => {
+                                    const selectedCat = categories[type]?.find(c => c.name === watch('category'));
+                                    const Icon = selectedCat && iconMap[selectedCat.icon] ? iconMap[selectedCat.icon] : BsCart;
+                                    return (
+                                        <div className="flex items-center gap-2">
+                                            {selectedCat && (
+                                                <div
+                                                    className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px]"
+                                                    style={{ backgroundColor: selectedCat.color || '#3b82f6' }}
+                                                >
+                                                    <Icon />
+                                                </div>
+                                            )}
+                                            <span>{watch('category')}</span>
+                                        </div>
+                                    );
+                                })()
+                            ) : (
+                                <span className="text-gray-400 font-normal">Select Category</span>
+                            )}
+                            <BsChevronDown size={12} className="text-gray-400" />
+                        </button>
+
+                        <AnimatePresence>
+                            {showCatDropdown && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 10 }}
+                                    className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-dark-card border-2 border-brand-black dark:border-gray-600 rounded-xl shadow-lg max-h-52 overflow-y-auto"
+                                >
+                                    {categories[type]?.map(cat => {
+                                        const Icon = iconMap[cat.icon] || BsCart;
+                                        return (
+                                            <button
+                                                key={cat.name}
+                                                type="button"
+                                                onClick={() => {
+                                                    setValue('category', cat.name, { shouldValidate: true });
+                                                    setShowCatDropdown(false);
+                                                }}
+                                                className="w-full text-left px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-3 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                                            >
+                                                <div
+                                                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs"
+                                                    style={{ backgroundColor: cat.color || '#3b82f6' }}
+                                                >
+                                                    <Icon size={12} />
+                                                </div>
+                                                <span className="text-sm font-bold text-gray-700 dark:text-gray-200">{cat.name}</span>
+                                            </button>
+                                        );
+                                    })}
+                                    {categories[type]?.length === 0 && (
+                                        <div className="p-3 text-center text-xs text-gray-400">No categories found</div>
+                                    )}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        {errors.category && <p className="text-red-500 text-xs font-bold mt-1">{errors.category.message}</p>}
+                    </div>
+                    <div>
+                        <label className={labelClass}>Account</label>
+                        <select
+                            {...register('accountId', { required: type !== 'transfer' ? 'Account is required' : false })}
+                            className={inputClass}
+                        >
+                            <option value="">Select Account</option>
+                            {accounts.map(acc => (
+                                <option key={acc._id} value={acc._id}>{acc.name}</option>
+                            ))}
+                        </select>
+                        {errors.accountId && <p className="text-red-500 text-xs font-bold mt-1">{errors.accountId.message}</p>}
+                    </div>
                 </div>
+            )}
+
+            {/* Amount */}
+            <div>
+                <label className={labelClass}>Amount (₹)</label>
+                <input
+                    type="number"
+                    step="0.01"
+                    {...register('amount', { required: 'Amount is required', min: { value: 0.01, message: 'Must be positive' } })}
+                    className={inputClass}
+                    placeholder="0.00"
+                />
+                {errors.amount && <p className="text-red-500 text-xs font-bold mt-1">{errors.amount.message}</p>}
             </div>
 
-            {/* Date & Payment Mode */}
+            {/* Date & Time */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                     <label className={labelClass}>Date</label>
-                    <input
-                        type="date"
-                        {...register('date', { required: 'Date is required' })}
-                        className={inputClass}
-                    />
+                    <input type="date" {...register('date', { required: 'Date is required' })} className={inputClass} />
                     {errors.date && <p className="text-red-500 text-xs font-bold mt-1">{errors.date.message}</p>}
                 </div>
                 <div>
-                    <label className={labelClass}>Payment Mode</label>
-                    <select
-                        {...register('paymentMode')}
-                        className={inputClass}
-                    >
-                        {paymentModes.map(mode => (
-                            <option key={mode} value={mode}>{mode}</option>
-                        ))}
-                    </select>
+                    <label className={labelClass}>
+                        <BsClock className="inline mr-1" /> Time
+                    </label>
+                    <input type="time" {...register('time')} className={inputClass} />
                 </div>
             </div>
 
-            {/* Tags (Optional) */}
+
+
+            {/* Tags (Chip Input) */}
             <div>
-                <label className={labelClass}>Tags (comma separated)</label>
-                <input
-                    type="text"
-                    {...register('tags')}
-                    className={inputClass}
-                    placeholder="e.g. work, coffee, date"
-                />
+                <label className={labelClass}>Tags</label>
+                <div className={`flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-light-bg dark:bg-dark-bg border-2 border-brand-black dark:border-gray-600 min-h-[42px] focus-within:border-brand-yellow focus-within:ring-2 focus-within:ring-brand-yellow/30 transition-all`}>
+                    <AnimatePresence>
+                        {tags.map(tag => (
+                            <motion.span
+                                key={tag}
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.8, opacity: 0 }}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-yellow/20 text-brand-black dark:text-brand-yellow border border-brand-yellow/40 rounded-lg text-xs font-bold"
+                            >
+                                #{tag}
+                                <button type="button" onClick={() => removeTag(tag)} className="hover:text-red-500 transition-colors">
+                                    <BsX size={14} />
+                                </button>
+                            </motion.span>
+                        ))}
+                    </AnimatePresence>
+                    <input
+                        type="text"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyDown={handleTagKeyDown}
+                        onBlur={addTag}
+                        className="flex-1 min-w-[80px] bg-transparent outline-none text-sm font-semibold text-light-text dark:text-dark-text placeholder:text-light-text-secondary/50"
+                        placeholder={tags.length === 0 ? 'Type and press Enter...' : ''}
+                    />
+                </div>
+            </div>
+
+            {/* Attachments */}
+            <div>
+                <label className={labelClass}>
+                    <BsPaperclip className="inline mr-1" /> Attachments (max 2MB each, max 3)
+                </label>
+                <div className="space-y-2">
+                    {/* Existing attachments */}
+                    {existingAttachments.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                            {existingAttachments.map((att, i) => (
+                                <a key={i} href={att.url} target="_blank" rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700 rounded-lg text-xs font-bold text-green-700 dark:text-green-400 hover:bg-green-100 transition-colors">
+                                    <BsImage size={12} /> {att.name || 'Receipt'}
+                                </a>
+                            ))}
+                        </div>
+                    )}
+                    {/* New file selections */}
+                    {selectedFiles.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                            {selectedFiles.map((file, i) => (
+                                <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-lg text-xs font-bold text-blue-700 dark:text-blue-400">
+                                    <BsImage size={12} /> {file.name}
+                                    <button type="button" onClick={() => removeFile(i)} className="hover:text-red-500">
+                                        <BsX size={14} />
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        onChange={handleFileSelect}
+                        className="hidden"
+                    />
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={selectedFiles.length + existingAttachments.length >= 3}
+                        className="w-full p-2.5 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600 text-xs font-bold text-gray-500 hover:border-brand-primary hover:text-brand-primary transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                        <BsPaperclip /> Upload Receipt / Image
+                    </button>
+                </div>
             </div>
 
             {/* Notes (Optional) */}
@@ -169,13 +453,20 @@ const TransactionForm = ({ onClose, initialData }) => {
             {/* Submit */}
             <button
                 type="submit"
-                className={`w-full p-2.5 sm:p-3 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider border-2 border-brand-black transition-all ${type === 'income'
+                disabled={uploading}
+                className={`w-full p-2.5 sm:p-3 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider border-2 border-brand-black transition-all disabled:opacity-50 ${type === 'income'
                     ? 'bg-green-500 text-white hover:bg-green-600'
-                    : 'bg-red-500 text-white hover:bg-red-600'
+                    : type === 'transfer'
+                        ? 'bg-blue-500 text-white hover:bg-blue-600'
+                        : 'bg-red-500 text-white hover:bg-red-600'
                     }`}
                 style={{ boxShadow: '3px 3px 0px 0px #1a1a1a' }}
             >
-                {initialData ? (type === 'income' ? 'Update Income' : 'Update Expense') : (type === 'income' ? '+ Add Income' : '+ Add Expense')}
+                {uploading ? '⏳ Saving...' : (
+                    initialData
+                        ? `Update ${type === 'income' ? 'Income' : type === 'transfer' ? 'Transfer' : 'Expense'}`
+                        : `+ Add ${type === 'income' ? 'Income' : type === 'transfer' ? 'Transfer' : 'Expense'}`
+                )}
             </button>
         </form>
     );
