@@ -163,7 +163,6 @@ app.use((req, res, next) => {
 
     if (!cookieToken || !headerToken || cookieToken !== headerToken) {
         console.error(`CSRF Verification Failed for ${req.path}: cookie=${!!cookieToken}, header=${!!headerToken}, match=${cookieToken === headerToken}`);
-
         return res.status(403).json({
             success: false,
             message: 'CSRF token validation failed',
