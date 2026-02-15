@@ -28,7 +28,16 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
-        fetchUser();
+        const initAuth = async () => {
+            try {
+                // Ensure CSRF token is set by making a GET request
+                await api.get('/api/csrf-token');
+            } catch (e) {
+                console.error("Failed to initialize CSRF token", e);
+            }
+            fetchUser();
+        };
+        initAuth();
     }, [fetchUser]);
 
     // Listen for 401 events from axios interceptor (auto-logout)

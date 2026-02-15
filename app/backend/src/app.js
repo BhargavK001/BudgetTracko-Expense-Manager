@@ -11,12 +11,27 @@ require('./config/passport'); // Passport config
 
 const authRoutes = require('./routes/auth');
 const accountRoutes = require('./routes/accounts');
+const accountRoutes = require('./routes/accounts');
 const transactionRoutes = require('./routes/transactions');
 const categoryRoutes = require('./routes/categories');
 const budgetRoutes = require('./routes/budgets');
 const userRoutes = require('./routes/user');
 const paymentRoutes = require('./routes/payments');
 const statusRoutes = require('./routes/status.routes');
+
+// Helper to get domain for cookies
+const getCookieDomain = () => {
+    if (process.env.NODE_ENV !== 'production') return undefined;
+    try {
+        const url = new URL(process.env.FRONTEND_URL);
+        // If frontend is https://budgettracko.bhargavkarande.dev
+        // We want .budgettracko.bhargavkarande.dev so both api (child) and frontend (parent) can share
+        return '.' + url.hostname;
+    } catch (e) {
+        console.error("Error parsing FRONTEND_URL for cookie domain:", e);
+        return undefined;
+    }
+};
 
 
 // Initialize app
@@ -118,8 +133,12 @@ app.use((req, res, next) => {
             res.cookie('csrf-token', csrfToken, {
                 httpOnly: false,         // Frontend JS must read this
                 secure: process.env.NODE_ENV === 'production',
-                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-                maxAge: 3 * 24 * 60 * 60 * 1000, // 3 days (same as auth cookie)
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Must be none for distinct subdomains if cross-site? Actually if subdomain, lax is fine usually, but none is safer for cross-origin if needed.
+                // However, for subdomains sharing cookies, 'Lax' is often enough IF base domain matches. 
+                // But let's stick to user's existing logic slightly modified.
+                // If we want cross-subdomain, we MUST set domain.
+                domain: getCookieDomain(),
+                maxAge: 3 * 24 * 60 * 60 * 1000,
                 path: '/',
             });
         }
@@ -155,6 +174,12 @@ app.use('/api/budgets', budgetRoutes);
 app.use('/api/payments', paymentRoutes);
 
 app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' })); // Simple health check
+// CSRF Token Endpoint - Explicitly fetch token
+app.get('/api/csrf-token', (req, res) => {
+    // The middleware above already sets the cookie if missing
+    // We just return it in JSON for convenience if needed, or just status ok
+    res.json({ csrfToken: req.cookies['csrf-token'] });
+});
 app.use('/api/status', statusRoutes);
 
 // Basic route
