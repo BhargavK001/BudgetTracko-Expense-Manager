@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 
 import { useTheme } from '../context/ThemeContext';
 import { Link } from 'react-router-dom';
-import { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,

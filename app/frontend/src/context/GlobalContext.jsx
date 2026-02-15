@@ -1,4 +1,4 @@
-import { createContext, useReducer, useEffect, useContext } from 'react';
+import React, { createContext, useReducer, useEffect, useContext } from 'react';
 import { transactionApi, accountApi, categoryApi, budgetApi } from '../services/api';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';

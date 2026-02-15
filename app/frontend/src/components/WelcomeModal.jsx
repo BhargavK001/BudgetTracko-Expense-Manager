@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BsCheckCircleFill, BsGraphUpArrow, BsWalletFill, BsTagsFill } from 'react-icons/bs';

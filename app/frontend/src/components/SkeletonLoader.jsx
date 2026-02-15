@@ -1,3 +1,4 @@
+import React from 'react';
 import { motion } from 'framer-motion';
 
 const SkeletonLoader = ({ className, width, height, variant = 'rect' }) => {

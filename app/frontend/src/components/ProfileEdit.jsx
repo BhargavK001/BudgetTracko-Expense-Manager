@@ -1,5 +1,5 @@
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { BsPerson, BsEnvelope, BsTelephone } from 'react-icons/bs';
 import { toast } from 'sonner';

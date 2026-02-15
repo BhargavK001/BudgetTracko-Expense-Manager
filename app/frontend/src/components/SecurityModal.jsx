@@ -1,5 +1,5 @@
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { BsX, BsShieldLock, BsKey, BsInfoCircle } from 'react-icons/bs';

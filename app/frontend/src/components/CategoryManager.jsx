@@ -1,5 +1,5 @@
 import { useGlobalContext } from '../context/GlobalContext';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BsPencil, BsPlus, BsTrash, BsX, BsPalette } from 'react-icons/bs';
 import { ICON_OPTIONS, getIconComponent } from '../utils/iconMap';

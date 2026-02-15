@@ -1,7 +1,7 @@
 import { useTheme } from '../context/ThemeContext';
 import { useGlobalContext } from '../context/GlobalContext';
 import { useAuth } from '../context/AuthContext';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BsMoonStars, BsSun, BsPerson, BsShieldLock, BsBell, BsCloudDownload, BsTrash, BsInfoCircle, BsChevronRight, BsPersonX, BsCreditCard2Front, BsGrid } from 'react-icons/bs';

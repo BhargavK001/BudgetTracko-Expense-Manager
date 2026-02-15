@@ -1,7 +1,7 @@
 import { useGlobalContext } from '../context/GlobalContext';
 import TransactionForm from '../components/TransactionForm';
 import TransactionDetailModal from '../components/TransactionDetailModal';
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { format, parseISO, isToday, isYesterday, isSameMonth, subMonths } from 'date-fns';
 import { BsPlus, BsX, BsSearch, BsFilter, BsTrash3, BsFunnel } from 'react-icons/bs';

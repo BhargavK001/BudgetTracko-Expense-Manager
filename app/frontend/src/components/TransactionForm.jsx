@@ -1,7 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { useGlobalContext } from '../context/GlobalContext';
 import { toast } from 'sonner';
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BsX, BsPaperclip, BsClock, BsImage, BsCashCoin, BsWallet2, BsArrowLeftRight, BsChevronDown, BsCart, BsHouse, BsPiggyBank, BsController, BsHeartPulse, BsBook, BsBriefcase, BsCreditCard, BsGift, BsGlobe, BsMusicNote, BsPhone, BsTools, BsTruck } from 'react-icons/bs';
 

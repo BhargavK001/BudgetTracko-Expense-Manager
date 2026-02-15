@@ -1,3 +1,4 @@
+import React from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';

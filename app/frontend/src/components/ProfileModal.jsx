@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
 import { createPortal } from 'react-dom';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { BsX, BsPerson, BsEnvelope, BsTelephone } from 'react-icons/bs';
 import { toast } from 'sonner';

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGlobalContext } from '../context/GlobalContext';
@@ -102,8 +102,8 @@ const CategoryEdit = ({ onClose }) => {
                         type="button"
                         onClick={() => setValue('icon', iconKey)}
                         className={`p-2 rounded-lg flex items-center justify-center transition-all ${selectedIcon === iconKey
-                                ? 'bg-brand-primary text-white shadow-md scale-110'
-                                : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'
+                            ? 'bg-brand-primary text-white shadow-md scale-110'
+                            : 'text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700'
                             }`}
                     >
                         <Icon size={18} />

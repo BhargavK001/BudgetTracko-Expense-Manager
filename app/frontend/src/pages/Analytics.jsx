@@ -1,6 +1,6 @@
 import { useGlobalContext } from '../context/GlobalContext';
 import { useTheme } from '../context/ThemeContext';
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,

@@ -18,19 +18,7 @@ const userRoutes = require('./routes/user');
 const paymentRoutes = require('./routes/payments');
 const statusRoutes = require('./routes/status.routes');
 
-// Helper to get domain for cookies
-const getCookieDomain = () => {
-    if (process.env.NODE_ENV !== 'production') return undefined;
-    try {
-        const url = new URL(process.env.FRONTEND_URL);
-        // If frontend is https://budgettracko.bhargavkarande.dev
-        // We want .budgettracko.bhargavkarande.dev so both api (child) and frontend (parent) can share
-        return '.' + url.hostname;
-    } catch (e) {
-        console.error("Error parsing FRONTEND_URL for cookie domain:", e);
-        return undefined;
-    }
-};
+const { getCookieDomain } = require('./utils/authUtils');
 
 
 // Initialize app

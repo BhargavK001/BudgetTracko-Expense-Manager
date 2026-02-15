@@ -1,6 +1,5 @@
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BsExclamationTriangle, BsInfoCircle, BsX } from 'react-icons/bs';
-import { useState } from 'react';
 
 const ConfirmationModal = ({
     isOpen,

@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BsX, BsArrowUpRight, BsArrowDownLeft, BsArrowLeftRight } from 'react-icons/bs';
 import { format } from 'date-fns';

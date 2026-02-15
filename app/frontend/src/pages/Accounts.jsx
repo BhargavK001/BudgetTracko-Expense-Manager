@@ -1,6 +1,6 @@
 import { useGlobalContext } from '../context/GlobalContext';
 import { useTheme } from '../context/ThemeContext';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BsBank2, BsCashStack, BsPencilSquare, BsPlus, BsWallet2, BsCreditCard2Front, BsX, BsTrash } from 'react-icons/bs';
 import { toast } from 'sonner';

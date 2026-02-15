@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { motion, useScroll, useTransform, AnimatePresence, useSpring, useInView } from 'framer-motion';
-import { useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { BsMoonStarsFill, BsBank2, BsBarChartLineFill, BsShieldLockFill, BsCloudArrowUpFill, BsBellFill, BsArrowRepeat, BsAndroid, BsQuestionCircle, BsChevronDown, BsChevronUp, BsCheckCircleFill, BsXCircleFill, BsShieldCheck, BsDownload, BsEnvelope, BsArrowRightShort, BsPersonFill } from 'react-icons/bs';
 import { FaChartLine, FaShieldAlt, FaMobileAlt, FaWallet, FaPiggyBank, FaExchangeAlt, FaArrowRight, FaCheck, FaStar, FaQuoteLeft, FaQuestionCircle, FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
 import { SiMongodb, SiExpress, SiReact, SiNodedotjs, SiTailwindcss, SiFramer } from 'react-icons/si';
