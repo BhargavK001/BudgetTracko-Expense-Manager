@@ -1,0 +1,68 @@
+name: Deploy Server to EC2
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'app/backend/**'  # Only trigger when backend code changes
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
+          script: |
+            set -e  # Stop on error
+            
+            PROJECT_DIR=~/BudgetTracko-Expense-Manager
+            SERVER_DIR=app/backend
+
+            echo "🚀 Starting Deployment..."
+            
+            # 1. Navigate to project
+            cd $PROJECT_DIR || exit 1
+
+            # 2. SAVE STATE (Checkpoint)
+            OLD_COMMIT=$(git rev-parse HEAD)
+            echo "📍 Checkpoint saved: $OLD_COMMIT"
+
+            # 3. CLEAN & PULL
+            echo "🧹 Cleaning local changes..."
+            git reset --hard HEAD
+            
+            echo "⬇️ Pulling latest code..."
+            if ! git pull origin master; then
+              echo "❌ Git Pull Failed. No changes made."
+              exit 1
+            fi
+
+            # 4. INSTALL & BUILD (With Rollback)
+            echo "📦 Installing server dependencies..."
+            cd $SERVER_DIR || exit 1
+            
+            if ! npm install; then
+              echo "⚠️ NPM Install Failed! Rolling back..."
+              cd $PROJECT_DIR
+              git reset --hard $OLD_COMMIT
+              
+              # Restore old dependencies
+              cd $SERVER_DIR
+              npm install
+              
+              echo "✅ Rolled back to stable version."
+              exit 1
+            fi
+
+            # 5. RESTART
+            echo "🔄 Restarting Service..."
+            pm2 restart budget-backend
+            
+            echo "✅ Deployment Successful!"
