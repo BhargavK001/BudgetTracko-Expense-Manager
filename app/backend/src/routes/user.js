@@ -5,10 +5,47 @@ const Transaction = require('../models/Transaction');
 const Account = require('../models/Account');
 const Category = require('../models/Category');
 const Budget = require('../models/Budget');
+const { getCookieOptions } = require('../utils/authUtils');
 
 const router = express.Router();
 
-// Middleware: Authenticate all routes
+// ─── DELETE /api/user/account ───
+// Delete user account and all associated data permanently
+// Defined BEFORE authMiddleware to skip refreshSession (we don't want to set a new cookie while deleting!)
+router.delete('/account', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        // Delete all user data
+        await Promise.all([
+            Transaction.deleteMany({ userId }),
+            Account.deleteMany({ userId }),
+            Category.deleteMany({ userId }),
+            Budget.deleteMany({ userId })
+        ]);
+
+        // Delete the user
+        await User.findByIdAndDelete(userId);
+
+        // Clear the auth cookie so the deleted user is fully logged out
+        res.clearCookie('token', getCookieOptions());
+
+        // Clear CSRF cookie too (options must match creation)
+        res.clearCookie('csrf-token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            path: '/',
+        });
+
+        res.json({ success: true, message: 'Account deleted permanently' });
+    } catch (err) {
+        if (process.env.NODE_ENV !== 'production') console.error('Delete account error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Middleware: Authenticate all other routes
 router.use(require('../middleware/authMiddleware'));
 
 // ─── GET /api/user/profile ───
@@ -221,43 +258,6 @@ router.delete('/data', async (req, res) => {
     }
 });
 
-// ─── DELETE /api/user/account ───
-// Delete user account and all associated data permanently
-router.delete('/account', async (req, res) => {
-    try {
-        const userId = req.user._id;
 
-        // Delete all user data
-        await Promise.all([
-            Transaction.deleteMany({ userId }),
-            Account.deleteMany({ userId }),
-            Category.deleteMany({ userId }),
-            Budget.deleteMany({ userId })
-        ]);
-
-        // Delete the user
-        await User.findByIdAndDelete(userId);
-
-        // Clear the auth cookie so the deleted user is fully logged out
-        res.clearCookie('token', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            path: '/',
-        });
-        // Clear CSRF cookie too
-        res.clearCookie('csrf-token', {
-            httpOnly: false,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-            path: '/',
-        });
-
-        res.json({ success: true, message: 'Account deleted permanently' });
-    } catch (err) {
-        if (process.env.NODE_ENV !== 'production') console.error('Delete account error:', err);
-        res.status(500).json({ success: false, message: 'Server error' });
-    }
-});
 
 module.exports = router;

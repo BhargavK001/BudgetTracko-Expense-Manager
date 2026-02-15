@@ -20,6 +20,7 @@ import Features from './pages/Features';
 import Pricing from './pages/Pricing';
 import About from './pages/About';
 import Privacy from './pages/Privacy';
+import TermsOfService from './pages/TermsOfService';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
 import AuthCallback from './pages/AuthCallback';
@@ -86,6 +87,7 @@ const AnimatedRoutes = () => {
         <Route path="/pricing" element={<PageTransition><Pricing /></PageTransition>} />
         <Route path="/about" element={<PageTransition><About /></PageTransition>} />
         <Route path="/privacy" element={<PageTransition><Privacy /></PageTransition>} />
+        <Route path="/terms" element={<PageTransition><TermsOfService /></PageTransition>} />
 
         <Route path="/auth/callback" element={<PageTransition><AuthCallback /></PageTransition>} />
         <Route path="/system-status" element={<PageTransition><StatusPage /></PageTransition>} />

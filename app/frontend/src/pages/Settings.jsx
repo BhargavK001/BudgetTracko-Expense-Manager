@@ -12,6 +12,7 @@ import { userApi } from '../services/api';
 import ProfileEdit from '../components/ProfileEdit';
 import SecurityEdit from '../components/SecurityEdit';
 import CategoryEdit from '../components/CategoryEdit';
+import ConfirmationModal from '../components/common/ConfirmationModal';
 
 const Settings = () => {
     const { theme, toggleTheme } = useTheme();
@@ -31,24 +32,47 @@ const Settings = () => {
         }
     }, [user]);
 
-    const handleClearData = async () => {
-        if (window.confirm('Are you sure you want to clear ALL your data? This will delete all transactions, accounts, categories, and budgets. This cannot be undone.')) {
-            try {
-                setClearing(true);
-                const res = await userApi.clearAllData();
-                const deleted = res.data.deleted;
-                toast.success(`Cleared ${deleted.transactions} transactions, ${deleted.accounts} accounts, ${deleted.categories} categories, ${deleted.budgets} budgets`);
-                // Refresh all data in context
-                getTransactions();
-                getAccounts();
-                getCategories();
-                getBudgets();
-            } catch (err) {
-                toast.error('Failed to clear data');
-            } finally {
-                setClearing(false);
+    // Modals state
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        type: 'info',
+        onConfirm: () => { },
+        requireInput: false,
+        expectedInput: ''
+    });
+
+    const closeConfirmModal = () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+    };
+
+    const handleClearData = () => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Clear All Data?',
+            message: 'Are you sure you want to clear ALL your data? This will delete all transactions, accounts, categories, and budgets. This cannot be undone.',
+            type: 'danger',
+            confirmText: 'Yes, Clear All',
+            onConfirm: async () => {
+                closeConfirmModal();
+                try {
+                    setClearing(true);
+                    const res = await userApi.clearAllData();
+                    const deleted = res.data.deleted;
+                    toast.success(`Cleared ${deleted.transactions} transactions, ${deleted.accounts} accounts, ${deleted.categories} categories, ${deleted.budgets} budgets`);
+                    // Refresh all data in context
+                    getTransactions();
+                    getAccounts();
+                    getCategories();
+                    getBudgets();
+                } catch (err) {
+                    toast.error('Failed to clear data');
+                } finally {
+                    setClearing(false);
+                }
             }
-        }
+        });
     };
 
     const handleExport = async () => {
@@ -83,9 +107,18 @@ const Settings = () => {
         }
     };
 
-    const handleDeleteAccount = async () => {
-        if (window.confirm('Are you sure you want to DELETE YOUR ACCOUNT? All your data will be permanently lost. This CANNOT be undone.')) {
-            if (window.confirm('This is your last chance. Type "DELETE" in the next prompt to confirm.') && window.prompt('Type DELETE to confirm account deletion:') === 'DELETE') {
+    const handleDeleteAccount = () => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Account?',
+            message: 'Are you sure you want to DELETE YOUR ACCOUNT? All your data will be permanently lost. This action CANNOT be undone.',
+            type: 'danger',
+            confirmText: 'Delete Forever',
+            requireInput: true,
+            expectedInput: 'DELETE',
+            inputPlaceholder: 'Type DELETE to confirm',
+            onConfirm: async () => {
+                closeConfirmModal();
                 try {
                     await userApi.deleteAccount();
                     toast.success('Account deleted permanently');
@@ -95,7 +128,7 @@ const Settings = () => {
                     toast.error('Failed to delete account');
                 }
             }
-        }
+        });
     };
 
     const Section = ({ title, children }) => (
@@ -226,6 +259,19 @@ const Settings = () => {
             <p className="text-center text-[10px] sm:text-xs font-bold text-gray-400 mt-6 sm:mt-8 md:mt-10">
                 BudgetTracko © 2026 • Made with ❤️
             </p>
+
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                onClose={closeConfirmModal}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                confirmText={confirmModal.confirmText}
+                requireInput={confirmModal.requireInput}
+                expectedInput={confirmModal.expectedInput}
+                inputPlaceholder={confirmModal.inputPlaceholder}
+            />
         </div>
     );
 };

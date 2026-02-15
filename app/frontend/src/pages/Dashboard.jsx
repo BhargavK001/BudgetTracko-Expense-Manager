@@ -348,7 +348,7 @@ const Dashboard = () => {
                                 <BsActivity /> Spending Trends
                             </h3>
                         </div>
-                        <div className="h-48 sm:h-64 w-full">
+                        <div className="h-48 sm:h-64 w-full" style={{ width: '100%', minHeight: '200px' }}>
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={spendingData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
                                     <defs>
