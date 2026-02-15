@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { HiOutlineMail, HiOutlineLockClosed, HiOutlineEye, HiOutlineEyeOff, HiOutlineUser } from 'react-icons/hi';
 import { FcGoogle } from 'react-icons/fc';
 import { FaGithub } from 'react-icons/fa';
 import { BsBarChartLineFill, BsWalletFill, BsShieldLockFill, BsArrowLeftShort, BsLightningChargeFill, BsPeopleFill, BsStarFill, BsCheckCircleFill, BsArrowRight } from 'react-icons/bs';
+import { authApi } from '../services/api';
 
 // Animation variants
 const staggerContainer = {
@@ -51,19 +53,62 @@ const steps = [
 
 const Signup = () => {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [focusedField, setFocusedField] = useState(null);
+    const [formData, setFormData] = useState({
+        displayName: '',
+        email: '',
+        password: ''
+    });
 
-    const handleSignup = (e) => {
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.id]: e.target.value });
+    };
+
+    const validatePassword = (password) => {
+        const hasUpper = /[A-Z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+        const hasMinLen = password.length >= 8;
+        return { hasUpper, hasNumber, hasSymbol, hasMinLen, isValid: hasUpper && hasNumber && hasSymbol && hasMinLen };
+    };
+
+    const handleSignup = async (e) => {
         e.preventDefault();
+
+        const dummyKeywords = ['demo', 'test', 'example', 'dummy', 'guest'];
+        const isDummy = dummyKeywords.some(keyword => formData.email.toLowerCase().includes(keyword));
+
+        if (isDummy) {
+            toast.error('Dummy or demo email addresses are not allowed. Please use a real email address.');
+            return;
+        }
+
+        const validation = validatePassword(formData.password);
+        if (!validation.isValid) {
+            toast.error('Password must be at least 8 characters long and contain at least one uppercase letter, one number, and one symbol.');
+            return;
+        }
+
         setLoading(true);
         toast.loading('Creating your account...', { id: 'signup' });
-        setTimeout(() => {
+
+        try {
+            const response = await authApi.signup(formData);
+            if (response.data.success) {
+                await login(); // Refresh user state in AuthContext
+                toast.success('Account created! Welcome to BudgetTracko!', { id: 'signup' });
+                navigate('/dashboard');
+            }
+        } catch (error) {
+            console.error('Signup error:', error);
+            const message = error.response?.data?.message || 'Failed to create account. Please try again.';
+            toast.error(message, { id: 'signup' });
+        } finally {
             setLoading(false);
-            toast.success('Account created! Welcome to BudgetTracko!', { id: 'signup' });
-            navigate('/dashboard');
-        }, 1500);
+        }
     };
 
     return (
@@ -331,11 +376,13 @@ const Signup = () => {
                                         >
                                             <HiOutlineUser className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-black/35 pointer-events-none" aria-hidden />
                                             <input
-                                                id="fullname"
+                                                id="displayName"
                                                 type="text"
                                                 placeholder="Bhargav Karande"
                                                 required
-                                                onFocus={() => setFocusedField('fullname')}
+                                                value={formData.displayName}
+                                                onChange={handleChange}
+                                                onFocus={() => setFocusedField('displayName')}
                                                 onBlur={() => setFocusedField(null)}
                                                 className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-black/80 bg-gray-50 focus:bg-white focus:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1 text-brand-black placeholder-gray-400 font-medium text-sm transition-all"
                                             />
@@ -358,6 +405,8 @@ const Signup = () => {
                                                 type="email"
                                                 placeholder="you@college.edu"
                                                 required
+                                                value={formData.email}
+                                                onChange={handleChange}
                                                 onFocus={() => setFocusedField('email')}
                                                 onBlur={() => setFocusedField(null)}
                                                 className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-black/80 bg-gray-50 focus:bg-white focus:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1 text-brand-black placeholder-gray-400 font-medium text-sm transition-all"
@@ -382,6 +431,8 @@ const Signup = () => {
                                                 placeholder="Min. 8 characters"
                                                 required
                                                 minLength={8}
+                                                value={formData.password}
+                                                onChange={handleChange}
                                                 onFocus={() => setFocusedField('password')}
                                                 onBlur={() => setFocusedField(null)}
                                                 className="w-full pl-10 pr-11 py-3 rounded-xl border-2 border-black/80 bg-gray-50 focus:bg-white focus:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-1 text-brand-black placeholder-gray-400 font-medium text-sm transition-all"
