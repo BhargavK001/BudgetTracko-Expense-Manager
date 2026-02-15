@@ -64,7 +64,7 @@ const MobileNavItem = ({ to, icon: Icon, label, isActive }) => (
 
 const Layout = () => {
     const { theme, toggleTheme } = useTheme();
-    const { user, logout } = useAuth();
+    const { user, logout, loading } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
 
@@ -73,6 +73,19 @@ const Layout = () => {
         toast.info('Logged out successfully');
         navigate('/login');
     };
+
+    const fallbackAvatar = `https://ui-avatars.com/api/?name=${user?.displayName || 'User'}&background=1a1a1a&color=facc15&bold=true&format=svg`;
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-light-bg dark:bg-dark-bg transition-colors duration-300">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="w-12 h-12 border-4 border-brand-black dark:border-white border-t-transparent rounded-full animate-spin"></div>
+                    <p className="font-bold text-lg text-brand-black dark:text-white animate-pulse">Loading...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-300">
@@ -121,13 +134,17 @@ const Layout = () => {
                     <div className="flex items-center gap-2">
                         <div className="flex-1 flex items-center gap-3 px-3 py-3 bg-brand-yellow border-2 border-brand-black rounded-xl neo-shadow-sm transition-transform">
                             <img
-                                src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.displayName || 'User'}&background=1a1a1a&color=facc15&bold=true&format=svg`}
+                                src={user?.avatar || fallbackAvatar}
                                 alt="Profile"
-                                className="w-8 h-8 rounded-full border-2 border-brand-black bg-white"
+                                onError={(e) => { e.currentTarget.src = fallbackAvatar; }}
+                                className="w-8 h-8 rounded-full border-2 border-brand-black bg-white object-cover"
                             />
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-black truncate text-brand-black">{user?.displayName?.split(' ')[0] || 'User'}</p>
-                                <p className="text-[10px] font-bold opacity-60 truncate text-brand-black">Free Plan</p>
+                                <p className="text-[10px] font-bold opacity-60 truncate text-brand-black capitalize">
+                                    {user?.subscription?.plan === 'squad' ? 'Hostel Squad' :
+                                        user?.subscription?.plan === 'pro' ? 'Campus Pro' : 'Free Plan'}
+                                </p>
                             </div>
                         </div>
                         <button
@@ -173,9 +190,10 @@ const Layout = () => {
                     </motion.button>
                     <Link to="/settings">
                         <img
-                            src={user?.avatar || `https://ui-avatars.com/api/?name=${user?.displayName || 'User'}&background=1a1a1a&color=facc15&bold=true&format=svg`}
+                            src={user?.avatar || fallbackAvatar}
                             alt="Profile"
-                            className="w-8 h-8 rounded-full border-2 border-brand-black bg-white"
+                            onError={(e) => { e.currentTarget.src = fallbackAvatar; }}
+                            className="w-8 h-8 rounded-full border-2 border-brand-black bg-white object-cover"
                         />
                     </Link>
                 </div>

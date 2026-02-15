@@ -1,5 +1,6 @@
 import { useForm } from 'react-hook-form';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion } from 'framer-motion';
 import { BsX, BsPerson, BsEnvelope, BsTelephone } from 'react-icons/bs';
 import { toast } from 'sonner';
@@ -43,22 +44,20 @@ const ProfileModal = ({ onClose }) => {
     const inputClass = "w-full rounded-xl bg-light-bg dark:bg-dark-bg border-2 border-gray-200 dark:border-gray-700 p-2.5 sm:p-3 text-sm font-bold focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 transition-all";
     const labelClass = "block text-[10px] sm:text-xs font-black uppercase tracking-wider text-gray-400 mb-1 sm:mb-1.5";
 
-    return (
+    return createPortal(
         <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
             onClick={onClose}
         >
             <motion.div
-                initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className="w-full sm:max-w-md md:max-w-lg bg-white dark:bg-dark-card rounded-t-2xl sm:rounded-2xl shadow-2xl border-2 border-brand-black dark:border-gray-700 relative max-h-[85vh] sm:max-h-[80vh] flex flex-col"
+                className="w-[90%] max-w-xs bg-white dark:bg-dark-card rounded-2xl shadow-2xl border-2 border-brand-black dark:border-gray-700 relative max-h-[85vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Drag indicator for mobile */}
-                <div className="sm:hidden flex justify-center pt-3 pb-1">
-                    <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
-                </div>
 
                 {/* Scrollable content */}
                 <div className="overflow-y-auto flex-1 p-4 sm:p-6 pb-safe">
@@ -114,7 +113,8 @@ const ProfileModal = ({ onClose }) => {
                     </form>
                 </div>
             </motion.div>
-        </motion.div>
+        </motion.div>,
+        document.body
     );
 };
 

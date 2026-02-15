@@ -38,6 +38,24 @@ const UserSchema = new mongoose.Schema({
             default: true
         }
     },
+    subscription: {
+        plan: {
+            type: String,
+            enum: ['free', 'pro', 'squad'],
+            default: 'free'
+        },
+        status: {
+            type: String,
+            enum: ['active', 'inactive', 'canceled', 'past_due'],
+            default: 'active'
+        },
+        expiresAt: {
+            type: Date
+        },
+        razorpayCustomerId: {
+            type: String
+        }
+    },
     createdAt: {
         type: Date,
         default: Date.now
@@ -45,11 +63,10 @@ const UserSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-UserSchema.pre('save', async function (next) {
-    if (!this.isModified('password') || !this.password) return next();
+UserSchema.pre('save', async function () {
+    if (!this.isModified('password') || !this.password) return;
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    next();
 });
 
 // Compare password method

@@ -1,11 +1,10 @@
 import { useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 
 const AuthCallback = () => {
     const navigate = useNavigate();
-    const location = useLocation();
     const { login } = useAuth();
     const processed = useRef(false);
 
@@ -13,18 +12,25 @@ const AuthCallback = () => {
         if (processed.current) return;
         processed.current = true;
 
-        const params = new URLSearchParams(location.search);
-        const token = params.get('token');
+        // Cookie is already set by the backend redirect.
+        // Just refresh the user state from the cookie-authenticated endpoint.
+        const authenticate = async () => {
+            try {
+                await login();
+                setTimeout(() => {
+                    // Check for a stored redirect path (if you implmented storing it in localStorage/cookie before auth)
+                    // For now, social login usually redirects to dashboard. 
+                    // To support deep linking with social login, we'd need to persist the initial redirect URL.
+                    // Defaulting to dashboard as social login flow is complex to pass params through securely without state param.
+                    navigate('/dashboard');
+                }, 1000);
+            } catch {
+                navigate('/login');
+            }
+        };
 
-        if (token) {
-            login(token);
-            setTimeout(() => {
-                navigate('/dashboard');
-            }, 1000);
-        } else {
-            navigate('/login');
-        }
-    }, [location, login, navigate]);
+        authenticate();
+    }, [login, navigate]);
 
     return (
         <div className="h-screen w-full flex flex-col items-center justify-center bg-brand-yellow font-sans">

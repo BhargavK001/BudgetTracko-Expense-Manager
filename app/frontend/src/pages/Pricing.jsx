@@ -1,7 +1,12 @@
 
-import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { BsCheckCircleFill } from 'react-icons/bs';
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
+import { toast } from 'sonner';
+import SuccessAnimation from '../components/SuccessAnimation';
 
 const fadeUp = {
     hidden: { opacity: 0, y: 50 },
@@ -23,6 +28,7 @@ const staggerItem = {
 
 const plans = [
     {
+        id: 'free',
         name: 'Starter 🎒',
         price: '₹0',
         period: 'forever',
@@ -37,6 +43,7 @@ const plans = [
         ],
     },
     {
+        id: 'pro',
         name: 'Campus Pro 🎓',
         price: '₹49',
         period: '/month',
@@ -53,6 +60,7 @@ const plans = [
         ],
     },
     {
+        id: 'squad',
         name: 'Hostel Squad 🏠',
         price: '₹99',
         period: '/month',
@@ -70,8 +78,112 @@ const plans = [
 ];
 
 const Pricing = () => {
+    const { user, refreshUser } = useAuth();
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [searchParams] = useSearchParams();
+    const hasTriggeredAutoPayment = useRef(false);
+
+    // Check for auto-payment trigger (e.g. returning from login)
+    useEffect(() => {
+        const planId = searchParams.get('plan');
+        if (planId && user && !hasTriggeredAutoPayment.current) {
+            const planToBuy = plans.find(p => p.id === planId);
+            if (planToBuy) {
+                hasTriggeredAutoPayment.current = true;
+                handleSubscribe(planToBuy);
+            }
+        }
+    }, [user, searchParams]);
+
+    const handleSubscribe = async (plan) => {
+        if (!user) {
+            // Redirect to login with return path
+            navigate(`/login?redirect=/pricing?plan=${plan.id}`);
+            return;
+        }
+
+        if (plan.price === '₹0') {
+            navigate('/dashboard');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            // 1. Create Order
+            const { data: orderData } = await api.post('/api/payments/create-order', {
+                amount: parseInt(plan.price.replace('₹', '')),
+                plan: plan.id
+            });
+
+            const prefillData = {
+                name: user.displayName,
+                email: user.email
+            };
+            if (user.phone && user.phone.replace(/\D/g, '').length >= 10) {
+                prefillData.contact = user.phone;
+            }
+
+            const cleanPlanName = plan.name.replace(/[^\w\s]/g, '').trim(); // Remove emojis
+
+            const options = {
+                key: orderData.key,
+                amount: Number(orderData.amount), // Ensure number
+                currency: orderData.currency,
+                name: "BudgetTracko",
+                description: `Subscription for ${cleanPlanName}`,
+                order_id: orderData.order_id,
+                retry: { enabled: false }, // Disable retry to see if it helps debug
+                handler: async function (response) {
+                    try {
+                        console.log("Razorpay Response:", response);
+                        // 2. Verify Payment
+                        const verifyRes = await api.post('/api/payments/verify', {
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature
+                        });
+
+                        if (verifyRes.data.success) {
+                            await refreshUser(); // Refresh user state to show new plan
+                            setShowSuccess(true);
+                            toast.success('Subscription activated successfully! 🎉');
+                            setTimeout(() => {
+                                navigate('/dashboard');
+                            }, 3500); // 3.5s for animation
+                        }
+                    } catch (error) {
+                        console.error("Verification Error", error);
+                        toast.error('Payment verification failed. Please contact support.');
+                    }
+                },
+                prefill: prefillData,
+                theme: {
+                    color: "#FFDE59"
+                }
+            };
+
+            console.log("Razorpay Options:", options);
+
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                toast.error(response.error.description);
+            });
+            rzp.open();
+
+        } catch (error) {
+            console.error("Payment Error", error);
+            toast.error('Something went wrong initiating payment.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-brand-yellow font-sans text-brand-black selection:bg-black selection:text-brand-yellow overflow-hidden">
+            {showSuccess && <SuccessAnimation />}
+
             {/* Nav */}
             <motion.nav
                 initial={{ y: -80, opacity: 0 }}
@@ -158,18 +270,19 @@ const Pricing = () => {
                                     </li>
                                 ))}
                             </ul>
-                            <Link to="/login" className="block">
-                                <motion.span
-                                    whileHover={{ y: -3, boxShadow: '6px 6px 0px 0px rgba(0,0,0,1)' }}
-                                    whileTap={{ scale: 0.95 }}
-                                    className={`block text-center font-black text-base sm:text-lg py-3 sm:py-4 border-3 sm:border-4 border-black transition-all ${plan.highlight
-                                        ? 'bg-brand-yellow text-black'
-                                        : 'bg-black text-white hover:bg-brand-yellow hover:text-black'
-                                        }`}
-                                >
-                                    Get Started
-                                </motion.span>
-                            </Link>
+
+                            <motion.button
+                                whileHover={{ y: -3, boxShadow: '6px 6px 0px 0px rgba(0,0,0,1)' }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleSubscribe(plan)}
+                                disabled={loading}
+                                className={`block w-full text-center font-black text-base sm:text-lg py-3 sm:py-4 border-3 sm:border-4 border-black transition-all ${plan.highlight
+                                    ? 'bg-brand-yellow text-black'
+                                    : 'bg-black text-white hover:bg-brand-yellow hover:text-black'
+                                    } ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            >
+                                {loading && plan.id !== 'free' ? 'Processing...' : 'Get Started'}
+                            </motion.button>
                         </motion.div>
                     ))}
                 </motion.div>

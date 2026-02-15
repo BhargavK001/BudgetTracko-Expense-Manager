@@ -85,7 +85,7 @@ const AppReducer = (state, action) => {
 // Provider Component
 export const GlobalProvider = ({ children }) => {
     const [state, dispatch] = useReducer(AppReducer, initialState);
-    const { token } = useAuth();
+    const { user } = useAuth();
 
     // ─── Transaction Actions ───
     async function getTransactions() {
@@ -147,7 +147,7 @@ export const GlobalProvider = ({ children }) => {
             const res = await accountApi.getAll();
             dispatch({ type: 'GET_ACCOUNTS', payload: res.data.data });
         } catch (err) {
-            console.error('Failed to load accounts:', err);
+            // Silently fail — UI will show empty state
         }
     }
 
@@ -199,7 +199,7 @@ export const GlobalProvider = ({ children }) => {
             const res = await categoryApi.getAll();
             dispatch({ type: 'GET_CATEGORIES', payload: res.data });
         } catch (err) {
-            console.error('Failed to load categories:', err);
+            // Silently fail — UI will show empty state
         }
     }
 
@@ -243,7 +243,7 @@ export const GlobalProvider = ({ children }) => {
             const res = await budgetApi.getAll();
             dispatch({ type: 'GET_BUDGETS', payload: res.data });
         } catch (err) {
-            console.error('Failed to load budgets:', err);
+            // Silently fail — UI will show empty state
         }
     }
 
@@ -281,9 +281,9 @@ export const GlobalProvider = ({ children }) => {
         }
     }
 
-    // Load data when token is available
+    // Load data when user is authenticated
     useEffect(() => {
-        if (token) {
+        if (user) {
             getTransactions();
             getAccounts();
             getCategories();
@@ -294,7 +294,7 @@ export const GlobalProvider = ({ children }) => {
             dispatch({ type: 'GET_CATEGORIES', payload: [] });
             dispatch({ type: 'GET_BUDGETS', payload: [] });
         }
-    }, [token]);
+    }, [user]);
 
     return (
         <GlobalContext.Provider

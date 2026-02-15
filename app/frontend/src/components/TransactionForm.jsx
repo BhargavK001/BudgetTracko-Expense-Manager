@@ -3,7 +3,7 @@ import { useGlobalContext } from '../context/GlobalContext';
 import { toast } from 'sonner';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BsX, BsPaperclip, BsClock, BsImage, BsCashCoin, BsWallet2, BsArrowLeftRight } from 'react-icons/bs';
+import { BsX, BsPaperclip, BsClock, BsImage, BsCashCoin, BsWallet2, BsArrowLeftRight, BsChevronDown, BsCart, BsHouse, BsPiggyBank, BsController, BsHeartPulse, BsBook, BsBriefcase, BsCreditCard, BsGift, BsGlobe, BsMusicNote, BsPhone, BsTools, BsTruck } from 'react-icons/bs';
 
 const TransactionForm = ({ onClose, initialData }) => {
     const { register, handleSubmit, watch, formState: { errors }, reset, setValue } = useForm({
@@ -11,7 +11,6 @@ const TransactionForm = ({ onClose, initialData }) => {
             type: 'expense',
             date: new Date().toISOString().split('T')[0],
             time: new Date().toTimeString().slice(0, 5),
-            paymentMode: 'Cash',
             notes: ''
         }
     });
@@ -23,6 +22,7 @@ const TransactionForm = ({ onClose, initialData }) => {
     // Tags state
     const [tags, setTags] = useState([]);
     const [tagInput, setTagInput] = useState('');
+    const [showCatDropdown, setShowCatDropdown] = useState(false);
 
     // Attachments state
     const [selectedFiles, setSelectedFiles] = useState([]);
@@ -46,6 +46,26 @@ const TransactionForm = ({ onClose, initialData }) => {
         }
     }, [initialData, reset]);
 
+    // Icon Map
+    const iconMap = {
+        'BsCart': BsCart,
+        'BsHouse': BsHouse,
+        'BsCashCoin': BsCashCoin,
+        'BsPiggyBank': BsPiggyBank,
+        'BsController': BsController,
+        'BsHeartPulse': BsHeartPulse,
+        'BsBook': BsBook,
+        'BsBriefcase': BsBriefcase,
+        'BsCreditCard': BsCreditCard,
+        'BsGift': BsGift,
+        'BsGlobe': BsGlobe,
+        'BsMusicNote': BsMusicNote,
+        'BsPhone': BsPhone,
+        'BsTools': BsTools,
+        'BsTruck': BsTruck,
+        'BsWallet2': BsWallet2,
+    };
+
     // Dynamic categories from API, with fallback defaults
     const defaultCats = {
         income: ['Salary', 'Business', 'Investment', 'Gift', 'Other'],
@@ -55,15 +75,13 @@ const TransactionForm = ({ onClose, initialData }) => {
 
     const categories = {
         income: userCategories.length > 0
-            ? [...new Set(userCategories.filter(c => c.type === 'income' || c.type === 'both').map(c => c.name))]
-            : defaultCats.income,
+            ? userCategories.filter(c => c.type === 'income' || c.type === 'both')
+            : defaultCats.income.map(name => ({ name, icon: 'BsCashCoin', color: '#10b981' })),
         expense: userCategories.length > 0
-            ? [...new Set(userCategories.filter(c => c.type === 'expense' || c.type === 'both').map(c => c.name))]
-            : defaultCats.expense,
+            ? userCategories.filter(c => c.type === 'expense' || c.type === 'both')
+            : defaultCats.expense.map(name => ({ name, icon: 'BsCart', color: '#ef4444' })),
         transfer: []
     };
-
-    const paymentModes = ['Cash', 'UPI', 'Credit Card', 'Debit Card', 'Net Banking'];
 
     // Tag handlers
     const addTag = () => {
@@ -119,7 +137,6 @@ const TransactionForm = ({ onClose, initialData }) => {
             formData.append('amount', data.amount);
             formData.append('date', data.date);
             formData.append('time', data.time || '');
-            formData.append('paymentMode', data.paymentMode);
             formData.append('note', data.notes || '');
             formData.append('tags', tags.join(','));
 
@@ -128,7 +145,7 @@ const TransactionForm = ({ onClose, initialData }) => {
                 formData.append('toAccountId', data.toAccountId);
             } else {
                 formData.append('category', data.category);
-                if (data.accountId) formData.append('accountId', data.accountId);
+                formData.append('accountId', data.accountId);
             }
 
             // Append files
@@ -222,27 +239,91 @@ const TransactionForm = ({ onClose, initialData }) => {
             ) : (
                 /* Category & Amount Row */
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
+                    <div className="relative">
                         <label className={labelClass}>Category</label>
-                        <select
+                        <input
+                            type="hidden"
                             {...register('category', { required: type !== 'transfer' ? 'Category is required' : false })}
-                            className={inputClass}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowCatDropdown(!showCatDropdown)}
+                            className={`${inputClass} text-left flex items-center justify-between`}
                         >
-                            <option value="">Select</option>
-                            {categories[type]?.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                        </select>
+                            {watch('category') ? (
+                                (() => {
+                                    const selectedCat = categories[type]?.find(c => c.name === watch('category'));
+                                    const Icon = selectedCat && iconMap[selectedCat.icon] ? iconMap[selectedCat.icon] : BsCart;
+                                    return (
+                                        <div className="flex items-center gap-2">
+                                            {selectedCat && (
+                                                <div
+                                                    className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px]"
+                                                    style={{ backgroundColor: selectedCat.color || '#3b82f6' }}
+                                                >
+                                                    <Icon />
+                                                </div>
+                                            )}
+                                            <span>{watch('category')}</span>
+                                        </div>
+                                    );
+                                })()
+                            ) : (
+                                <span className="text-gray-400 font-normal">Select Category</span>
+                            )}
+                            <BsChevronDown size={12} className="text-gray-400" />
+                        </button>
+
+                        <AnimatePresence>
+                            {showCatDropdown && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 10 }}
+                                    className="absolute z-50 left-0 right-0 top-full mt-1 bg-white dark:bg-dark-card border-2 border-brand-black dark:border-gray-600 rounded-xl shadow-lg max-h-52 overflow-y-auto"
+                                >
+                                    {categories[type]?.map(cat => {
+                                        const Icon = iconMap[cat.icon] || BsCart;
+                                        return (
+                                            <button
+                                                key={cat.name}
+                                                type="button"
+                                                onClick={() => {
+                                                    setValue('category', cat.name, { shouldValidate: true });
+                                                    setShowCatDropdown(false);
+                                                }}
+                                                className="w-full text-left px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center gap-3 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"
+                                            >
+                                                <div
+                                                    className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs"
+                                                    style={{ backgroundColor: cat.color || '#3b82f6' }}
+                                                >
+                                                    <Icon size={12} />
+                                                </div>
+                                                <span className="text-sm font-bold text-gray-700 dark:text-gray-200">{cat.name}</span>
+                                            </button>
+                                        );
+                                    })}
+                                    {categories[type]?.length === 0 && (
+                                        <div className="p-3 text-center text-xs text-gray-400">No categories found</div>
+                                    )}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                         {errors.category && <p className="text-red-500 text-xs font-bold mt-1">{errors.category.message}</p>}
                     </div>
                     <div>
-                        <label className={labelClass}>Account (Optional)</label>
-                        <select {...register('accountId')} className={inputClass}>
-                            <option value="">None</option>
+                        <label className={labelClass}>Account</label>
+                        <select
+                            {...register('accountId', { required: type !== 'transfer' ? 'Account is required' : false })}
+                            className={inputClass}
+                        >
+                            <option value="">Select Account</option>
                             {accounts.map(acc => (
                                 <option key={acc._id} value={acc._id}>{acc.name}</option>
                             ))}
                         </select>
+                        {errors.accountId && <p className="text-red-500 text-xs font-bold mt-1">{errors.accountId.message}</p>}
                     </div>
                 </div>
             )}
@@ -275,17 +356,7 @@ const TransactionForm = ({ onClose, initialData }) => {
                 </div>
             </div>
 
-            {/* Payment Mode (only for income/expense) */}
-            {type !== 'transfer' && (
-                <div>
-                    <label className={labelClass}>Payment Mode</label>
-                    <select {...register('paymentMode')} className={inputClass}>
-                        {paymentModes.map(mode => (
-                            <option key={mode} value={mode}>{mode}</option>
-                        ))}
-                    </select>
-                </div>
-            )}
+
 
             {/* Tags (Chip Input) */}
             <div>

@@ -3,10 +3,19 @@ const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const router = express.Router();
 
-// Generate JWT Token
+// Cookie options for secure HTTP-only cookies
+const getCookieOptions = () => ({
+    httpOnly: true,                              // Not accessible via JavaScript
+    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Cross-site in prod
+    maxAge: 3 * 24 * 60 * 60 * 1000,            // 3 days in milliseconds
+    path: '/',
+});
+
+// Generate JWT Token (3-day expiry)
 const generateToken = (user) => {
     return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, {
-        expiresIn: '7d',
+        expiresIn: '3d',
     });
 };
 
@@ -18,7 +27,8 @@ router.get(
     passport.authenticate('google', { failureRedirect: '/login', session: false }),
     (req, res) => {
         const token = generateToken(req.user);
-        res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+        res.cookie('token', token, getCookieOptions());
+        res.redirect(`${process.env.FRONTEND_URL}/auth/callback`);
     }
 );
 
@@ -30,13 +40,19 @@ router.get(
     passport.authenticate('github', { failureRedirect: '/login', session: false }),
     (req, res) => {
         const token = generateToken(req.user);
-        res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+        res.cookie('token', token, getCookieOptions());
+        res.redirect(`${process.env.FRONTEND_URL}/auth/callback`);
     }
 );
 
-// Logout
+// Logout - clear the cookie
 router.get('/logout', (req, res) => {
-    // Client-side: remove token from storage
+    res.clearCookie('token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        path: '/',
+    });
     res.status(200).json({ message: 'Logged out successfully' });
 });
 

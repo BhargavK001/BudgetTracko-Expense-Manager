@@ -35,7 +35,7 @@ router.get('/profile', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error('Get profile error:', err);
+        if (process.env.NODE_ENV !== 'production') console.error('Get profile error:', err);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
@@ -78,7 +78,7 @@ router.put('/profile', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error('Update profile error:', err);
+        if (process.env.NODE_ENV !== 'production') console.error('Update profile error:', err);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
@@ -116,7 +116,7 @@ router.put('/change-password', async (req, res) => {
 
         res.json({ success: true, message: 'Password updated successfully' });
     } catch (err) {
-        console.error('Change password error:', err);
+        if (process.env.NODE_ENV !== 'production') console.error('Change password error:', err);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
@@ -147,7 +147,7 @@ router.put('/preferences', async (req, res) => {
             data: { preferences: user.preferences }
         });
     } catch (err) {
-        console.error('Update preferences error:', err);
+        if (process.env.NODE_ENV !== 'production') console.error('Update preferences error:', err);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
@@ -187,7 +187,7 @@ router.get('/export', async (req, res) => {
 
         res.json({ success: true, data: exportData });
     } catch (err) {
-        console.error('Export data error:', err);
+        if (process.env.NODE_ENV !== 'production') console.error('Export data error:', err);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
@@ -216,7 +216,7 @@ router.delete('/data', async (req, res) => {
             }
         });
     } catch (err) {
-        console.error('Clear data error:', err);
+        if (process.env.NODE_ENV !== 'production') console.error('Clear data error:', err);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
@@ -238,9 +238,24 @@ router.delete('/account', async (req, res) => {
         // Delete the user
         await User.findByIdAndDelete(userId);
 
+        // Clear the auth cookie so the deleted user is fully logged out
+        res.clearCookie('token', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            path: '/',
+        });
+        // Clear CSRF cookie too
+        res.clearCookie('csrf-token', {
+            httpOnly: false,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+            path: '/',
+        });
+
         res.json({ success: true, message: 'Account deleted permanently' });
     } catch (err) {
-        console.error('Delete account error:', err);
+        if (process.env.NODE_ENV !== 'production') console.error('Delete account error:', err);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });

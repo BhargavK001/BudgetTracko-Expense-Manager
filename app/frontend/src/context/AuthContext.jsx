@@ -1,75 +1,63 @@
-import { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import api from '../services/api';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
-    const [token, setToken] = useState(localStorage.getItem('token'));
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            if (!token) {
+    // Fetch current user from cookie-authenticated endpoint
+    const fetchUser = useCallback(async () => {
+        try {
+            const res = await api.get('/auth/me');
+            if (res.data?.user) {
+                setUser(res.data.user);
+            } else {
                 setUser(null);
-                setLoading(false);
-                return;
             }
-
-            try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/me`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                if (res.ok) {
-                    const data = await res.json();
-                    setUser(data.user);
-                } else if (res.status === 401 || res.status === 403) {
-                    // Only clear token on explicit auth failures (invalid/expired token)
-                    localStorage.removeItem('token');
-                    setToken(null);
-                    setUser(null);
-                } else {
-                    // For other errors (500, 429, network issues), keep the token
-                    // and try to decode basic user info from it
-                    console.warn('Auth check returned status:', res.status, '— keeping token');
-                    try {
-                        const payload = JSON.parse(atob(token.split('.')[1]));
-                        setUser({ _id: payload.id, email: payload.email, displayName: payload.email?.split('@')[0] || 'User' });
-                    } catch {
-                        // Can't decode, still keep token — next API call will verify
-                    }
-                }
-            } catch (error) {
-                // Network error — don't log out, keep token for when connection restores
-                console.error('Error fetching user (keeping session):', error);
-                try {
-                    const payload = JSON.parse(atob(token.split('.')[1]));
-                    setUser({ _id: payload.id, email: payload.email, displayName: payload.email?.split('@')[0] || 'User' });
-                } catch {
-                    // Can't decode, still keep token
-                }
+        } catch (error) {
+            // 401 means no valid cookie/token — user is not logged in
+            if (error.response?.status === 401 || error.response?.status === 403) {
+                setUser(null);
+            } else {
+                // Network or server error — don't log out, silently keep session
             }
-            setLoading(false);
-        };
+        }
+        setLoading(false);
+    }, []);
 
+    useEffect(() => {
         fetchUser();
-    }, [token]);
+    }, [fetchUser]);
 
-    const login = (newToken) => {
-        localStorage.setItem('token', newToken);
-        setToken(newToken);
-    };
+    // Listen for 401 events from axios interceptor (auto-logout)
+    useEffect(() => {
+        const handleUnauthorized = () => {
+            setUser(null);
+        };
+        window.addEventListener('auth:unauthorized', handleUnauthorized);
+        return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    }, []);
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        setToken(null);
+    // Login is now handled by cookie set by the backend on OAuth callback
+    // This function is called after redirect to refresh user state
+    const login = useCallback(async () => {
+        setLoading(true);
+        await fetchUser();
+    }, [fetchUser]);
+
+    const logout = useCallback(async () => {
+        try {
+            await api.get('/auth/logout');
+        } catch {
+            // Logout request failed — clear local state anyway
+        }
         setUser(null);
-    };
+    }, []);
 
     return (
-        <AuthContext.Provider value={{ user, setUser, token, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, setUser, loading, login, logout, refreshUser: fetchUser }}>
             {children}
         </AuthContext.Provider>
     );

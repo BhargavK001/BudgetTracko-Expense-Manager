@@ -60,6 +60,10 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [focusedField, setFocusedField] = useState(null);
 
+    // Get redirect path from URL query params
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectPath = searchParams.get('redirect') || '/dashboard';
+
     const handleLogin = (e) => {
         e.preventDefault();
         setLoading(true);
@@ -67,7 +71,9 @@ const Login = () => {
         setTimeout(() => {
             setLoading(false);
             toast.success('Welcome back! Redirecting to dashboard...', { id: 'login' });
-            navigate('/dashboard');
+            setLoading(false);
+            toast.success('Welcome back!', { id: 'login' });
+            navigate(redirectPath);
         }, 1500);
     };
 

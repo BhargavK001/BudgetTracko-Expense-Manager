@@ -5,10 +5,22 @@ const JwtStrategy = require('passport-jwt').Strategy;
 const ExtractJwt = require('passport-jwt').ExtractJwt;
 const User = require('../models/User');
 
+// Extract JWT from cookie first, then fallback to Authorization header
+const cookieExtractor = (req) => {
+    let token = null;
+    if (req && req.cookies) {
+        token = req.cookies.token;
+    }
+    return token;
+};
+
 passport.use(
     new JwtStrategy(
         {
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+            jwtFromRequest: ExtractJwt.fromExtractors([
+                cookieExtractor,
+                ExtractJwt.fromAuthHeaderAsBearerToken(),
+            ]),
             secretOrKey: process.env.JWT_SECRET,
         },
         async (jwt_payload, done) => {
@@ -67,7 +79,7 @@ passport.use(
 
                 done(null, user);
             } catch (err) {
-                console.error(err);
+                if (process.env.NODE_ENV !== 'production') console.error(err);
                 done(err, null);
             }
         }
@@ -120,7 +132,7 @@ passport.use(
 
                 done(null, user);
             } catch (err) {
-                console.error(err);
+                if (process.env.NODE_ENV !== 'production') console.error(err);
                 done(err, null);
             }
         }

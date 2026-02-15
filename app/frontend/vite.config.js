@@ -7,4 +7,11 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react-helmet-async'],
   },
+  build: {
+    sourcemap: false, // Never expose source code in production
+  },
+  // Strip console.* calls from production builds
+  esbuild: {
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+  },
 })

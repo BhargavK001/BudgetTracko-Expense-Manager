@@ -118,7 +118,7 @@ const Transactions = () => {
                             placeholder="Search transactions..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full neo-input pl-9 py-2.5 text-sm"
+                            className="w-full neo-input !pl-10 py-2.5 text-sm"
                         />
                     </div>
                     <div className="flex gap-2">
@@ -127,7 +127,7 @@ const Transactions = () => {
                             <select
                                 value={filterCategory}
                                 onChange={(e) => setFilterCategory(e.target.value)}
-                                className="neo-input pl-9 py-2.5 text-xs sm:text-sm appearance-none pr-8 cursor-pointer w-full"
+                                className="neo-input !pl-10 py-2.5 text-xs sm:text-sm appearance-none pr-8 cursor-pointer w-full"
                             >
                                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
                             </select>

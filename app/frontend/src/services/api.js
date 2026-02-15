@@ -2,18 +2,40 @@ import axios from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Helper: read a cookie value by name
+function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? match[2] : null;
+}
+
 const api = axios.create({
-    baseURL: API_URL
+    baseURL: API_URL,
+    withCredentials: true, // Send cookies with every request
 });
 
-// Attach JWT token to every request
+// Request interceptor: attach CSRF token header on mutating requests
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+    const method = (config.method || '').toUpperCase();
+    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+        const csrfToken = getCookie('csrf-token');
+        if (csrfToken) {
+            config.headers['X-CSRF-Token'] = csrfToken;
+        }
     }
     return config;
 });
+
+// Response interceptor: auto-logout on 401
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            // Dispatch a custom event so AuthContext can handle logout
+            window.dispatchEvent(new Event('auth:unauthorized'));
+        }
+        return Promise.reject(error);
+    }
+);
 
 // ─── Transactions ───
 export const transactionApi = {

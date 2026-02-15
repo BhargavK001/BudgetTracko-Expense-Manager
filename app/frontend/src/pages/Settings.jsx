@@ -4,13 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BsMoonStars, BsSun, BsPerson, BsShieldLock, BsBell, BsCloudDownload, BsTrash, BsInfoCircle, BsChevronRight, BsPersonX } from 'react-icons/bs';
+import { BsMoonStars, BsSun, BsPerson, BsShieldLock, BsBell, BsCloudDownload, BsTrash, BsInfoCircle, BsChevronRight, BsPersonX, BsCreditCard2Front, BsGrid } from 'react-icons/bs';
 import { toast } from 'sonner';
 import SEO from '../components/common/SEO';
 import { userApi } from '../services/api';
 
-import ProfileModal from '../components/ProfileModal';
-import SecurityModal from '../components/SecurityModal';
+import ProfileEdit from '../components/ProfileEdit';
+import SecurityEdit from '../components/SecurityEdit';
+import CategoryEdit from '../components/CategoryEdit';
 
 const Settings = () => {
     const { theme, toggleTheme } = useTheme();
@@ -18,8 +19,7 @@ const Settings = () => {
     const { user, logout, refreshUser } = useAuth();
     const navigate = useNavigate();
     const isDark = theme === 'dark';
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [isSecurityOpen, setIsSecurityOpen] = useState(false);
+    const [openSection, setOpenSection] = useState(null); // 'profile', 'security', or null
     const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const [clearing, setClearing] = useState(false);
     const [exporting, setExporting] = useState(false);
@@ -100,38 +100,49 @@ const Settings = () => {
 
     const Section = ({ title, children }) => (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="neo-card p-3 sm:p-4 md:p-5 mb-3 sm:mb-4 md:mb-5">
-            <h3 className="text-[11px] sm:text-xs md:text-sm font-black uppercase tracking-wider text-gray-400 mb-2.5 sm:mb-3 md:mb-4 px-0.5">{title}</h3>
+            <h3 className="text-xs md:text-sm font-black uppercase tracking-wider text-gray-400 mb-2.5 sm:mb-3 md:mb-4 px-0.5">{title}</h3>
             <div className="space-y-1 sm:space-y-2 md:space-y-3">{children}</div>
         </motion.div>
     );
 
-    const SettingItem = ({ icon: Icon, title, desc, action, danger }) => (
-        <div
-            className="flex items-center justify-between p-2.5 sm:p-3 md:p-3.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 active:bg-gray-100 dark:active:bg-gray-800 transition-colors cursor-pointer gap-2 sm:gap-3 min-h-[44px]"
-            onClick={typeof action === 'function' ? action : undefined}
-        >
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                <div className={`w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 shrink-0 rounded-lg flex items-center justify-center ${danger ? 'bg-red-100 dark:bg-red-900/20 text-red-500' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
-                    <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+    const SettingItem = ({ icon: Icon, title, desc, action, danger, isOpen, children }) => (
+        <div>
+            <div
+                className="flex items-center justify-between p-2.5 sm:p-3 md:p-3.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 active:bg-gray-100 dark:active:bg-gray-800 transition-colors cursor-pointer gap-2 sm:gap-3 min-h-[44px]"
+                onClick={typeof action === 'function' ? action : undefined}
+            >
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                    <div className={`w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 shrink-0 rounded-lg flex items-center justify-center ${danger ? 'bg-red-100 dark:bg-red-900/20 text-red-500' : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+                        <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <h4 className={`font-bold text-sm leading-tight ${danger ? 'text-red-500' : ''}`}>{title}</h4>
+                        {desc && <p className="text-xs font-medium text-gray-500 truncate leading-tight mt-0.5">{desc}</p>}
+                    </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                    <h4 className={`font-bold text-xs sm:text-sm leading-tight ${danger ? 'text-red-500' : ''}`}>{title}</h4>
-                    {desc && <p className="text-[10px] sm:text-xs font-medium text-gray-500 truncate leading-tight mt-0.5">{desc}</p>}
+                <div className="text-gray-400 shrink-0 ml-1">
+                    {action && typeof action !== 'function' ? action : (
+                        <BsChevronRight className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                    )}
                 </div>
             </div>
-            <div className="text-gray-400 shrink-0 ml-1">
-                {action && typeof action !== 'function' ? action : <BsChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-            </div>
+            <AnimatePresence>
+                {isOpen && children && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                    >
+                        {children}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 
     return (
         <div className="max-w-3xl mx-auto pb-24 sm:pb-20">
-            <AnimatePresence>
-                {isProfileOpen && <ProfileModal onClose={() => setIsProfileOpen(false)} />}
-                {isSecurityOpen && <SecurityModal onClose={() => setIsSecurityOpen(false)} />}
-            </AnimatePresence>
-
             <SEO
                 title="Settings | BudgetTracko"
                 description="Configure your application preferences, profile, and security settings."
@@ -144,25 +155,56 @@ const Settings = () => {
             </motion.div>
 
             <Section title="Account">
-                <SettingItem icon={BsPerson} title="Profile" desc="Manage your personal details" action={() => setIsProfileOpen(true)} />
-                <SettingItem icon={BsShieldLock} title="Security" desc="Change password & 2FA" action={() => setIsSecurityOpen(true)} />
+                <SettingItem
+                    icon={BsPerson}
+                    title="Profile"
+                    desc="Manage your personal details"
+                    action={() => setOpenSection(openSection === 'profile' ? null : 'profile')}
+                    isOpen={openSection === 'profile'}
+                >
+                    <ProfileEdit onClose={() => setOpenSection(null)} />
+                </SettingItem>
+
+                <SettingItem
+                    icon={BsShieldLock}
+                    title="Security"
+                    desc="Change password & 2FA"
+                    action={() => setOpenSection(openSection === 'security' ? null : 'security')}
+                    isOpen={openSection === 'security'}
+                >
+                    <SecurityEdit onClose={() => setOpenSection(null)} />
+                </SettingItem>
+            </Section>
+
+            <Section title="Subscription">
+                <SettingItem icon={BsCreditCard2Front} title="Billing & Plans" desc="Manage your subscription & invoices" action={() => navigate('/billing')} />
             </Section>
 
             <Section title="Preferences">
+                <SettingItem
+                    icon={BsGrid}
+                    title="Categories"
+                    desc="Manage expense & income categories"
+                    action={() => setOpenSection(openSection === 'categories' ? null : 'categories')}
+                    isOpen={openSection === 'categories'}
+                >
+                    <CategoryEdit onClose={() => setOpenSection(null)} />
+                </SettingItem>
+
                 <SettingItem
                     icon={isDark ? BsMoonStars : BsSun}
                     title="Appearance"
                     desc={isDark ? 'Dark Mode' : 'Light Mode'}
                     action={
-                        <button onClick={(e) => { e.stopPropagation(); toggleTheme(); }} className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full transition-colors shrink-0 ${isDark ? 'bg-brand-primary' : 'bg-gray-300'}`}>
-                            <span className={`${isDark ? 'translate-x-[18px] sm:translate-x-6' : 'translate-x-1'} inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform`} />
+                        <button onClick={(e) => { e.stopPropagation(); toggleTheme(); }} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 border-2 border-brand-black dark:border-gray-500 ${isDark ? 'bg-brand-primary' : 'bg-gray-200 dark:bg-gray-600'}`}>
+                            <span className={`${isDark ? 'translate-x-5' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white dark:bg-gray-200 border border-gray-300 dark:border-gray-500 shadow-sm transition-transform`} />
                         </button>
                     }
                 />
                 <SettingItem icon={BsBell} title="Notifications" desc={notificationsEnabled ? 'On' : 'Off'}
                     action={
-                        <button onClick={(e) => { e.stopPropagation(); toggleNotifications(); }} className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full transition-colors shrink-0 ${notificationsEnabled ? 'bg-brand-primary' : 'bg-gray-300'}`}>
-                            <span className={`${notificationsEnabled ? 'translate-x-[18px] sm:translate-x-6' : 'translate-x-1'} inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform`} />
+                        <button onClick={(e) => { e.stopPropagation(); toggleNotifications(); }} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 border-2 border-brand-black dark:border-gray-500 ${notificationsEnabled ? 'bg-brand-primary' : 'bg-gray-200 dark:bg-gray-600'}`}>
+                            <span className={`${notificationsEnabled ? 'translate-x-5' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white dark:bg-gray-200 border border-gray-300 dark:border-gray-500 shadow-sm transition-transform`} />
                         </button>
                     }
                 />
