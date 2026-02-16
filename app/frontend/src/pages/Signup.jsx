@@ -8,6 +8,7 @@ import { FcGoogle } from 'react-icons/fc';
 import { FaGithub } from 'react-icons/fa';
 import { BsBarChartLineFill, BsWalletFill, BsShieldLockFill, BsArrowLeftShort, BsLightningChargeFill, BsPeopleFill, BsStarFill, BsCheckCircleFill, BsArrowRight } from 'react-icons/bs';
 import { authApi } from '../services/api';
+import SEO from '../components/common/SEO';
 
 // Animation variants
 const staggerContainer = {
@@ -113,6 +114,12 @@ const Signup = () => {
 
     return (
         <div className="min-h-screen bg-brand-yellow font-sans text-brand-black selection:bg-black selection:text-brand-yellow dark:bg-brand-yellow dark:text-brand-black overflow-hidden">
+            <SEO
+                title="Create Account - BudgetTracko"
+                description="Join BudgetTracko for free. Start tracking your expenses and take control of your financial future today."
+                keywords="sign up budget tracko, create account, free expense manager, register, join budget tracko"
+                canonical="https://www.budgettracko.app/signup"
+            />
 
             {/* Navigation */}
             <motion.nav

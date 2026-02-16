@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { toast } from 'sonner';
 import SuccessAnimation from '../components/SuccessAnimation';
+import SEO from '../components/common/SEO';
 
 const fadeUp = {
     hidden: { opacity: 0, y: 50 },
@@ -182,6 +183,12 @@ const Pricing = () => {
 
     return (
         <div className="min-h-screen bg-brand-yellow font-sans text-brand-black selection:bg-black selection:text-brand-yellow overflow-hidden">
+            <SEO
+                title="BudgetTracko Pricing - Student Friendly Plans"
+                description="Affordable pricing for students. Free forever plan available. Upgrade for advanced analytics and features."
+                keywords="budget app pricing, student discount, free expense tracker, budget tracko cost, budget tracko premium"
+                canonical="https://www.budgettracko.app/pricing"
+            />
             {showSuccess && <SuccessAnimation />}
 
             {/* Nav */}
