@@ -86,6 +86,14 @@ export default function Welcome() {
 
             <View style={styles.content}>
                 <View style={styles.header}>
+                    {/* Brand Header */}
+                    <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.brandHeader}>
+                        <Text style={styles.brandText}>BUDGET</Text>
+                        <View style={styles.brandAccent}>
+                            <Text style={styles.brandAccentText}>TRACKO</Text>
+                        </View>
+                    </Animated.View>
+
                     <Animated.View
                         entering={FadeInDown.delay(300).springify()}
                         style={[styles.badgeContainer, badgeStyle]}
@@ -133,6 +141,30 @@ export default function Welcome() {
 }
 
 const styles = StyleSheet.create({
+    brandHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        marginBottom: 24, // Added spacing below logo
+    },
+    brandText: {
+        fontSize: 24, // Slightly larger
+        fontWeight: '900',
+        color: '#1a1a1a',
+    },
+    brandAccent: {
+        backgroundColor: '#000000',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        transform: [{ rotate: '-2deg' }],
+        borderWidth: 2,
+        borderColor: '#000000',
+    },
+    brandAccentText: {
+        fontSize: 24, // Slightly larger
+        fontWeight: '900',
+        color: '#FFFFFF',
+    },
     content: {
         flex: 1,
         justifyContent: 'center',
