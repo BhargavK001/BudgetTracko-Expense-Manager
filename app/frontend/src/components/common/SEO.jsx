@@ -1,7 +1,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 
-const SEO = ({ title, description, name, type, keywords, canonical, image, url }) => {
+const SEO = ({ title, description, name, type, keywords, canonical, image, url, schema }) => {
     return (
         <Helmet>
             {/* Standard metadata tags */}

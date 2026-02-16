@@ -166,12 +166,7 @@ const LandingPage = () => {
             "price": "0",
             "priceCurrency": "INR"
         },
-        "description": "BudgetTracko is a free expense manager for students. Track expenses, set budgets, and achieve financial goals.",
-        "aggregateRating": {
-            "@type": "AggregateRating",
-            "ratingValue": "4.8",
-            "ratingCount": "10450"
-        }
+        "description": "BudgetTracko is a free expense manager for students. Track expenses, set budgets, and achieve financial goals."
     };
 
     return (

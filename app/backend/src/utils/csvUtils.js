@@ -10,9 +10,21 @@ const stream = require('stream');
  */
 exports.toCSV = (data, fields = []) => {
     try {
+        const unsafeChars = ['=', '+', '-', '@'];
+        const sanitizedData = data.map(row => {
+            const newRow = { ...row };
+            for (const key in newRow) {
+                const value = newRow[key];
+                if (typeof value === 'string' && unsafeChars.some(char => value.startsWith(char))) {
+                    newRow[key] = `'${value}`;
+                }
+            }
+            return newRow;
+        });
+
         const opts = fields.length ? { fields } : {};
         const parser = new Parser(opts);
-        return parser.parse(data);
+        return parser.parse(sanitizedData);
     } catch (err) {
         console.error('CSV Conversion Error:', err);
         throw new Error('Failed to convert data to CSV');
