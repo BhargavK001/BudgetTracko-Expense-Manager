@@ -31,39 +31,44 @@ export default function ForgotPassword() {
                                 <MaterialCommunityIcons name="arrow-left" size={24} color="#000000" />
                             </TouchableOpacity>
 
-                            <Animated.Text entering={FadeInDown.delay(200).duration(800)} style={styles.title}>
-                                RESET
-                            </Animated.Text>
-                            <Animated.Text entering={FadeInDown.delay(300).duration(800)} style={styles.title}>
-                                PASSWORD
-                            </Animated.Text>
-                            <Animated.Text entering={FadeInDown.delay(400)} style={styles.subtitle}>
-                                Enter your email to receive instructions.
-                            </Animated.Text>
+                            <Animated.View entering={FadeInDown.delay(200).duration(800)}>
+                                <Text style={styles.title}>RESET</Text>
+                            </Animated.View>
+                            <Animated.View entering={FadeInDown.delay(300).duration(800)}>
+                                <Text style={styles.title}>PASSWORD</Text>
+                            </Animated.View>
+                            <Animated.View entering={FadeInDown.delay(400)}>
+                                <Text style={styles.subtitle}>Enter your email to receive instructions.</Text>
+                            </Animated.View>
                         </View>
 
                         {/* Form */}
-                        <Animated.View entering={FadeInDown.delay(500)} style={styles.form}>
-                            <Input
-                                label="Email Address"
-                                placeholder="username@gmail.com"
-                                icon="email-outline"
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                            />
+                        {/* Form */}
+                        <Animated.View entering={FadeInDown.delay(500)}>
+                            <View style={styles.form}>
+                                <Input
+                                    label="Email Address"
+                                    placeholder="username@gmail.com"
+                                    icon="email-outline"
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                />
 
-                            <Button
-                                title="Send Reset Link"
-                                onPress={() => router.back()} // Mock action
-                                style={{ marginTop: 24 }}
-                            />
+                                <Button
+                                    title="Send Reset Link"
+                                    onPress={() => router.back()} // Mock action
+                                    style={{ marginTop: 24 }}
+                                />
+                            </View>
                         </Animated.View>
 
-                        <Animated.View entering={FadeInDown.delay(600)} style={styles.footer}>
-                            <Text style={styles.footerText}>Remember your password? </Text>
-                            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-                                <Text style={styles.footerLink}>Log In</Text>
-                            </TouchableOpacity>
+                        <Animated.View entering={FadeInDown.delay(600)}>
+                            <View style={styles.footer}>
+                                <Text style={styles.footerText}>Remember your password? </Text>
+                                <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+                                    <Text style={styles.footerLink}>Log In</Text>
+                                </TouchableOpacity>
+                            </View>
                         </Animated.View>
                     </ScrollView>
                 </KeyboardAvoidingView>

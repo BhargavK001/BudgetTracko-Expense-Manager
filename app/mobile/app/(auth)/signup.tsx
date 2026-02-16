@@ -24,72 +24,82 @@ export default function Signup() {
                 >
                     <View style={styles.content}>
                         <View style={styles.header}>
-                            <Animated.Text entering={FadeInDown.delay(200).duration(800)} style={styles.title}>
-                                CREATE
-                            </Animated.Text>
-                            <Animated.Text entering={FadeInDown.delay(300).duration(800)} style={styles.title}>
-                                ACCOUNT
-                            </Animated.Text>
-                            <Animated.Text entering={FadeInDown.delay(400)} style={styles.subtitle}>
-                                Start your financial journey today.
-                            </Animated.Text>
+                            <Animated.View entering={FadeInDown.delay(200).duration(800)}>
+                                <Text style={styles.title}>CREATE</Text>
+                            </Animated.View>
+                            <Animated.View entering={FadeInDown.delay(300).duration(800)}>
+                                <Text style={styles.title}>ACCOUNT</Text>
+                            </Animated.View>
+                            <Animated.View entering={FadeInDown.delay(400)}>
+                                <Text style={styles.subtitle}>
+                                    Start your financial journey today.
+                                </Text>
+                            </Animated.View>
                         </View>
 
                         {/* Social Login */}
-                        <Animated.View entering={FadeInDown.delay(500)} style={styles.socialContainer}>
-                            <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
-                                <Image
-                                    source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
-                                    style={{ width: 24, height: 24 }}
-                                />
-                                <Text style={styles.socialButtonText}>Google</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[styles.socialButton, styles.githubButton]}>
-                                <MaterialCommunityIcons name="github" size={24} color="#FFFFFF" />
-                                <Text style={[styles.socialButtonText, { color: '#FFFFFF' }]}>GitHub</Text>
-                            </TouchableOpacity>
+                        <Animated.View entering={FadeInDown.delay(500)}>
+                            <View style={styles.socialContainer}>
+                                <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
+                                    <Image
+                                        source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
+                                        style={{ width: 24, height: 24 }}
+                                    />
+                                    <Text style={styles.socialButtonText}>Google</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={[styles.socialButton, styles.githubButton]}>
+                                    <MaterialCommunityIcons name="github" size={24} color="#FFFFFF" />
+                                    <Text style={[styles.socialButtonText, { color: '#FFFFFF' }]}>GitHub</Text>
+                                </TouchableOpacity>
+                            </View>
                         </Animated.View>
 
-                        <Animated.View entering={FadeInDown.delay(600)} style={styles.divider}>
-                            <View style={styles.line} />
-                            <Text style={styles.dividerText}>OR SIGN UP WITH</Text>
-                            <View style={styles.line} />
+                        <Animated.View entering={FadeInDown.delay(600)}>
+                            <View style={styles.divider}>
+                                <View style={styles.line} />
+                                <Text style={styles.dividerText}>OR SIGN UP WITH</Text>
+                                <View style={styles.line} />
+                            </View>
                         </Animated.View>
 
                         {/* Form */}
-                        <Animated.View entering={FadeInDown.delay(700)} style={styles.form}>
-                            <Input
-                                label="Full Name"
-                                placeholder="John Doe"
-                                icon="account-outline"
-                                autoCapitalize="words"
-                            />
-                            <Input
-                                label="Email Address"
-                                placeholder="username@gmail.com"
-                                icon="email-outline"
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                            />
-                            <Input
-                                label="Password"
-                                placeholder="Create a password"
-                                icon="lock-outline"
-                                secureTextEntry
-                            />
+                        <Animated.View entering={FadeInDown.delay(700)}>
+                            <View style={styles.form}>
+                                <Input
+                                    label="Full Name"
+                                    placeholder="John Doe"
+                                    icon="account-outline"
+                                    autoCapitalize="words"
+                                />
+                                <Input
+                                    label="Email Address"
+                                    placeholder="username@gmail.com"
+                                    icon="email-outline"
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                />
+                                <Input
+                                    label="Password"
+                                    placeholder="Create a password"
+                                    icon="lock-outline"
+                                    secureTextEntry
+                                />
 
-                            <Button
-                                title="Sign Up"
-                                onPress={() => router.push('/(tabs)')}
-                                style={{ marginTop: 16 }}
-                            />
+                                <Button
+                                    title="Sign Up"
+                                    onPress={() => router.push('/(tabs)')}
+                                    style={{ marginTop: 16 }}
+                                />
+                            </View>
                         </Animated.View>
 
-                        <Animated.View entering={FadeInDown.delay(800)} style={styles.footer}>
-                            <Text style={styles.footerText}>Already have an account? </Text>
-                            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-                                <Text style={styles.footerLink}>Log In</Text>
-                            </TouchableOpacity>
+                        <Animated.View entering={FadeInDown.delay(800)}>
+                            <View style={styles.footer}>
+                                <Text style={styles.footerText}>Already have an account? </Text>
+                                <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+                                    <Text style={styles.footerLink}>Log In</Text>
+                                </TouchableOpacity>
+                            </View>
                         </Animated.View>
                     </View>
                 </KeyboardAvoidingView>

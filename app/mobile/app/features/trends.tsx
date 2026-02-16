@@ -11,10 +11,9 @@ const { width } = Dimensions.get('window');
 // Mock Chart Bar
 const ChartBar = ({ height, color, delay, label }: any) => (
     <View style={styles.barContainer}>
-        <Animated.View
-            entering={FadeInDown.delay(delay).springify().damping(12)}
-            style={[styles.bar, { height: height, backgroundColor: color }]}
-        />
+        <Animated.View entering={FadeInDown.delay(delay).springify().damping(12)}>
+            <View style={[styles.bar, { height: height, backgroundColor: color }]} />
+        </Animated.View>
         <Text style={styles.barLabel}>{label}</Text>
     </View>
 );
@@ -29,48 +28,53 @@ export default function TrendsFeature() {
             <View style={styles.content}>
                 {/* Visual Section */}
                 <View style={styles.visualContainer}>
-                    <Animated.View
-                        entering={ZoomIn.delay(200).springify()}
-                        style={styles.chartCard}
-                    >
-                        <View style={styles.cardHeader}>
-                            <Text style={styles.cardTitle}>MONTHLY SPENDING</Text>
-                            <View style={styles.cardBadge}>
-                                <Text style={styles.cardBadgeText}>-12%</Text>
+                    <Animated.View entering={ZoomIn.delay(200).springify()}>
+                        <View style={styles.chartCard}>
+                            <View style={styles.cardHeader}>
+                                <Text style={styles.cardTitle}>MONTHLY SPENDING</Text>
+                                <View style={styles.cardBadge}>
+                                    <Text style={styles.cardBadgeText}>-12%</Text>
+                                </View>
                             </View>
-                        </View>
 
-                        <View style={styles.chartArea}>
-                            <ChartBar height={60} color="#E0E0E0" delay={300} label="W1" />
-                            <ChartBar height={120} color="#FFD700" delay={400} label="W2" />
-                            <ChartBar height={90} color="#1a1a1a" delay={500} label="W3" />
-                            <ChartBar height={40} color="#E0E0E0" delay={600} label="W4" />
-                        </View>
+                            <View style={styles.chartArea}>
+                                <ChartBar height={60} color="#E0E0E0" delay={300} label="W1" />
+                                <ChartBar height={120} color="#FFD700" delay={400} label="W2" />
+                                <ChartBar height={90} color="#1a1a1a" delay={500} label="W3" />
+                                <ChartBar height={40} color="#E0E0E0" delay={600} label="W4" />
+                            </View>
 
-                        <View style={styles.legendContainer}>
-                            <View style={[styles.legendDot, { backgroundColor: '#FFD700' }]} />
-                            <Text style={styles.legendText}>Food</Text>
-                            <View style={[styles.legendDot, { backgroundColor: '#1a1a1a' }]} />
-                            <Text style={styles.legendText}>Transport</Text>
+                            <View style={styles.legendContainer}>
+                                <View style={[styles.legendDot, { backgroundColor: '#FFD700' }]} />
+                                <Text style={styles.legendText}>Food</Text>
+                                <View style={[styles.legendDot, { backgroundColor: '#1a1a1a' }]} />
+                                <Text style={styles.legendText}>Transport</Text>
+                            </View>
                         </View>
                     </Animated.View>
                 </View>
 
                 {/* Text Content */}
                 <View style={styles.textContent}>
-                    <Animated.View entering={FadeInUp.delay(300)} style={styles.stepContainer}>
-                        <Text style={styles.step}>02 / 04</Text>
+                    <Animated.View entering={FadeInUp.delay(300)}>
+                        <View style={styles.stepContainer}>
+                            <Text style={styles.step}>02 / 04</Text>
+                        </View>
                     </Animated.View>
 
-                    <Animated.Text entering={FadeInUp.delay(400)} style={styles.title}>
-                        SPOT
-                        {'\n'}
-                        BAD HABITS.
-                    </Animated.Text>
+                    <Animated.View entering={FadeInUp.delay(400)}>
+                        <Text style={styles.title}>
+                            SPOT
+                            {'\n'}
+                            BAD HABITS.
+                        </Text>
+                    </Animated.View>
 
-                    <Animated.Text entering={FadeInUp.delay(500)} style={styles.description}>
-                        Visualize where your money goes. Cut wasteful spending and save more every month.
-                    </Animated.Text>
+                    <Animated.View entering={FadeInUp.delay(500)}>
+                        <Text style={styles.description}>
+                            Visualize where your money goes. Cut wasteful spending and save more every month.
+                        </Text>
+                    </Animated.View>
                 </View>
 
                 {/* Footer Navigation */}

@@ -87,34 +87,37 @@ export default function Welcome() {
             <View style={styles.content}>
                 <View style={styles.header}>
                     {/* Brand Header */}
-                    <Animated.View entering={FadeInDown.delay(200).duration(800)} style={styles.brandHeader}>
-                        <Text style={styles.brandText}>BUDGET</Text>
-                        <View style={styles.brandAccent}>
-                            <Text style={styles.brandAccentText}>TRACKO</Text>
+                    <Animated.View entering={FadeInDown.delay(200).duration(800)}>
+                        <View style={styles.brandHeader}>
+                            <Text style={styles.brandText}>BUDGET</Text>
+                            <View style={styles.brandAccent}>
+                                <Text style={styles.brandAccentText}>TRACKO</Text>
+                            </View>
                         </View>
                     </Animated.View>
 
-                    <Animated.View
-                        entering={FadeInDown.delay(300).springify()}
-                        style={[styles.badgeContainer, badgeStyle]}
-                    >
-                        <Text style={styles.badgeText}>✨ V 1.0 IS LIVE!</Text>
+                    <Animated.View entering={FadeInDown.delay(300).springify()}>
+                        <Animated.View style={[styles.badgeContainer, badgeStyle]}>
+                            <Text style={styles.badgeText}>✨ V 1.0 IS LIVE!</Text>
+                        </Animated.View>
                     </Animated.View>
 
-                    <Animated.Text entering={FadeInDown.delay(400).duration(800)} style={styles.title}>
-                        MASTER
-                    </Animated.Text>
-                    <Animated.Text entering={FadeInDown.delay(500).duration(800)} style={styles.title}>
-                        YOUR
-                    </Animated.Text>
-                    <Animated.Text entering={FadeInDown.delay(600).duration(800)} style={[styles.title, styles.highlight]}>
-                        MONEY.
-                    </Animated.Text>
+                    <Animated.View entering={FadeInDown.delay(400).duration(800)}>
+                        <Text style={styles.title}>MASTER</Text>
+                    </Animated.View>
+                    <Animated.View entering={FadeInDown.delay(500).duration(800)}>
+                        <Text style={styles.title}>YOUR</Text>
+                    </Animated.View>
+                    <Animated.View entering={FadeInDown.delay(600).duration(800)}>
+                        <Text style={[styles.title, styles.highlight]}>MONEY.</Text>
+                    </Animated.View>
                 </View>
 
-                <Animated.Text entering={FadeInDown.delay(800).duration(800)} style={styles.subtitle}>
-                    Stop guessing where your money goes. Track, analyze, and optimize your spending.
-                </Animated.Text>
+                <Animated.View entering={FadeInDown.delay(800).duration(800)}>
+                    <Text style={styles.subtitle}>
+                        Stop guessing where your money goes. Track, analyze, and optimize your spending.
+                    </Text>
+                </Animated.View>
 
                 <View style={styles.spacer} />
 

@@ -20,63 +20,68 @@ export default function OfflineFeature() {
             <View style={styles.content}>
                 {/* Visual Section: Status Card */}
                 <View style={styles.visualContainer}>
-                    <Animated.View
-                        entering={ZoomIn.delay(200).springify()}
-                        style={styles.statusCard}
-                    >
-                        <View style={styles.cardHeader}>
-                            <Text style={styles.cardTitle}>SYSTEM STATUS</Text>
-                            <View style={styles.liveIndicator}>
-                                <View style={styles.liveDot} />
-                                <Text style={styles.liveText}>LIVE</Text>
+                    <Animated.View entering={ZoomIn.delay(200).springify()}>
+                        <View style={styles.statusCard}>
+                            <View style={styles.cardHeader}>
+                                <Text style={styles.cardTitle}>SYSTEM STATUS</Text>
+                                <View style={styles.liveIndicator}>
+                                    <View style={styles.liveDot} />
+                                    <Text style={styles.liveText}>LIVE</Text>
+                                </View>
                             </View>
-                        </View>
 
-                        {/* Network Status */}
-                        <View style={styles.statusRow}>
-                            <View style={styles.statusIconBg}>
-                                <MaterialCommunityIcons name="wifi-off" size={24} color="#666666" />
+                            {/* Network Status */}
+                            <View style={styles.statusRow}>
+                                <View style={styles.statusIconBg}>
+                                    <MaterialCommunityIcons name="wifi-off" size={24} color="#666666" />
+                                </View>
+                                <View style={styles.statusInfo}>
+                                    <Text style={styles.statusLabel}>INTERNET</Text>
+                                    <Text style={styles.statusValueOffline}>DISCONNECTED</Text>
+                                </View>
+                                <MaterialCommunityIcons name="close-circle" size={24} color="#FF5252" />
                             </View>
-                            <View style={styles.statusInfo}>
-                                <Text style={styles.statusLabel}>INTERNET</Text>
-                                <Text style={styles.statusValueOffline}>DISCONNECTED</Text>
-                            </View>
-                            <MaterialCommunityIcons name="close-circle" size={24} color="#FF5252" />
-                        </View>
 
-                        <View style={styles.divider} />
+                            <View style={styles.divider} />
 
-                        {/* Tracking Status */}
-                        <View style={styles.statusRow}>
-                            <View style={[styles.statusIconBg, styles.activeIconBg]}>
-                                <MaterialCommunityIcons name="flash" size={24} color="#000000" />
+                            {/* Tracking Status */}
+                            <View style={styles.statusRow}>
+                                <View style={[styles.statusIconBg, styles.activeIconBg]}>
+                                    <MaterialCommunityIcons name="flash" size={24} color="#000000" />
+                                </View>
+                                <View style={styles.statusInfo}>
+                                    <Text style={styles.statusLabel}>EXPENSE TRACKING</Text>
+                                    <Text style={styles.statusValueOnline}>ACTIVE</Text>
+                                </View>
+                                <Animated.View entering={SlideInRight.delay(600).springify()}>
+                                    <MaterialCommunityIcons name="check-circle" size={24} color="#4ADE80" />
+                                </Animated.View>
                             </View>
-                            <View style={styles.statusInfo}>
-                                <Text style={styles.statusLabel}>EXPENSE TRACKING</Text>
-                                <Text style={styles.statusValueOnline}>ACTIVE</Text>
-                            </View>
-                            <Animated.View entering={SlideInRight.delay(600).springify()}>
-                                <MaterialCommunityIcons name="check-circle" size={24} color="#4ADE80" />
-                            </Animated.View>
                         </View>
                     </Animated.View>
                 </View>
 
                 {/* Text Content */}
                 <View style={styles.textContent}>
-                    <Animated.View entering={FadeInUp.delay(300)} style={styles.stepContainer}>
-                        <Text style={styles.step}>04 / 04</Text>
+                    <Animated.View entering={FadeInUp.delay(300)}>
+                        <View style={styles.stepContainer}>
+                            <Text style={styles.step}>04 / 04</Text>
+                        </View>
                     </Animated.View>
 
-                    <Animated.Text entering={FadeInUp.delay(400)} style={styles.title}>
-                        NO WIFI?
-                        {'\n'}
-                        NO PROBLEM.
-                    </Animated.Text>
+                    <Animated.View entering={FadeInUp.delay(400)}>
+                        <Text style={styles.title}>
+                            NO WIFI?
+                            {'\n'}
+                            NO PROBLEM.
+                        </Text>
+                    </Animated.View>
 
-                    <Animated.Text entering={FadeInUp.delay(500)} style={styles.description}>
-                        Your data saves locally and syncs automatically when you're back online.
-                    </Animated.Text>
+                    <Animated.View entering={FadeInUp.delay(500)}>
+                        <Text style={styles.description}>
+                            Your data saves locally and syncs automatically when you're back online.
+                        </Text>
+                    </Animated.View>
                 </View>
 
                 {/* Footer Navigation */}

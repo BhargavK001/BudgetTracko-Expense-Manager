@@ -11,18 +11,17 @@ const { width, height } = Dimensions.get('window');
 
 // Mock transaction component for animation
 const MockTransaction = ({ icon, title, amount, color, delay }: any) => (
-    <Animated.View
-        entering={FadeInRight.delay(delay).springify().damping(12)}
-        style={styles.mockTransaction}
-    >
-        <View style={[styles.mockIcon, { backgroundColor: color }]}>
-            <MaterialCommunityIcons name={icon} size={20} color="#000000" />
+    <Animated.View entering={FadeInRight.delay(delay).springify().damping(12)}>
+        <View style={styles.mockTransaction}>
+            <View style={[styles.mockIcon, { backgroundColor: color }]}>
+                <MaterialCommunityIcons name={icon} size={20} color="#000000" />
+            </View>
+            <View style={styles.mockContent}>
+                <View style={styles.mockLineLong} />
+                <View style={styles.mockLineShort} />
+            </View>
+            <Text style={styles.mockAmount}>{amount}</Text>
         </View>
-        <View style={styles.mockContent}>
-            <View style={styles.mockLineLong} />
-            <View style={styles.mockLineShort} />
-        </View>
-        <Text style={styles.mockAmount}>{amount}</Text>
     </Animated.View>
 );
 
@@ -46,12 +45,11 @@ export default function TrackFeature() {
                             </View>
 
                             {/* Balance Card Mock */}
-                            <Animated.View
-                                entering={FadeInDown.delay(200).springify()}
-                                style={styles.mockCard}
-                            >
-                                <Text style={styles.mockLabel}>TOTAL BALANCE</Text>
-                                <Text style={styles.mockBalance}>$4,250.00</Text>
+                            <Animated.View entering={FadeInDown.delay(200).springify()}>
+                                <View style={styles.mockCard}>
+                                    <Text style={styles.mockLabel}>TOTAL BALANCE</Text>
+                                    <Text style={styles.mockBalance}>$4,250.00</Text>
+                                </View>
                             </Animated.View>
 
                             {/* Transaction List */}
@@ -82,19 +80,25 @@ export default function TrackFeature() {
 
                 {/* Text Content */}
                 <View style={styles.textContent}>
-                    <Animated.View entering={FadeInUp.delay(300)} style={styles.stepContainer}>
-                        <Text style={styles.step}>01 / 04</Text>
+                    <Animated.View entering={FadeInUp.delay(300)}>
+                        <View style={styles.stepContainer}>
+                            <Text style={styles.step}>01 / 04</Text>
+                        </View>
                     </Animated.View>
 
-                    <Animated.Text entering={FadeInUp.delay(400)} style={styles.title}>
-                        TRACK
-                        {'\n'}
-                        EVERY PENNY.
-                    </Animated.Text>
+                    <Animated.View entering={FadeInUp.delay(400)}>
+                        <Text style={styles.title}>
+                            TRACK
+                            {'\n'}
+                            EVERY PENNY.
+                        </Text>
+                    </Animated.View>
 
-                    <Animated.Text entering={FadeInUp.delay(500)} style={styles.description}>
-                        Log expenses in seconds. Categorize instantly. Know exactly where your money goes.
-                    </Animated.Text>
+                    <Animated.View entering={FadeInUp.delay(500)}>
+                        <Text style={styles.description}>
+                            Log expenses in seconds. Categorize instantly. Know exactly where your money goes.
+                        </Text>
+                    </Animated.View>
                 </View>
 
                 {/* Footer Navigation */}

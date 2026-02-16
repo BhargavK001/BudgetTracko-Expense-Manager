@@ -41,44 +41,47 @@ export default function SecurityFeature() {
                         <Animated.View style={[styles.pulseCircle, styles.pulseCircle2, animatedShieldStyle]} />
 
                         {/* Main Shield */}
-                        <Animated.View
-                            entering={ZoomIn.delay(200).springify()}
-                            style={styles.shield}
-                        >
-                            <MaterialCommunityIcons name="shield-check" size={80} color="#1a1a1a" />
+                        <Animated.View entering={ZoomIn.delay(200).springify()}>
+                            <View style={styles.shield}>
+                                <MaterialCommunityIcons name="shield-check" size={80} color="#1a1a1a" />
+                            </View>
                         </Animated.View>
 
                         {/* Floating Badges */}
-                        <Animated.View
-                            entering={FadeInDown.delay(400).springify()}
-                            style={[styles.badge, styles.badgeTopRight]}
-                        >
-                            <MaterialCommunityIcons name="lock" size={20} color="#FFFFFF" />
+                        <Animated.View entering={FadeInDown.delay(400).springify()}>
+                            <View style={[styles.badge, styles.badgeTopRight]}>
+                                <MaterialCommunityIcons name="lock" size={20} color="#FFFFFF" />
+                            </View>
                         </Animated.View>
-                        <Animated.View
-                            entering={FadeInDown.delay(600).springify()}
-                            style={[styles.badge, styles.badgeBottomLeft]}
-                        >
-                            <MaterialCommunityIcons name="eye-off" size={20} color="#FFFFFF" />
+                        <Animated.View entering={FadeInDown.delay(600).springify()}>
+                            <View style={[styles.badge, styles.badgeBottomLeft]}>
+                                <MaterialCommunityIcons name="eye-off" size={20} color="#FFFFFF" />
+                            </View>
                         </Animated.View>
                     </View>
                 </View>
 
                 {/* Text Content */}
                 <View style={styles.textContent}>
-                    <Animated.View entering={FadeInUp.delay(300)} style={styles.stepContainer}>
-                        <Text style={styles.step}>03 / 04</Text>
+                    <Animated.View entering={FadeInUp.delay(300)}>
+                        <View style={styles.stepContainer}>
+                            <Text style={styles.step}>03 / 04</Text>
+                        </View>
                     </Animated.View>
 
-                    <Animated.Text entering={FadeInUp.delay(400)} style={styles.title}>
-                        BANK-GRADE
-                        {'\n'}
-                        SECURITY.
-                    </Animated.Text>
+                    <Animated.View entering={FadeInUp.delay(400)}>
+                        <Text style={styles.title}>
+                            BANK-GRADE
+                            {'\n'}
+                            SECURITY.
+                        </Text>
+                    </Animated.View>
 
-                    <Animated.Text entering={FadeInUp.delay(500)} style={styles.description}>
-                        Your data is encrypted and 100% private. We never share your financial details.
-                    </Animated.Text>
+                    <Animated.View entering={FadeInUp.delay(500)}>
+                        <Text style={styles.description}>
+                            Your data is encrypted and 100% private. We never share your financial details.
+                        </Text>
+                    </Animated.View>
                 </View>
 
                 {/* Footer Navigation */}

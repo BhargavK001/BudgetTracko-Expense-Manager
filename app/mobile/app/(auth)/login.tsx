@@ -7,6 +7,7 @@ import { Input } from '../../components/Input';
 import { StatusBar } from 'expo-status-bar';
 import Animated, {
     FadeInDown,
+    FadeInUp,
 } from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -26,70 +27,77 @@ export default function Login() {
                 >
                     <View style={styles.content}>
                         <View style={styles.header}>
-                            <Animated.Text entering={FadeInDown.delay(200).duration(800)} style={styles.title}>
-                                WELCOME
-                            </Animated.Text>
-                            <Animated.Text entering={FadeInDown.delay(300).duration(800)} style={styles.title}>
-                                BACK
-                            </Animated.Text>
-                            <Animated.Text entering={FadeInDown.delay(400)} style={styles.subtitle}>
-                                Sign in to continue tracking.
-                            </Animated.Text>
+                            <Animated.View entering={FadeInUp.delay(200).duration(1000)}>
+                                <Text style={styles.title}>WELCOME BACK</Text>
+                            </Animated.View>
+                            <Animated.View entering={FadeInUp.delay(400).duration(1000)}>
+                                <Text style={styles.subtitle}>
+                                    Sign in to continue managing your expenses.
+                                </Text>
+                            </Animated.View>
                         </View>
 
                         {/* Social Login */}
-                        <Animated.View entering={FadeInDown.delay(500)} style={styles.socialContainer}>
-                            <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
-                                <Image
-                                    source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
-                                    style={{ width: 24, height: 24 }}
-                                />
-                                <Text style={styles.socialButtonText}>Google</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={[styles.socialButton, styles.githubButton]}>
-                                <MaterialCommunityIcons name="github" size={24} color="#FFFFFF" />
-                                <Text style={[styles.socialButtonText, { color: '#FFFFFF' }]}>GitHub</Text>
-                            </TouchableOpacity>
+                        <Animated.View entering={FadeInDown.delay(500)}>
+                            <View style={styles.socialContainer}>
+                                <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
+                                    <Image
+                                        source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
+                                        style={{ width: 24, height: 24 }}
+                                    />
+                                    <Text style={styles.socialButtonText}>Google</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity style={[styles.socialButton, styles.githubButton]}>
+                                    <MaterialCommunityIcons name="github" size={24} color="#FFFFFF" />
+                                    <Text style={[styles.socialButtonText, { color: '#FFFFFF' }]}>GitHub</Text>
+                                </TouchableOpacity>
+                            </View>
                         </Animated.View>
 
-                        <Animated.View entering={FadeInDown.delay(600)} style={styles.divider}>
-                            <View style={styles.line} />
-                            <Text style={styles.dividerText}>OR WITH EMAIL</Text>
-                            <View style={styles.line} />
+                        <Animated.View entering={FadeInDown.delay(600)}>
+                            <View style={styles.divider}>
+                                <View style={styles.line} />
+                                <Text style={styles.dividerText}>OR WITH EMAIL</Text>
+                                <View style={styles.line} />
+                            </View>
                         </Animated.View>
 
                         {/* Form */}
-                        <Animated.View entering={FadeInDown.delay(700)} style={styles.form}>
-                            <Input
-                                label="Email Address"
-                                placeholder="username@gmail.com"
-                                icon="email-outline"
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                            />
-                            <Input
-                                label="Password"
-                                placeholder="Enter password"
-                                icon="lock-outline"
-                                secureTextEntry
-                            />
+                        <Animated.View entering={FadeInDown.delay(700)}>
+                            <View style={styles.form}>
+                                <Input
+                                    label="Email Address"
+                                    placeholder="username@gmail.com"
+                                    icon="email-outline"
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                />
+                                <Input
+                                    label="Password"
+                                    placeholder="Enter password"
+                                    icon="lock-outline"
+                                    secureTextEntry
+                                />
 
-                            <TouchableOpacity style={styles.forgotPassword} onPress={() => router.push('/(auth)/forgot-password')}>
-                                <Text style={styles.forgotPasswordText}>Forgot?</Text>
-                            </TouchableOpacity>
+                                <TouchableOpacity style={styles.forgotPassword} onPress={() => router.push('/(auth)/forgot-password')}>
+                                    <Text style={styles.forgotPasswordText}>Forgot?</Text>
+                                </TouchableOpacity>
 
-                            <Button
-                                title="Sign In"
-                                onPress={() => router.push('/(tabs)')}
-                                style={{ marginTop: 24 }}
-                            />
+                                <Button
+                                    title="Sign In"
+                                    onPress={() => router.push('/(tabs)')}
+                                    style={{ marginTop: 24 }}
+                                />
+                            </View>
                         </Animated.View>
 
-                        <Animated.View entering={FadeInDown.delay(800)} style={styles.footer}>
-                            <Text style={styles.footerText}>Don't have an account? </Text>
-                            <TouchableOpacity onPress={() => router.push('/(auth)/signup')}>
-                                <Text style={styles.footerLink}>Sign Up</Text>
-                            </TouchableOpacity>
+                        <Animated.View entering={FadeInDown.delay(800)}>
+                            <View style={styles.footer}>
+                                <Text style={styles.footerText}>Don't have an account? </Text>
+                                <TouchableOpacity onPress={() => router.push('/(auth)/signup')}>
+                                    <Text style={styles.footerLink}>Sign Up</Text>
+                                </TouchableOpacity>
+                            </View>
                         </Animated.View>
                     </View>
                 </KeyboardAvoidingView>
