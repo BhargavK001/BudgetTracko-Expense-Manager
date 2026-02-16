@@ -1,6 +1,6 @@
 # BudgetTracko - Expense Manager
 
-![BudgetTracko Banner](https://via.placeholder.com/1200x400/FFD700/000000?text=BUDGET+TRACKO)
+![BudgetTracko Banner](screenshots/desktop-landing.png)
 
 <div align="center">
 
@@ -27,15 +27,15 @@
 ## 📸 Screenshots
 
 ### Dashboard Overview
-![Dashboard Overview](https://via.placeholder.com/1200x675/f3f4f6/1f2937?text=Dashboard+Overview+Screenshot)
+![Dashboard Overview](screenshots/desktop-dashboard.png)
 *Visualize your income, expenses, and balance in real-time.*
 
 ### Analytics & Reports
-![Analytics](https://via.placeholder.com/1200x675/f3f4f6/1f2937?text=Analytics+Reports+Screenshot)
+![Analytics](screenshots/desktop-analytics.png)
 *Deep dive into your spending habits with beautiful charts. And effortless transaction management.*
 
 ### Easy Transaction Tracking
-![Transaction Modal](https://via.placeholder.com/1200x675/f3f4f6/1f2937?text=Transaction+Modal+Screenshot)
+![Transaction Modal](screenshots/desktop-transaction-modal.png)
 
 ---
 
