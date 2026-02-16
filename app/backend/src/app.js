@@ -21,16 +21,8 @@ const statusRoutes = require('./routes/status.routes');
 // Helper to get domain for cookies
 const getCookieDomain = () => {
     if (process.env.NODE_ENV !== 'production') return undefined;
-    try {
-        const url = new URL(process.env.FRONTEND_URL);
-        // If frontend is localhost, return undefined so cookie works on localhost
-        if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return undefined;
-        // Otherwise use the parent domain
-        return '.' + url.hostname;
-    } catch (e) {
-        console.error("Error parsing FRONTEND_URL for cookie domain:", e);
-        return undefined;
-    }
+    // Explicitly set the root domain for production to share cookies between api., www., and root
+    return '.budgettracko.app';
 };
 
 
@@ -62,8 +54,21 @@ app.use(helmet({
 }));
 
 // ─── CORS with credentials ───
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'https://budgettracko.app',
+    'https://www.budgettracko.app',
+    'http://localhost:5173'
+];
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL,
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
 }));
 
