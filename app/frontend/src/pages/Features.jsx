@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BsMoonStarsFill, BsBank2, BsBarChartLineFill, BsShieldLockFill, BsCloudArrowUpFill, BsBellFill, BsArrowRepeat, BsPhoneFill, BsGearFill, BsPeopleFill, BsLightningChargeFill, BsTagsFill } from 'react-icons/bs';
+import SEO from '../components/common/SEO';
 
 const fadeUp = {
     hidden: { opacity: 0, y: 50 },
@@ -39,6 +40,12 @@ const features = [
 const Features = () => {
     return (
         <div className="min-h-screen bg-brand-yellow font-sans text-brand-black selection:bg-black selection:text-brand-yellow overflow-hidden">
+            <SEO
+                title="Features - BudgetTracko Expense Manager"
+                description="Explore powerful features like multi-account tracking, budget alerts, dark mode, and cloud sync. Designed for students."
+                keywords="expense tracker features, multi-account budget app, recurring payments tracker, budget alerts app"
+                canonical="https://www.budgettracko.app/features"
+            />
             {/* Nav */}
             <motion.nav
                 initial={{ y: -80, opacity: 0 }}

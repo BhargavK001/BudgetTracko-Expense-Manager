@@ -294,9 +294,12 @@ router.get('/export/csv', async (req, res) => {
         res.attachment(`budget_tracko_export_${new Date().toISOString().split('T')[0]}.csv`);
         res.send(csv);
     } catch (err) {
-        if (process.env.NODE_ENV !== 'production') console.error('Export CSV error:', err);
-        // Debugging: return error message even in prod for now
-        res.status(500).json({ success: false, message: 'Server error during export: ' + err.message, stack: err.stack });
+        console.error('Export CSV error:', err);
+        res.status(500).json({
+            success: false,
+            message: process.env.NODE_ENV === 'production' ? 'Server error' : 'Server error during export: ' + err.message,
+            stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
+        });
     }
 });
 
@@ -332,6 +335,12 @@ router.post('/import/csv', upload.single('file'), async (req, res) => {
             const type = row.Type.toLowerCase();
             const amount = Math.abs(parseFloat(row.Amount));
             if (isNaN(amount)) {
+                stats.skipped++;
+                continue;
+            }
+
+            const parsedDate = new Date(row.Date);
+            if (isNaN(parsedDate.getTime())) {
                 stats.skipped++;
                 continue;
             }
@@ -387,7 +396,7 @@ router.post('/import/csv', upload.single('file'), async (req, res) => {
                 type: type,
                 amount: type === 'expense' ? -amount : amount,
                 category: row.Category || 'Other',
-                date: new Date(row.Date),
+                date: parsedDate,
                 text: row.Text || row.Note || 'Imported Transaction',
                 note: row.Note || 'Imported via CSV',
                 paymentMode: row.PaymentMode || 'Cash',
@@ -406,8 +415,12 @@ router.post('/import/csv', upload.single('file'), async (req, res) => {
         });
 
     } catch (err) {
-        if (process.env.NODE_ENV !== 'production') console.error('Import CSV error:', err);
-        res.status(500).json({ success: false, message: 'Server error during import: ' + err.message, stack: err.stack });
+        console.error('Import CSV error:', err);
+        res.status(500).json({
+            success: false,
+            message: process.env.NODE_ENV === 'production' ? 'Server error' : 'Server error during import: ' + err.message,
+            stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
+        });
     }
 });
 

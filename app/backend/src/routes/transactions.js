@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
-const { upload } = require('../config/cloudinary'); // Still needed? No, middleware handles it.
 const uploadMiddleware = require('../middleware/uploadMiddleware');
 const {
     getTransactions,
