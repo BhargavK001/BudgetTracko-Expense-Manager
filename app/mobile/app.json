@@ -21,6 +21,7 @@
         "foregroundImage": "./assets/images/logo512.png",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.budgettracko.app",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
