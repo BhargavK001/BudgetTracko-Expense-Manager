@@ -159,7 +159,18 @@ const styles = StyleSheet.create({
     divider: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16, // Tightened
+        marginBottom: 16,
+    },
+    line: {
+        flex: 1,
+        height: 1,
+        backgroundColor: '#E0E0E0',
+    },
+    dividerText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#666666',
+        paddingHorizontal: 16,
     },
     // ...
     form: {
