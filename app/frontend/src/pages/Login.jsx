@@ -8,6 +8,7 @@ import { FcGoogle } from 'react-icons/fc';
 import { FaGithub } from 'react-icons/fa';
 import { BsBarChartLineFill, BsWalletFill, BsShieldLockFill, BsArrowLeftShort, BsLightningChargeFill, BsPeopleFill, BsStarFill, BsCheckCircleFill } from 'react-icons/bs';
 import { authApi } from '../services/api';
+import SEO from '../components/common/SEO';
 
 // Animation variants
 const staggerContainer = {
@@ -98,6 +99,12 @@ const Login = () => {
 
     return (
         <div className="min-h-screen bg-brand-yellow font-sans text-brand-black selection:bg-black selection:text-brand-yellow dark:bg-brand-yellow dark:text-brand-black overflow-hidden">
+            <SEO
+                title="Login to BudgetTracko - Expense Manager"
+                description="Sign in to your BudgetTracko account. Track expenses, manage your budget, and achieve financial freedom."
+                keywords="budget tracko login, sign in, expense manager login, finance tracker, money manager"
+                canonical="https://www.budgettracko.app/login"
+            />
 
             {/* Navigation */}
             <motion.nav

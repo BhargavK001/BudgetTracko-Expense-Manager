@@ -222,8 +222,10 @@ const Transactions = () => {
                     ))}
                 </div>
             ) : (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="neo-card p-12 text-center">
-                    <div className="text-5xl mb-4 text-gray-300">🔍</div>
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="neo-card p-12 text-center flex flex-col items-center">
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-300">
+                        <BsSearch size={32} />
+                    </div>
                     <p className="font-black text-lg text-gray-400">No transactions found</p>
                     <p className="text-gray-500 text-sm mt-1">Try adjusting your filters</p>
                 </motion.div>

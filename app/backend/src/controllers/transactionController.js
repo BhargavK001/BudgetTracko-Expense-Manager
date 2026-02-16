@@ -46,17 +46,29 @@ exports.createTransaction = async (req, res) => {
             date, time, paymentMode, note, tags
         } = req.body;
 
-        // Parse tags if it's a string
-        const parsedTags = typeof tags === 'string'
-            ? tags.split(',').map(t => t.trim()).filter(Boolean)
-            : (tags || []);
+        // Parse tags
+        let parsedTags = [];
+        try {
+            parsedTags = typeof tags === 'string'
+                ? tags.split(',').map(t => t.trim()).filter(Boolean)
+                : (tags || []);
+        } catch (tagError) {
+            console.error('Error parsing tags:', tagError);
+        }
 
-        // Handle file attachments (uploaded via multer/cloudinary)
-        const attachments = (req.files || []).map(file => ({
-            url: file.path,
-            publicId: file.filename,
-            name: file.originalname
-        }));
+        // Handle file attachments
+        let attachments = [];
+        try {
+            if (req.files && Array.isArray(req.files)) {
+                attachments = req.files.map(file => ({
+                    url: file.path,
+                    publicId: file.filename,
+                    name: file.originalname
+                }));
+            }
+        } catch (fileError) {
+            console.error('Error processing files:', fileError);
+        }
 
         // Build the transaction
         const txData = {
@@ -73,7 +85,7 @@ exports.createTransaction = async (req, res) => {
             attachments
         };
 
-        // Handle different transaction types
+        // Handle types
         if (type === 'transfer') {
             if (!fromAccountId || !toAccountId) {
                 return res.status(400).json({ success: false, message: 'Transfer requires fromAccountId and toAccountId' });
@@ -82,23 +94,26 @@ exports.createTransaction = async (req, res) => {
                 return res.status(400).json({ success: false, message: 'Cannot transfer to the same account' });
             }
 
+
             txData.fromAccountId = fromAccountId;
             txData.toAccountId = toAccountId;
-            txData.amount = Math.abs(Number(amount)); // Transfers are stored as positive
+            txData.amount = Math.abs(Number(amount));
 
             // Update account balances
             await Account.findByIdAndUpdate(fromAccountId, { $inc: { balance: -Math.abs(Number(amount)) } });
             await Account.findByIdAndUpdate(toAccountId, { $inc: { balance: Math.abs(Number(amount)) } });
         } else if (accountId) {
+            if (!amount) {
+                return res.status(400).json({ success: false, message: 'Amount is required' });
+            }
+
             txData.accountId = accountId;
-            // Update account balance
             const balanceChange = type === 'income' ? Math.abs(Number(amount)) : -Math.abs(Number(amount));
             await Account.findByIdAndUpdate(accountId, { $inc: { balance: balanceChange } });
         }
 
         const transaction = await Transaction.create(txData);
 
-        // Populate references before sending back
         const populated = await Transaction.findById(transaction._id)
             .populate('accountId', 'name type color')
             .populate('fromAccountId', 'name type color')
@@ -106,9 +121,11 @@ exports.createTransaction = async (req, res) => {
 
         res.status(201).json({ success: true, data: populated });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        console.error('Error creating transaction:', err);
+        res.status(500).json({ success: false, message: 'Server Error: ' + err.message });
     }
 };
+
 
 // @desc    Get single transaction
 // @route   GET /api/transactions/:id
@@ -143,12 +160,16 @@ exports.updateTransaction = async (req, res) => {
         const { type, text, amount, category, accountId, fromAccountId, toAccountId, date, time, paymentMode, note, tags } = req.body;
         const parsedTags = typeof tags === 'string' ? tags.split(',').map(t => t.trim()).filter(Boolean) : (tags || existing.tags);
 
-        // Handle new file attachments
-        const newAttachments = (req.files || []).map(file => ({
-            url: file.path,
-            publicId: file.filename,
-            name: file.originalname
-        }));
+        // Handle new file attachments safely
+        let newAttachments = [];
+        if (req.files && Array.isArray(req.files)) {
+            newAttachments = req.files.map(file => ({
+                url: file.path,
+                publicId: file.filename,
+                name: file.originalname
+            }));
+        }
+
         const attachments = [...(existing.attachments || []), ...newAttachments];
 
         const updateData = {
@@ -186,7 +207,8 @@ exports.updateTransaction = async (req, res) => {
 
         res.json({ success: true, data: updated });
     } catch (err) {
-        res.status(500).json({ success: false, message: err.message });
+        console.error('Error updating transaction:', err);
+        res.status(500).json({ success: false, message: 'Server Error: ' + err.message });
     }
 };
 
@@ -194,27 +216,38 @@ exports.updateTransaction = async (req, res) => {
 // @route   DELETE /api/transactions/:id
 exports.deleteTransaction = async (req, res) => {
     try {
-        const transaction = await Transaction.findOne({ _id: req.params.id, userId: req.user._id });
+        const transaction = await Transaction.findById(req.params.id);
+
         if (!transaction) return res.status(404).json({ success: false, message: 'Transaction not found' });
+
+        // Check for user
+        if (transaction.userId.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ success: false, message: 'User not authorized' });
+        }
+
+        // Delete images from Cloudinary
+        if (transaction.attachments && transaction.attachments.length > 0) {
+            for (const file of transaction.attachments) {
+                if (file.publicId) {
+                    try {
+                        await cloudinary.uploader.destroy(file.publicId);
+                    } catch (cloudErr) {
+                        console.error(`Failed to delete image ${file.publicId} from Cloudinary:`, cloudErr);
+                        // Continue deletion even if cloud delete fails
+                    }
+                }
+            }
+        }
 
         // Reverse balance changes
         if (transaction.type === 'transfer') {
             await Account.findByIdAndUpdate(transaction.fromAccountId, { $inc: { balance: transaction.amount } });
             await Account.findByIdAndUpdate(transaction.toAccountId, { $inc: { balance: -transaction.amount } });
         } else if (transaction.accountId) {
+            // If income is deleted, subtract amount. If expense is deleted, add amount back (expense stored as negative)
             await Account.findByIdAndUpdate(transaction.accountId, { $inc: { balance: -transaction.amount } });
         }
 
-        // Delete attachments from Cloudinary
-        if (transaction.attachments && transaction.attachments.length > 0) {
-            for (const att of transaction.attachments) {
-                if (att.publicId) {
-                    await cloudinary.uploader.destroy(att.publicId);
-                }
-            }
-        }
-
-        await Transaction.findByIdAndDelete(req.params.id);
         res.json({ success: true, message: 'Transaction deleted' });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });

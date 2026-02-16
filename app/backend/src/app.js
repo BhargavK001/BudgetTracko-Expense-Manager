@@ -135,14 +135,18 @@ app.use('/auth', (req, res, next) => {
 // Paths exempt from CSRF verification (e.g. external webhooks)
 const csrfExemptPaths = ['/api/payments/webhook'];
 
-const csrfCookieOptions = () => ({
-    httpOnly: false,         // Frontend JS must read this
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    domain: getCookieDomain(),
-    maxAge: 3 * 24 * 60 * 60 * 1000,
-    path: '/',
-});
+const csrfCookieOptions = () => {
+    const isProd = process.env.NODE_ENV === 'production';
+    const isHttps = process.env.FRONTEND_URL?.startsWith('https');
+    return {
+        httpOnly: false,
+        secure: isProd && isHttps,
+        sameSite: isProd && isHttps ? 'none' : 'lax',
+        domain: getCookieDomain(),
+        maxAge: 3 * 24 * 60 * 60 * 1000,
+        path: '/',
+    };
+};
 
 app.use((req, res, next) => {
     // For GET/HEAD/OPTIONS: set or refresh the CSRF cookie

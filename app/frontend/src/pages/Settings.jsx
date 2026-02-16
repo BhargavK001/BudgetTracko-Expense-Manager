@@ -94,6 +94,52 @@ const Settings = () => {
         }
     };
 
+    const handleExportCSV = async () => {
+        try {
+            setExporting(true);
+            const res = await userApi.exportCSV();
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `budget_tracko_export_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            toast.success('CSV exported successfully');
+        } catch (err) {
+            toast.error('Failed to export CSV');
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    const handleImportCSV = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            toast.promise(userApi.importCSV(formData), {
+                loading: 'Importing CSV...',
+                success: (res) => {
+                    const stats = res.data.stats;
+                    // Refresh data
+                    getTransactions();
+                    getAccounts();
+                    getCategories();
+                    return `Imported ${stats.imported} transactions. Created ${stats.newAccounts} accounts.`;
+                },
+                error: 'Failed to import CSV'
+            });
+        } catch (err) {
+            console.error(err);
+        } finally {
+            event.target.value = ''; // Reset input
+        }
+    };
+
     const toggleNotifications = async () => {
         const newValue = !notificationsEnabled;
         setNotificationsEnabled(newValue); // Optimistic update
@@ -244,7 +290,16 @@ const Settings = () => {
             </Section>
 
             <Section title="Data">
-                <SettingItem icon={BsCloudDownload} title="Export Data" desc={exporting ? 'Preparing download...' : 'Download all your data as JSON'} action={handleExport} />
+                <SettingItem icon={BsCloudDownload} title="Export JSON" desc={exporting ? 'Preparing...' : 'Full backup (JSON)'} action={handleExport} />
+                <SettingItem icon={BsCloudDownload} title="Export CSV" desc={exporting ? 'Preparing...' : 'Spreadsheet compatible (CSV)'} action={handleExportCSV} />
+                <SettingItem icon={BsCloudDownload} title="Import CSV" desc="Import transactions from CSV" action={() => document.getElementById('csvInput').click()} />
+                <input
+                    type="file"
+                    id="csvInput"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={handleImportCSV}
+                />
                 <SettingItem icon={BsTrash} title="Clear All Data" desc={clearing ? 'Clearing...' : 'Delete all transactions, accounts & budgets'} danger action={handleClearData} />
             </Section>
 
