@@ -1,0 +1,132 @@
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ScrollView } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Container } from '../../components/Container';
+import { Button } from '../../components/Button';
+import { Input } from '../../components/Input';
+import { StatusBar } from 'expo-status-bar';
+import Animated, {
+    FadeInDown,
+} from 'react-native-reanimated';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+export default function ForgotPassword() {
+    const router = useRouter();
+
+    return (
+        <Container backgroundColor="#F0F0F0">
+            <StatusBar style="dark" />
+
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === "ios" ? "padding" : "height"}
+                    style={styles.keyboardView}
+                >
+                    <ScrollView
+                        contentContainerStyle={styles.scrollContent}
+                        showsVerticalScrollIndicator={false}
+                    >
+                        <View style={styles.header}>
+                            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                                <MaterialCommunityIcons name="arrow-left" size={24} color="#000000" />
+                            </TouchableOpacity>
+
+                            <Animated.Text entering={FadeInDown.delay(200).duration(800)} style={styles.title}>
+                                RESET
+                            </Animated.Text>
+                            <Animated.Text entering={FadeInDown.delay(300).duration(800)} style={styles.title}>
+                                PASSWORD
+                            </Animated.Text>
+                            <Animated.Text entering={FadeInDown.delay(400)} style={styles.subtitle}>
+                                Enter your email to receive instructions.
+                            </Animated.Text>
+                        </View>
+
+                        {/* Form */}
+                        <Animated.View entering={FadeInDown.delay(500)} style={styles.form}>
+                            <Input
+                                label="Email Address"
+                                placeholder="username@gmail.com"
+                                icon="email-outline"
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                            />
+
+                            <Button
+                                title="Send Reset Link"
+                                onPress={() => router.back()} // Mock action
+                                style={{ marginTop: 24 }}
+                            />
+                        </Animated.View>
+
+                        <Animated.View entering={FadeInDown.delay(600)} style={styles.footer}>
+                            <Text style={styles.footerText}>Remember your password? </Text>
+                            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+                                <Text style={styles.footerLink}>Log In</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    </ScrollView>
+                </KeyboardAvoidingView>
+            </TouchableWithoutFeedback>
+        </Container>
+    );
+}
+
+const styles = StyleSheet.create({
+    keyboardView: {
+        flex: 1,
+    },
+    scrollContent: {
+        flexGrow: 1,
+        // Removed justifyContent: 'center'
+        paddingVertical: 20,
+        paddingBottom: 40,
+    },
+    header: {
+        marginBottom: 32,
+        marginTop: 10,
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#FFFFFF',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+        borderWidth: 2,
+        borderColor: '#000000',
+    },
+    title: {
+        fontSize: 48,
+        fontWeight: '900',
+        color: '#000000',
+        lineHeight: 48,
+        letterSpacing: -2,
+    },
+    subtitle: {
+        fontSize: 16,
+        color: '#666666',
+        marginTop: 8,
+        fontWeight: '500',
+    },
+    form: {
+        marginBottom: 32,
+    },
+    footer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    footerText: {
+        fontSize: 14,
+        color: '#000000',
+        fontWeight: '500',
+    },
+    footerLink: {
+        fontSize: 14,
+        color: '#000000',
+        fontWeight: '900',
+        textDecorationLine: 'underline',
+    },
+});

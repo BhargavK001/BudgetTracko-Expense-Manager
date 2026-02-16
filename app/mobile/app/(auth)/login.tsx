@@ -74,7 +74,7 @@ export default function Login() {
                                 secureTextEntry
                             />
 
-                            <TouchableOpacity style={styles.forgotPassword}>
+                            <TouchableOpacity style={styles.forgotPassword} onPress={() => router.push('/(auth)/forgot-password')}>
                                 <Text style={styles.forgotPasswordText}>Forgot?</Text>
                             </TouchableOpacity>
 
@@ -108,14 +108,15 @@ const styles = StyleSheet.create({
         paddingVertical: 40,
     },
     header: {
-        marginBottom: 32,
+        marginBottom: 24,
+        marginTop: 30,
     },
     title: {
-        fontSize: 48,
+        fontSize: 40,
         fontWeight: '900',
         color: '#000000',
-        lineHeight: 48,
-        letterSpacing: -2,
+        lineHeight: 40,
+        letterSpacing: -1,
     },
     subtitle: {
         fontSize: 16,
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
     },
     form: {
-        marginBottom: 32,
+        marginBottom: 12,
     },
     forgotPassword: {
         alignSelf: 'flex-end',
