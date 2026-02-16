@@ -1,49 +1,99 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Container } from '../../components/Container';
 import { Button } from '../../components/Button';
-import { MaterialIcons } from '@expo/vector-icons';
+import Animated, { FadeInUp, FadeInDown, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence } from 'react-native-reanimated';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
+
+const { width } = Dimensions.get('window');
 
 export default function SecurityFeature() {
     const router = useRouter();
+    const shieldPulse = useSharedValue(1);
+
+    useEffect(() => {
+        shieldPulse.value = withRepeat(
+            withSequence(
+                withTiming(1.05, { duration: 1000 }),
+                withTiming(1, { duration: 1000 })
+            ),
+            -1,
+            true
+        );
+    }, []);
+
+    const animatedShieldStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: shieldPulse.value }],
+    }));
 
     return (
-        <Container backgroundColor="#000000">
-            <View style={styles.header}>
-                <View style={styles.iconContainer}>
-                    <MaterialIcons name="security" size={64} color="#000000" />
-                </View>
-                <Text style={[styles.step, styles.lightText]}>STEP 03</Text>
-            </View>
+        <Container backgroundColor="#1a1a1a">
+            <StatusBar style="light" />
 
             <View style={styles.content}>
-                <Text style={[styles.title, styles.yellowText]}>SECURE DATA</Text>
-                <Text style={[styles.description, styles.lightText]}>
-                    Bank-grade encryption. 100% Private. We never sell your data to advertisers.
-                </Text>
-            </View>
+                {/* Visual Section */}
+                <View style={styles.visualContainer}>
+                    <View style={styles.shieldContainer}>
+                        {/* Background Circles */}
+                        <Animated.View style={[styles.pulseCircle, styles.pulseCircle1, animatedShieldStyle]} />
+                        <Animated.View style={[styles.pulseCircle, styles.pulseCircle2, animatedShieldStyle]} />
 
-            <View style={styles.footer}>
-                <View style={styles.pagination}>
-                    <View style={styles.dot} />
-                    <View style={styles.dot} />
-                    <View style={[styles.dot, styles.activeDot]} />
-                    <View style={styles.dot} />
+                        {/* Main Shield */}
+                        <Animated.View
+                            entering={ZoomIn.delay(200).springify()}
+                            style={styles.shield}
+                        >
+                            <MaterialCommunityIcons name="shield-check" size={80} color="#1a1a1a" />
+                        </Animated.View>
+
+                        {/* Floating Badges */}
+                        <Animated.View
+                            entering={FadeInDown.delay(400).springify()}
+                            style={[styles.badge, styles.badgeTopRight]}
+                        >
+                            <MaterialCommunityIcons name="lock" size={20} color="#FFFFFF" />
+                        </Animated.View>
+                        <Animated.View
+                            entering={FadeInDown.delay(600).springify()}
+                            style={[styles.badge, styles.badgeBottomLeft]}
+                        >
+                            <MaterialCommunityIcons name="eye-off" size={20} color="#FFFFFF" />
+                        </Animated.View>
+                    </View>
                 </View>
 
-                <View style={styles.buttons}>
+                {/* Text Content */}
+                <View style={styles.textContent}>
+                    <Animated.View entering={FadeInUp.delay(300)} style={styles.stepContainer}>
+                        <Text style={styles.step}>03 / 04</Text>
+                    </Animated.View>
+
+                    <Animated.Text entering={FadeInUp.delay(400)} style={styles.title}>
+                        BANK-GRADE
+                        {'\n'}
+                        SECURITY.
+                    </Animated.Text>
+
+                    <Animated.Text entering={FadeInUp.delay(500)} style={styles.description}>
+                        Your data is encrypted and 100% private. We never share your financial details.
+                    </Animated.Text>
+                </View>
+
+                {/* Footer Navigation */}
+                <View style={styles.footer}>
                     <Button
                         title="Skip"
                         onPress={() => router.push('/(auth)/login')}
                         variant="outline"
-                        style={[styles.skipButton, { borderColor: '#FFFFFF' }]}
-                        textStyle={{ color: '#FFFFFF' }}
+                        style={styles.skipButton}
+                        textStyle={{ color: '#FFFFFF', fontSize: 14 }}
                     />
                     <Button
                         title="Next"
                         onPress={() => router.push('/features/offline')}
-                        variant="secondary"
+                        variant="primary" // Changed to primary (yellow) for contrast on dark bg
                         style={styles.nextButton}
                     />
                 </View>
@@ -53,83 +103,121 @@ export default function SecurityFeature() {
 }
 
 const styles = StyleSheet.create({
-    header: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    iconContainer: {
-        width: 120,
-        height: 120,
-        backgroundColor: '#FFD700',
-        borderRadius: 60,
-        borderWidth: 4,
-        borderColor: '#FFFFFF',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 24,
-        shadowColor: '#FFFFFF',
-        shadowOffset: { width: 4, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 0,
-    },
-    step: {
-        fontSize: 14,
-        fontWeight: '900',
-        letterSpacing: 2,
-        marginTop: 16,
-    },
     content: {
         flex: 1,
-        paddingHorizontal: 16,
+        // Removed space-between
+        paddingVertical: Platform.OS === 'ios' ? 20 : 40,
+    },
+    visualContainer: {
+        // Removed flex: 1
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 10,
+        marginBottom: 10,
+        minHeight: 300, // Guarantee space for shield
+    },
+    shieldContainer: {
+        width: 200,
+        height: 200,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    pulseCircle: {
+        position: 'absolute',
+        borderRadius: 999,
+        borderWidth: 2,
+        borderColor: '#333333',
+    },
+    pulseCircle1: {
+        width: 240,
+        height: 240,
+        opacity: 0.5,
+    },
+    pulseCircle2: {
+        width: 300,
+        height: 300,
+        opacity: 0.3,
+    },
+    shield: {
+        width: 140,
+        height: 160,
+        backgroundColor: '#4ADE80',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 30, // Shield-ish shape approximation
+        borderBottomLeftRadius: 70,
+        borderBottomRightRadius: 70,
+        borderWidth: 4,
+        borderColor: '#FFFFFF',
+        shadowColor: '#4ADE80',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.5,
+        shadowRadius: 20,
+        elevation: 10,
+    },
+    badge: {
+        position: 'absolute',
+        backgroundColor: '#333333',
+        padding: 12,
+        borderRadius: 16,
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+    },
+    badgeTopRight: {
+        top: 0,
+        right: 0,
+    },
+    badgeBottomLeft: {
+        bottom: 0,
+        left: 0,
+    },
+    textContent: {
+        paddingHorizontal: 24,
+        marginBottom: 30,
+        marginTop: 0,
+    },
+    stepContainer: {
+        backgroundColor: '#333333',
+        alignSelf: 'flex-start',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+        marginBottom: 16,
+    },
+    step: {
+        fontSize: 12,
+        fontWeight: '900',
+        color: '#FFFFFF',
     },
     title: {
-        fontSize: 42,
+        fontSize: 48,
         fontWeight: '900',
+        color: '#FFFFFF',
+        lineHeight: 44,
+        letterSpacing: -1,
         marginBottom: 16,
         textTransform: 'uppercase',
     },
     description: {
-        fontSize: 18,
-        lineHeight: 28,
+        fontSize: 16,
+        lineHeight: 24,
+        color: '#AAAAAA', // Light gray for readability on dark
         fontWeight: '500',
-    },
-    yellowText: {
-        color: '#FFD700',
-    },
-    lightText: {
-        color: '#FFFFFF',
+        maxWidth: '90%',
     },
     footer: {
-        paddingVertical: 24,
-    },
-    pagination: {
         flexDirection: 'row',
-        marginBottom: 32,
-        gap: 8,
-    },
-    dot: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: '#333333',
-        borderWidth: 2,
-        borderColor: '#FFFFFF',
-    },
-    activeDot: {
-        backgroundColor: '#FFD700',
-        width: 32,
-        borderColor: '#FFD700',
-    },
-    buttons: {
-        flexDirection: 'row',
+        paddingHorizontal: 24,
         gap: 16,
+        marginBottom: 10,
     },
     skipButton: {
         flex: 1,
+        borderWidth: 0,
         backgroundColor: 'transparent',
+        borderColor: '#FFFFFF', // For type safety, though width 0 hides it
     },
     nextButton: {
-        flex: 1,
+        flex: 2,
     },
 });

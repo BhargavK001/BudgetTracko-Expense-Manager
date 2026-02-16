@@ -14,7 +14,7 @@ export const Container: React.FC<ContainerProps> = ({
     backgroundColor = '#FFD700' // Default to Brand Yellow
 }) => {
     return (
-        <SafeAreaView style={[styles.safeArea, { backgroundColor }]} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor }]} edges={['top', 'left', 'right', 'bottom']}>
             <StatusBar barStyle="dark-content" backgroundColor={backgroundColor} />
             <View style={[styles.container, style]}>
                 {children}
