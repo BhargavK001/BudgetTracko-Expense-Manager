@@ -260,4 +260,168 @@ router.delete('/data', async (req, res) => {
 
 
 
+const multer = require('multer');
+const { toCSV, parseCSV } = require('../utils/csvUtils');
+const upload = multer({ storage: multer.memoryStorage() });
+
+// ─── GET /api/user/export/csv ───
+// Export transactions as CSV
+router.get('/export/csv', async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const transactions = await Transaction.find({ userId })
+            .sort({ date: -1 })
+            .populate('accountId', 'name')
+            .populate('fromAccountId', 'name')
+            .populate('toAccountId', 'name');
+
+        const data = transactions.map(t => ({
+            Date: t.date ? t.date.toISOString().split('T')[0] : '',
+            Type: t.type,
+            Category: t.category,
+            Amount: t.amount,
+            Text: t.text || '',
+            Note: t.note || '',
+            Account: t.accountId ? t.accountId.name : '',
+            FromAccount: t.fromAccountId ? t.fromAccountId.name : '',
+            ToAccount: t.toAccountId ? t.toAccountId.name : '',
+            PaymentMode: t.paymentMode || ''
+        }));
+
+        const csv = toCSV(data);
+
+        res.header('Content-Type', 'text/csv');
+        res.attachment(`budget_tracko_export_${new Date().toISOString().split('T')[0]}.csv`);
+        res.send(csv);
+    } catch (err) {
+        console.error('Export CSV error:', err);
+        res.status(500).json({
+            success: false,
+            message: process.env.NODE_ENV === 'production' ? 'Server error' : 'Server error during export: ' + err.message,
+            stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
+        });
+    }
+});
+
+// ─── POST /api/user/import/csv ───
+// Import transactions from CSV
+router.post('/import/csv', upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file uploaded' });
+        }
+
+        const stats = { imported: 0, skipped: 0, newAccounts: 0, newCategories: 0 };
+        const parsedData = await parseCSV(req.file.buffer);
+
+        if (!parsedData || parsedData.length === 0) {
+            return res.status(400).json({ success: false, message: 'Empty or invalid CSV file' });
+        }
+
+        const userId = req.user._id;
+
+        // Cache existing accounts/categories to minimize DB queries
+        const userAccounts = await Account.find({ userId });
+        const accountMap = new Map(userAccounts.map(a => [a.name.toLowerCase(), a]));
+
+        // Process each row
+        for (const row of parsedData) {
+            // Basic validation
+            if (!row.Date || !row.Amount || !row.Type) {
+                stats.skipped++;
+                continue;
+            }
+
+            const type = row.Type.toLowerCase();
+            const amount = Math.abs(parseFloat(row.Amount));
+            if (isNaN(amount)) {
+                stats.skipped++;
+                continue;
+            }
+
+            const parsedDate = new Date(row.Date);
+            if (isNaN(parsedDate.getTime())) {
+                stats.skipped++;
+                continue;
+            }
+
+            // Resolve Account
+            let accountId = null;
+            let fromAccountId = null;
+            let toAccountId = null;
+
+            const getOrCreateAccount = async (name) => {
+                if (!name) return null;
+                const normalized = name.trim().toLowerCase();
+                if (accountMap.has(normalized)) return accountMap.get(normalized)._id;
+
+                // Create new account
+                const newAcc = await Account.create({
+                    userId,
+                    name: name.trim(),
+                    type: 'cash', // default
+                    balance: 0,
+                    color: '#7C3AED',
+                    icon: 'BsWallet2'
+                });
+                accountMap.set(normalized, newAcc);
+                stats.newAccounts++;
+                return newAcc._id;
+            };
+
+            if (type === 'transfer') {
+                fromAccountId = await getOrCreateAccount(row.FromAccount);
+                toAccountId = await getOrCreateAccount(row.ToAccount);
+                if (!fromAccountId || !toAccountId) {
+                    // Fallback if transfer accounts missing
+                    stats.skipped++;
+                    continue;
+                }
+
+                // Update balances
+                await Account.findByIdAndUpdate(fromAccountId, { $inc: { balance: -amount } });
+                await Account.findByIdAndUpdate(toAccountId, { $inc: { balance: amount } });
+
+            } else {
+                accountId = await getOrCreateAccount(row.Account);
+                if (accountId) {
+                    const balanceChange = type === 'income' ? amount : -amount;
+                    await Account.findByIdAndUpdate(accountId, { $inc: { balance: balanceChange } });
+                }
+            }
+
+            // Create Transaction
+            await Transaction.create({
+                userId,
+                type: type,
+                amount: type === 'expense' ? -amount : amount,
+                category: row.Category || 'Other',
+                date: parsedDate,
+                text: row.Text || row.Note || 'Imported Transaction',
+                note: row.Note || 'Imported via CSV',
+                paymentMode: row.PaymentMode || 'Cash',
+                accountId,
+                fromAccountId,
+                toAccountId
+            });
+
+            stats.imported++;
+        }
+
+        res.json({
+            success: true,
+            message: `Import complete`,
+            stats
+        });
+
+    } catch (err) {
+        console.error('Import CSV error:', err);
+        res.status(500).json({
+            success: false,
+            message: process.env.NODE_ENV === 'production' ? 'Server error' : 'Server error during import: ' + err.message,
+            stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
+        });
+    }
+});
+
 module.exports = router;

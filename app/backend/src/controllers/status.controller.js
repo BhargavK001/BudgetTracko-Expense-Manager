@@ -74,7 +74,7 @@ exports.getStatus = async (req, res) => {
     // Check External Services (Parallel)
     const [google, cloudinary, razorpay, github] = await Promise.all([
         checkService('https://www.google.com'), // General internet check
-        checkService('https://api.cloudinary.com/v1_1/demo/ping'), // Cloudinary ping (public demo) or just base
+        checkService('https://status.cloudinary.com'), // Cloudinary Service Status
         checkService('https://api.razorpay.com/'),
         checkService('https://api.github.com')
     ]);

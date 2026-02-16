@@ -1,13 +1,17 @@
 const jwt = require('jsonwebtoken');
 
 // Cookie options for secure HTTP-only cookies
-const getCookieOptions = () => ({
-    httpOnly: true,                              // Not accessible via JavaScript
-    secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Cross-site in prod
-    maxAge: 3 * 24 * 60 * 60 * 1000,            // 3 days in milliseconds
-    path: '/',
-});
+const getCookieOptions = () => {
+    const isProd = process.env.NODE_ENV === 'production';
+    const isHttps = process.env.FRONTEND_URL?.startsWith('https');
+    return {
+        httpOnly: true,
+        secure: isProd && isHttps, // Only secure if production AND https
+        sameSite: isProd && isHttps ? 'none' : 'lax', // None required for cross-site, but lax is fine for http
+        maxAge: 3 * 24 * 60 * 60 * 1000,
+        path: '/',
+    };
+};
 
 // Generate JWT Token (3-day expiry)
 const generateToken = (user) => {

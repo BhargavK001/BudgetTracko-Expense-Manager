@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BsHeartFill, BsLightningChargeFill, BsShieldLockFill, BsPeopleFill } from 'react-icons/bs';
+import SEO from '../components/common/SEO';
 
 const fadeUp = {
     hidden: { opacity: 0, y: 50 },
@@ -22,8 +23,27 @@ const staggerItem = {
 };
 
 const About = () => {
+    const schema = {
+        "@context": "https://schema.org",
+        "@type": "AboutPage",
+        "name": "About BudgetTracko",
+        "description": "BudgetTracko is a free expense manager designed for students in India.",
+        "maintainer": {
+            "@type": "Person",
+            "name": "Bhargav Karande",
+            "email": "bhargavk056@gmail.com"
+        }
+    };
+
     return (
         <div className="min-h-screen bg-brand-yellow font-sans text-brand-black selection:bg-black selection:text-brand-yellow overflow-hidden">
+            <SEO
+                title="About BudgetTracko - Our Story & Mission"
+                description="Built by students, for students. Learn why BudgetTracko is the best free expense manager for Indian students."
+                keywords="about budget tracko, student developer, expense manager india, bhargav karande, our story"
+                canonical="https://www.budgettracko.app/about"
+                schema={schema}
+            />
             {/* Nav */}
             <motion.nav
                 initial={{ y: -80, opacity: 0 }}

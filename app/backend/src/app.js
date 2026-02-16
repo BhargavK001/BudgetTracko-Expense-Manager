@@ -21,15 +21,8 @@ const statusRoutes = require('./routes/status.routes');
 // Helper to get domain for cookies
 const getCookieDomain = () => {
     if (process.env.NODE_ENV !== 'production') return undefined;
-    try {
-        const url = new URL(process.env.FRONTEND_URL);
-        // If frontend is https://budgettracko.bhargavkarande.dev
-        // We want .budgettracko.bhargavkarande.dev so both api (child) and frontend (parent) can share
-        return '.' + url.hostname;
-    } catch (e) {
-        console.error("Error parsing FRONTEND_URL for cookie domain:", e);
-        return undefined;
-    }
+    // Explicitly set the root domain for production to share cookies between api., www., and root
+    return '.budgettracko.app';
 };
 
 
@@ -61,8 +54,21 @@ app.use(helmet({
 }));
 
 // ─── CORS with credentials ───
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'https://budgettracko.app',
+    'https://www.budgettracko.app',
+    'http://localhost:5173'
+];
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL,
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
 }));
 
@@ -129,14 +135,18 @@ app.use('/auth', (req, res, next) => {
 // Paths exempt from CSRF verification (e.g. external webhooks)
 const csrfExemptPaths = ['/api/payments/webhook'];
 
-const csrfCookieOptions = () => ({
-    httpOnly: false,         // Frontend JS must read this
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    domain: getCookieDomain(),
-    maxAge: 3 * 24 * 60 * 60 * 1000,
-    path: '/',
-});
+const csrfCookieOptions = () => {
+    const isProd = process.env.NODE_ENV === 'production';
+    const isHttps = process.env.FRONTEND_URL?.startsWith('https');
+    return {
+        httpOnly: false,
+        secure: isProd && isHttps,
+        sameSite: isProd && isHttps ? 'none' : 'lax',
+        domain: getCookieDomain(),
+        maxAge: 3 * 24 * 60 * 60 * 1000,
+        path: '/',
+    };
+};
 
 app.use((req, res, next) => {
     // For GET/HEAD/OPTIONS: set or refresh the CSRF cookie

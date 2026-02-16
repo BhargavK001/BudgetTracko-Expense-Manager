@@ -155,11 +155,28 @@ const LandingPage = () => {
     const heroY = useTransform(scrollYProgress, [0, 1], [0, 150]);
     const heroScale = useTransform(scrollYProgress, [0, 1], [1, 0.92]);
 
+    const schema = {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "BudgetTracko",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web, Android, iOS",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "INR"
+        },
+        "description": "BudgetTracko is a free expense manager for students. Track expenses, set budgets, and achieve financial goals."
+    };
+
     return (
         <div className="min-h-screen bg-brand-yellow font-sans text-brand-black flex flex-col selection:bg-black selection:text-brand-yellow dark:bg-brand-yellow dark:text-brand-black overflow-hidden">
             <SEO
-                title="BudgetTracko - Smart Expense Manager"
-                description="Take control of your finances with BudgetTracko. Track expenses, set budgets, and achieve your financial goals with our intuitive and powerful expense manager."
+                title="BudgetTracko - Free Expense Manager for Students & Everyone"
+                description="Take control of your finances with BudgetTracko. The best free expense manager for students. Track expenses, set budgets, and achieve your financial goals."
+                keywords="expense manager for free, expense manager for students, budget tracko, free budget app, student finance app, expense tracker, money manager"
+                canonical="https://www.budgettracko.app/"
+                schema={schema}
             />
             {/* Navigation */}
             <motion.nav

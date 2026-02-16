@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
+import SEO from '../components/common/SEO';
 
 const staggerContainer = {
     hidden: {},
@@ -62,6 +63,12 @@ const Contact = () => {
 
     return (
         <div className="min-h-screen bg-brand-yellow font-sans text-brand-black flex flex-col selection:bg-black selection:text-brand-yellow overflow-hidden">
+            <SEO
+                title="Contact BudgetTracko - Support & Feedback"
+                description="Need help? Have a suggestion? Contact the BudgetTracko team. We value your feedback to make the best student expense manager."
+                keywords="contact budget tracko, support, feedback, customer service, bhargav karande"
+                canonical="https://www.budgettracko.app/contact"
+            />
             {/* Nav */}
             <motion.nav
                 initial={{ y: -80, opacity: 0 }}

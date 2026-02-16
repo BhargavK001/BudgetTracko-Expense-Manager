@@ -54,19 +54,17 @@ exports.createOrder = async (req, res) => {
             key: process.env.RAZORPAY_KEY_ID
         });
     } catch (error) {
-        if (process.env.NODE_ENV !== 'production') console.error('Error creating order:', error);
+        if (process.env.NODE_ENV !== 'production') console.error('Error creating order:', error.message);
         res.status(500).json({ message: 'Server error creating order' });
     }
 };
 
 // Verify Payment
 exports.verifyPayment = async (req, res) => {
-    console.log("Verify Payment HIT with body:", req.body);
     try {
         const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
         if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-            console.error("Missing payment details in verify request");
             return res.status(400).json({ message: 'Missing payment details' });
         }
 
@@ -76,15 +74,12 @@ exports.verifyPayment = async (req, res) => {
             .update(body.toString())
             .digest('hex');
 
-        console.log("Signatures:", { expected: expectedSignature, received: razorpay_signature });
 
         if (expectedSignature === razorpay_signature) {
             // Find payment and update
             const payment = await Payment.findOne({ orderId: razorpay_order_id });
-            console.log("Found Payment Record:", payment);
 
             if (!payment) {
-                console.error("Payment record not found for order:", razorpay_order_id);
                 return res.status(404).json({ message: 'Payment record not found' });
             }
 
@@ -92,13 +87,10 @@ exports.verifyPayment = async (req, res) => {
             payment.signature = razorpay_signature;
             payment.status = 'captured';
             await payment.save();
-            console.log("Payment updated to captured");
 
             // Update User Subscription
-            console.log("Updating user:", req.user.id);
             const user = await User.findById(req.user.id);
             if (!user) {
-                console.error("User not found during payment verification:", req.user.id);
                 return res.status(404).json({ message: 'User not found' });
             }
 
@@ -107,7 +99,6 @@ exports.verifyPayment = async (req, res) => {
             user.subscription.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
 
             await user.save();
-            console.log("User subscription updated successfully:", user.subscription);
 
             res.json({ success: true, message: 'Payment verified and subscription activated' });
         } else {
@@ -121,7 +112,7 @@ exports.verifyPayment = async (req, res) => {
             res.status(400).json({ success: false, message: 'Invalid signature' });
         }
     } catch (error) {
-        console.error('Error verifying payment (CATCH BLOCK):', error);
+        console.error('Error verifying payment:', error.message);
         res.status(500).json({ message: 'Server error verifying payment' });
     }
 };
@@ -165,13 +156,10 @@ exports.cancelSubscription = async (req, res) => {
 
 exports.handleWebhook = async (req, res) => {
     try {
-        // Log webhook payload
-        console.log("Webhook Received:", req.body);
-
         // Always respond with 200 OK to keep Razorpay happy
         res.json({ status: 'ok' });
     } catch (error) {
-        console.error("Webhook Error:", error);
+        console.error("Webhook Error:", error.message);
         res.status(500).send("Webhook Error");
     }
 };
