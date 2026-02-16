@@ -99,7 +99,9 @@ export const userApi = {
     updatePreferences: (data) => api.put('/api/user/preferences', data),
     exportData: () => api.get('/api/user/export'),
     clearAllData: () => api.delete('/api/user/data'),
-    deleteAccount: () => api.delete('/api/user/account')
+    deleteAccount: () => api.delete('/api/user/account'),
+    exportCSV: () => api.get('/api/user/export/csv', { responseType: 'blob' }),
+    importCSV: (formData) => api.post('/api/user/import/csv', formData)
 };
 
 export default api;

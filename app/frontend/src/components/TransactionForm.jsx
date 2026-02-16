@@ -3,6 +3,7 @@ import { useGlobalContext } from '../context/GlobalContext';
 import { toast } from 'sonner';
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ImSpinner8 } from 'react-icons/im';
 import { BsX, BsPaperclip, BsClock, BsImage, BsCashCoin, BsWallet2, BsArrowLeftRight, BsChevronDown, BsCart, BsHouse, BsPiggyBank, BsController, BsHeartPulse, BsBook, BsBriefcase, BsCreditCard, BsGift, BsGlobe, BsMusicNote, BsPhone, BsTools, BsTruck } from 'react-icons/bs';
 
 const TransactionForm = ({ onClose, initialData }) => {
@@ -454,7 +455,7 @@ const TransactionForm = ({ onClose, initialData }) => {
             <button
                 type="submit"
                 disabled={uploading}
-                className={`w-full p-2.5 sm:p-3 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider border-2 border-brand-black transition-all disabled:opacity-50 ${type === 'income'
+                className={`w-full p-2.5 sm:p-3 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider border-2 border-brand-black transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${type === 'income'
                     ? 'bg-green-500 text-white hover:bg-green-600'
                     : type === 'transfer'
                         ? 'bg-blue-500 text-white hover:bg-blue-600'
@@ -462,7 +463,12 @@ const TransactionForm = ({ onClose, initialData }) => {
                     }`}
                 style={{ boxShadow: '3px 3px 0px 0px #1a1a1a' }}
             >
-                {uploading ? '⏳ Saving...' : (
+                {uploading ? (
+                    <>
+                        <ImSpinner8 className="animate-spin text-lg" />
+                        <span>Saving...</span>
+                    </>
+                ) : (
                     initialData
                         ? `Update ${type === 'income' ? 'Income' : type === 'transfer' ? 'Transfer' : 'Expense'}`
                         : `+ Add ${type === 'income' ? 'Income' : type === 'transfer' ? 'Transfer' : 'Expense'}`

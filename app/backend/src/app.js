@@ -23,8 +23,9 @@ const getCookieDomain = () => {
     if (process.env.NODE_ENV !== 'production') return undefined;
     try {
         const url = new URL(process.env.FRONTEND_URL);
-        // If frontend is https://budgettracko.bhargavkarande.dev
-        // We want .budgettracko.bhargavkarande.dev so both api (child) and frontend (parent) can share
+        // If frontend is localhost, return undefined so cookie works on localhost
+        if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return undefined;
+        // Otherwise use the parent domain
         return '.' + url.hostname;
     } catch (e) {
         console.error("Error parsing FRONTEND_URL for cookie domain:", e);
@@ -129,14 +130,18 @@ app.use('/auth', (req, res, next) => {
 // Paths exempt from CSRF verification (e.g. external webhooks)
 const csrfExemptPaths = ['/api/payments/webhook'];
 
-const csrfCookieOptions = () => ({
-    httpOnly: false,         // Frontend JS must read this
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    domain: getCookieDomain(),
-    maxAge: 3 * 24 * 60 * 60 * 1000,
-    path: '/',
-});
+const csrfCookieOptions = () => {
+    const isProd = process.env.NODE_ENV === 'production';
+    const isHttps = process.env.FRONTEND_URL?.startsWith('https');
+    return {
+        httpOnly: false,
+        secure: isProd && isHttps,
+        sameSite: isProd && isHttps ? 'none' : 'lax',
+        domain: getCookieDomain(),
+        maxAge: 3 * 24 * 60 * 60 * 1000,
+        path: '/',
+    };
+};
 
 app.use((req, res, next) => {
     // For GET/HEAD/OPTIONS: set or refresh the CSRF cookie

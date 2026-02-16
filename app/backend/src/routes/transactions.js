@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
-const { upload } = require('../config/cloudinary');
+const { upload } = require('../config/cloudinary'); // Still needed? No, middleware handles it.
+const uploadMiddleware = require('../middleware/uploadMiddleware');
 const {
     getTransactions,
     createTransaction,
@@ -19,11 +20,11 @@ router.get('/account/:accountId', auth, getAccountTransactions);
 
 router.route('/')
     .get(auth, getTransactions)
-    .post(auth, upload.array('attachments', 3), createTransaction);
+    .post(auth, uploadMiddleware, createTransaction);
 
 router.route('/:id')
     .get(auth, getTransaction)
-    .put(auth, upload.array('attachments', 3), updateTransaction)
+    .put(auth, uploadMiddleware, updateTransaction)
     .delete(auth, deleteTransaction);
 
 module.exports = router;
