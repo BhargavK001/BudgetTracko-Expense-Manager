@@ -24,6 +24,15 @@ exports.createSubscription = async (req, res) => {
             return res.status(400).json({ message: 'Plan is required' });
         }
 
+        // Prevent duplicate subscription to the same plan
+        const currentUser = await User.findById(req.user.id);
+        if (currentUser && currentUser.subscription) {
+            const isActive = ['active', 'authenticated'].includes(currentUser.subscription.status);
+            if (isActive && currentUser.subscription.plan === plan) {
+                return res.status(400).json({ message: `You are already subscribed to the ${plan} plan.` });
+            }
+        }
+
         let planId;
         if (plan === 'pro') {
             planId = process.env.RAZORPAY_PLAN_ID_PRO;
@@ -51,11 +60,14 @@ exports.createSubscription = async (req, res) => {
             }
         });
 
+        // Determine amount based on plan
+        const amount = plan === 'pro' ? 49 : 99;
+
         // Create a pending payment/subscription record
         const payment = new Payment({
             userId: req.user.id,
             subscriptionId: subscription.id,
-            amount: 0, // Will be updated on charge
+            amount: amount, // Set correct amount immediately
             currency: 'INR',
             status: 'created',
             plan: plan
@@ -215,20 +227,30 @@ exports.handleWebhook = async (req, res) => {
                 user.subscription.razorpayCustomerId = subscriptionEntity.customer_id;
                 await user.save();
 
-                // Record Payment
-                const newPayment = new Payment({
-                    userId: user._id,
-                    subscriptionId: subscriptionId,
-                    paymentId: paymentId,
-                    amount: amount,
-                    currency: paymentEntity.currency,
-                    status: 'captured',
-                    plan: user.subscription.plan || 'pro', // Default or existing
-                    receipt: paymentEntity.receipt
-                });
-                await newPayment.save();
+                // Check if payment record already exists (avoid duplicates)
+                let existingPayment = await Payment.findOne({ paymentId });
 
-                console.log(`Subscription charged and updated for user ${user._id}`);
+                if (existingPayment) {
+                    console.log(`Payment record already exists for ${paymentId}, updating...`);
+                    existingPayment.status = 'captured';
+                    existingPayment.receipt = paymentEntity.receipt;
+                    if (existingPayment.amount === 0) existingPayment.amount = amount; // Fix legacy 0 amounts
+                    await existingPayment.save();
+                } else {
+                    // Record New Payment
+                    const newPayment = new Payment({
+                        userId: user._id,
+                        subscriptionId: subscriptionId,
+                        paymentId: paymentId,
+                        amount: amount,
+                        currency: paymentEntity.currency,
+                        status: 'captured',
+                        plan: user.subscription.plan || 'pro',
+                        receipt: paymentEntity.receipt
+                    });
+                    await newPayment.save();
+                    console.log(`New subscription payment recorded for user ${user._id}`);
+                }
             } else {
                 console.warn(`User not found for subscription ID: ${subscriptionId}`);
             }

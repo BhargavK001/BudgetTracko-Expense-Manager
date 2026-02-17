@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { motion, useScroll, useTransform, AnimatePresence, useSpring, useInView } from 'framer-motion';
 import { useRef, useState } from 'react';
 import { BsMoonStarsFill, BsBank2, BsBarChartLineFill, BsShieldLockFill, BsCloudArrowUpFill, BsBellFill, BsArrowRepeat, BsAndroid, BsQuestionCircle, BsChevronDown, BsChevronUp, BsCheckCircleFill, BsXCircleFill, BsShieldCheck, BsDownload, BsEnvelope, BsArrowRightShort, BsPersonFill } from 'react-icons/bs';
@@ -145,6 +146,7 @@ const WalletSvg = ({ size = 48, className = '' }) => (
 
 const LandingPage = () => {
     const { theme } = useTheme();
+    const { user } = useAuth();
     const heroRef = useRef(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [savingsAmount, setSavingsAmount] = useState(500);
@@ -210,13 +212,13 @@ const LandingPage = () => {
                         <Link to="/contact">
                             <motion.span whileHover={{ y: -2 }} className="inline-block hover:underline decoration-2 underline-offset-4">Contact</motion.span>
                         </Link>
-                        <Link to="/login">
+                        <Link to={user ? "/dashboard" : "/login"}>
                             <motion.span
                                 whileHover={{ y: -3, boxShadow: '6px 6px 0px 0px rgba(0,0,0,1)' }}
                                 whileTap={{ scale: 0.95 }}
                                 className="inline-block bg-black dark:bg-white dark:text-black text-white px-6 py-3 rounded-none hover:bg-white hover:text-black dark:hover:bg-gray-200 dark:hover:text-black transition-all border-2 border-black dark:border-white"
                             >
-                                Login
+                                {user ? "Dashboard" : "Login"}
                             </motion.span>
                         </Link>
                     </div>
@@ -249,8 +251,10 @@ const LandingPage = () => {
                                 <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="hover:underline decoration-2">Pricing</Link>
                                 <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="hover:underline decoration-2">About Us</Link>
                                 <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="hover:underline decoration-2">Contact</Link>
-                                <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                                    <span className="inline-block bg-black text-white px-6 py-3 border-2 border-black w-full text-center mt-2">Login</span>
+                                <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileMenuOpen(false)}>
+                                    <span className="inline-block bg-black text-white px-6 py-3 border-2 border-black w-full text-center mt-2">
+                                        {user ? "Dashboard" : "Login"}
+                                    </span>
                                 </Link>
                             </div>
                         </motion.div>
@@ -342,8 +346,8 @@ const LandingPage = () => {
                     animate="visible"
                 >
                     <motion.div variants={staggerItem} custom={0.8}>
-                        <Link to="/login" className="inline-block w-full sm:w-auto text-center bg-black text-white text-base sm:text-xl font-bold px-6 sm:px-12 py-3.5 sm:py-5 rounded-none shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] sm:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] hover:shadow-[12px_12px_0px_0px_rgba(255,255,255,1)] hover:-translate-y-1 transition-all border-2 border-black animate-pulse-glow">
-                            Start Tracking Free
+                        <Link to={user ? "/dashboard" : "/login"} className="inline-block w-full sm:w-auto text-center bg-black text-white text-base sm:text-xl font-bold px-6 sm:px-12 py-3.5 sm:py-5 rounded-none shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] sm:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] hover:shadow-[12px_12px_0px_0px_rgba(255,255,255,1)] hover:-translate-y-1 transition-all border-2 border-black animate-pulse-glow">
+                            {user ? "Go to Dashboard" : "Start Tracking Free"}
                         </Link>
                     </motion.div>
                     <motion.div variants={staggerItem} custom={1.0}>
