@@ -200,7 +200,7 @@ exports.updateTransaction = async (req, res) => {
             await Account.findByIdAndUpdate(updateData.accountId, { $inc: { balance: effectiveAmount } });
         }
 
-        const updated = await Transaction.findByIdAndUpdate(req.params.id, { $set: updateData }, { new: true })
+        const updated = await Transaction.findByIdAndUpdate(req.params.id, { $set: updateData }, { returnDocument: 'after' })
             .populate('accountId', 'name type color')
             .populate('fromAccountId', 'name type color')
             .populate('toAccountId', 'name type color');

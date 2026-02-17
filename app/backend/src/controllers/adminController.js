@@ -299,7 +299,7 @@ exports.updateAppConfig = async (req, res) => {
         const config = await AppConfig.findOneAndUpdate(
             { key },
             { value, updatedAt: new Date() },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
         );
 
         res.json({ success: true, data: config });
