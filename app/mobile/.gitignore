@@ -36,8 +36,10 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-app-example
-
 # generated native folders
 /ios
 /android
+
+# keystore
+*.keystore
+keystore_base64.txt

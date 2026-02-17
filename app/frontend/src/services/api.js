@@ -104,4 +104,9 @@ export const userApi = {
     importCSV: (formData) => api.post('/api/user/import/csv', formData)
 };
 
+// ─── Contact ───
+export const contactApi = {
+    send: (data) => api.post('/api/contact', data)
+};
+
 export default api;
