@@ -17,6 +17,7 @@ const budgetRoutes = require('./routes/budgets');
 const userRoutes = require('./routes/user');
 const paymentRoutes = require('./routes/payments');
 const statusRoutes = require('./routes/status.routes');
+const contactRoutes = require('./routes/contact');
 
 // Helper to get domain for cookies
 const getCookieDomain = () => {
@@ -202,6 +203,7 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/contact', contactRoutes);
 
 app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' })); // Simple health check
 // CSRF Token Endpoint - Explicitly fetch token

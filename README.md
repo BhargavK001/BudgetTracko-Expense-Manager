@@ -1,6 +1,6 @@
 # BudgetTracko - Expense Manager
 
-![BudgetTracko Banner](https://via.placeholder.com/1200x400/FFD700/000000?text=BUDGET+TRACKO)
+![BudgetTracko Banner](screenshots/desktop-landing.png)
 
 <div align="center">
 
@@ -27,12 +27,15 @@
 ## 📸 Screenshots
 
 ### Dashboard Overview
-![Dashboard Overview](https://via.placeholder.com/1200x675/f3f4f6/1f2937?text=Dashboard+Overview+Screenshot)
+![Dashboard Overview](screenshots/desktop-dashboard.png)
 *Visualize your income, expenses, and balance in real-time.*
 
 ### Analytics & Reports
-![Analytics](https://via.placeholder.com/1200x675/f3f4f6/1f2937?text=Analytics+Reports+Screenshot)
-*Deep dive into your spending habits with beautiful charts.*
+![Analytics](screenshots/desktop-analytics.png)
+*Deep dive into your spending habits with beautiful charts. And effortless transaction management.*
+
+### Easy Transaction Tracking
+![Transaction Modal](screenshots/desktop-transaction-modal.png)
 
 ---
 
@@ -126,9 +129,17 @@ Built for students & college life. Affordable plans that won't burn a hole in yo
 
 Take BudgetTracko with you! Our mobile app supports offline mode and instant sync.
 
-<a href="#">
-  <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Get it on Google Play" height="60">
-</a>
+<p align="center">
+  <img src="screenshots/mobile-dashboard.png" width="30%" alt="Mobile Dashboard" style="margin-right: 10px;" />
+  <img src="screenshots/mobile-analytics.png" width="30%" alt="Mobile Analytics" style="margin-right: 10px;" />
+  <img src="screenshots/mobile-transactions.png" width="30%" alt="Mobile Transactions" />
+</p>
+
+<div align="center">
+  <a href="#">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" alt="Get it on Google Play" height="60">
+  </a>
+</div>
 
 ---
 
