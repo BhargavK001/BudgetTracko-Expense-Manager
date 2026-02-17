@@ -639,29 +639,41 @@ const LandingPage = () => {
                         <p className="text-sm sm:text-lg font-bold text-gray-600">See how BudgetTracko stacks up against the old ways.</p>
                     </div>
 
-                    <div className="overflow-x-auto -mx-4 px-4 pb-2">
-                        <div className="bg-white border-3 sm:border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] min-w-[480px] sm:min-w-[600px]">
-                            <div className="grid grid-cols-3 border-b-3 sm:border-b-4 border-black bg-gray-100">
-                                <div className="p-3 sm:p-6 font-black uppercase text-xs sm:text-base text-gray-500 flex items-center">Feature</div>
-                                <div className="p-3 sm:p-6 font-black uppercase text-xs sm:text-base text-gray-400 border-l-3 sm:border-l-4 border-black">Excel / Notebook</div>
-                                <div className="p-3 sm:p-6 font-black uppercase text-xs sm:text-xl text-brand-black bg-brand-yellow border-l-3 sm:border-l-4 border-black flex items-center gap-1 sm:gap-2">
-                                    BudgetTracko <span className="text-[8px] sm:text-[10px] bg-black text-white px-1.5 sm:px-2 py-0.5 rounded-full">PRO</span>
+                    <div className="px-1 sm:px-4">
+                        <div className="bg-white border-3 sm:border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                            {/* Comparison Header */}
+                            <div className="grid grid-cols-5 sm:grid-cols-3 border-b-3 sm:border-b-4 border-black bg-gray-100">
+                                <div className="col-span-3 sm:col-span-1 p-3 sm:p-6 font-black uppercase text-[10px] sm:text-base text-gray-500 flex items-center">
+                                    Benefit
+                                </div>
+                                <div className="col-span-1 p-3 sm:p-6 font-black uppercase text-[10px] sm:text-base text-gray-400 border-l-3 sm:border-l-4 border-black flex items-center justify-center text-center leading-tight">
+                                    <span className="hidden sm:inline">Excel / Notebook</span>
+                                    <span className="sm:hidden">Others</span>
+                                </div>
+                                <div className="col-span-1 p-3 sm:p-6 font-black uppercase text-[10px] sm:text-base text-brand-black bg-brand-yellow border-l-3 sm:border-l-4 border-black flex items-center justify-center gap-1 sm:gap-2 text-center leading-tight">
+                                    <span className="hidden sm:inline">BudgetTracko</span>
+                                    <span className="sm:hidden text-lg">BT</span>
                                 </div>
                             </div>
+
+                            {/* Comparison Rows */}
                             {[
-                                { feat: 'Automated Charts', old: false, new: true },
-                                { feat: 'Cloud Backup', old: false, new: true },
-                                { feat: 'Mobile Access', old: false, new: true },
-                                { feat: 'Recurring Expenses', old: false, new: true },
-                                { feat: 'Bank-grade Security', old: false, new: true },
-                                { feat: 'Fun to use', old: false, new: true },
+                                { feat: 'Instant Analytics', old: false, new: true, icon: <BsBarChartLineFill className="text-blue-500" /> },
+                                { feat: 'Cloud Sync', old: false, new: true, icon: <BsCloudArrowUpFill className="text-sky-500" /> },
+                                { feat: 'Mobile Ready', old: false, new: true, icon: <FaMobileAlt className="text-gray-700 dark:text-gray-300" /> },
+                                { feat: 'Recurring', old: false, new: true, icon: <BsArrowRepeat className="text-indigo-500" /> },
+                                { feat: 'Bank Security', old: false, new: true, icon: <BsShieldCheck className="text-green-600" /> },
+                                { feat: 'No Ads / Free', old: false, new: true, icon: <FaStar className="text-amber-500" /> },
                             ].map((row, i) => (
-                                <div key={i} className={`grid grid-cols-3 ${i !== 5 ? 'border-b-2 border-gray-200' : ''}`}>
-                                    <div className="p-3 sm:p-5 font-bold text-xs sm:text-base text-gray-700 flex items-center">{row.feat}</div>
-                                    <div className="p-3 sm:p-5 border-l-3 sm:border-l-4 border-black flex items-center justify-center bg-gray-50 text-gray-400">
+                                <div key={i} className={`grid grid-cols-5 sm:grid-cols-3 ${i !== 5 ? 'border-b-2 border-gray-200' : ''} hover:bg-gray-50 transition-colors`}>
+                                    <div className="col-span-3 sm:col-span-1 p-3 sm:p-5 font-bold text-xs sm:text-base text-gray-700 flex items-center gap-2">
+                                        <span className="sm:text-lg">{row.icon}</span>
+                                        <span className="truncate">{row.feat}</span>
+                                    </div>
+                                    <div className="col-span-1 p-3 sm:p-5 border-l-3 sm:border-l-4 border-black flex items-center justify-center bg-gray-50/50 text-gray-300">
                                         <BsXCircleFill size={18} className="sm:text-[24px]" />
                                     </div>
-                                    <div className="p-3 sm:p-5 border-l-3 sm:border-l-4 border-black flex items-center justify-center bg-yellow-50/50 text-green-600">
+                                    <div className="col-span-1 p-3 sm:p-5 border-l-3 sm:border-l-4 border-black flex items-center justify-center bg-yellow-50/30 text-green-600">
                                         <BsCheckCircleFill size={20} className="sm:text-[28px]" />
                                     </div>
                                 </div>
@@ -695,9 +707,14 @@ const LandingPage = () => {
                                     <div className="text-lg font-black">Google Play</div>
                                 </div>
                             </button>
-                            <button className="bg-transparent text-white px-8 py-4 rounded-xl font-bold border-2 border-white/30 hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+                            <a
+                                href="https://github.com/BhargavK001/BudgetTracko-Expense-Manager/releases/download/v1.0.0-mobile-1/app-release.apk"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-transparent text-white px-8 py-4 rounded-xl font-bold border-2 border-white/30 hover:bg-white/10 transition-colors flex items-center justify-center gap-2 text-center"
+                            >
                                 <BsDownload size={20} /> Download APK
-                            </button>
+                            </a>
                         </div>
                     </div>
                     <div className="w-full md:w-1/2 flex justify-center">

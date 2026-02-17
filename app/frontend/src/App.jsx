@@ -27,6 +27,7 @@ import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
 import StatusPage from './pages/StatusPage';
 import PublicRoute from './components/PublicRoute';
+import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/layout/AdminLayout';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -112,14 +113,16 @@ const AnimatedRoutes = () => {
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
         </Route>
 
-        <Route path="/" element={<Layout />}>
-          <Route path="dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
-          <Route path="transactions" element={<PageTransition><Transactions /></PageTransition>} />
-          <Route path="analytics" element={<PageTransition><Analytics /></PageTransition>} />
-          <Route path="budgets" element={<PageTransition><Budgets /></PageTransition>} />
-          <Route path="accounts" element={<PageTransition><Accounts /></PageTransition>} />
-          <Route path="settings" element={<PageTransition><Settings /></PageTransition>} />
-          <Route path="billing" element={<PageTransition><Billing /></PageTransition>} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/" element={<Layout />}>
+            <Route path="dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
+            <Route path="transactions" element={<PageTransition><Transactions /></PageTransition>} />
+            <Route path="analytics" element={<PageTransition><Analytics /></PageTransition>} />
+            <Route path="budgets" element={<PageTransition><Budgets /></PageTransition>} />
+            <Route path="accounts" element={<PageTransition><Accounts /></PageTransition>} />
+            <Route path="settings" element={<PageTransition><Settings /></PageTransition>} />
+            <Route path="billing" element={<PageTransition><Billing /></PageTransition>} />
+          </Route>
         </Route>
 
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />

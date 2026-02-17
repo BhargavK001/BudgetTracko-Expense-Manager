@@ -68,8 +68,8 @@ const Layout = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         toast.info('Logged out successfully');
         navigate('/login');
     };
