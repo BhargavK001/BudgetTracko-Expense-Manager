@@ -18,6 +18,8 @@ const userRoutes = require('./routes/user');
 const paymentRoutes = require('./routes/payments');
 const statusRoutes = require('./routes/status.routes');
 const contactRoutes = require('./routes/contact');
+const adminRoutes = require('./routes/adminRoutes');
+const { getPublicVersion } = require('./controllers/adminController');
 
 // Helper to get domain for cookies
 const getCookieDomain = () => {
@@ -217,6 +219,8 @@ app.get('/api/csrf-token', (req, res) => {
     res.json({ csrfToken: token });
 });
 app.use('/api/status', statusRoutes);
+app.use('/api/admin', adminRoutes);
+app.get('/api/config/version', getPublicVersion);
 
 // Basic route
 app.get('/', (req, res) => {

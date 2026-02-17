@@ -27,6 +27,13 @@ import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
 import StatusPage from './pages/StatusPage';
 import PublicRoute from './components/PublicRoute';
+import AdminLayout from './components/layout/AdminLayout';
+import AdminLogin from './pages/admin/AdminLogin';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminTransactions from './pages/admin/AdminTransactions';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminContacts from './pages/admin/AdminContacts';
+import AdminSettings from './pages/admin/AdminSettings';
 
 
 // Page transition variants
@@ -91,6 +98,17 @@ const AnimatedRoutes = () => {
 
         <Route path="/auth/callback" element={<PageTransition><AuthCallback /></PageTransition>} />
         <Route path="/system-status" element={<PageTransition><StatusPage /></PageTransition>} />
+
+        {/* Admin Routes */}
+        <Route path="/admin/login" element={<PageTransition><AdminLogin /></PageTransition>} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route path="dashboard" element={<PageTransition><AdminDashboard /></PageTransition>} />
+          <Route path="transactions" element={<PageTransition><AdminTransactions /></PageTransition>} />
+          <Route path="users" element={<PageTransition><AdminUsers /></PageTransition>} />
+          <Route path="contacts" element={<PageTransition><AdminContacts /></PageTransition>} />
+          <Route path="settings" element={<PageTransition><AdminSettings /></PageTransition>} />
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+        </Route>
 
         <Route path="/" element={<Layout />}>
           <Route path="dashboard" element={<PageTransition><Dashboard /></PageTransition>} />

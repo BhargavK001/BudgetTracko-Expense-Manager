@@ -6,6 +6,21 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    role: {
+        type: String,
+        enum: ['user', 'admin'],
+        default: 'user'
+    },
+    registrationMethod: {
+        type: String,
+        enum: ['normal', 'google', 'github'],
+        default: 'normal'
+    },
+    accountStatus: {
+        type: String,
+        enum: ['active', 'deactivated'],
+        default: 'active'
+    },
     email: {
         type: String,
         required: true,
