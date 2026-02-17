@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import { motion, useScroll, useTransform, AnimatePresence, useSpring, useInView } from 'framer-motion';
 import { useRef, useState } from 'react';
 import { BsMoonStarsFill, BsBank2, BsBarChartLineFill, BsShieldLockFill, BsCloudArrowUpFill, BsBellFill, BsArrowRepeat, BsAndroid, BsQuestionCircle, BsChevronDown, BsChevronUp, BsCheckCircleFill, BsXCircleFill, BsShieldCheck, BsDownload, BsEnvelope, BsArrowRightShort, BsPersonFill } from 'react-icons/bs';
@@ -145,6 +146,7 @@ const WalletSvg = ({ size = 48, className = '' }) => (
 
 const LandingPage = () => {
     const { theme } = useTheme();
+    const { user } = useAuth();
     const heroRef = useRef(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [savingsAmount, setSavingsAmount] = useState(500);
@@ -210,13 +212,13 @@ const LandingPage = () => {
                         <Link to="/contact">
                             <motion.span whileHover={{ y: -2 }} className="inline-block hover:underline decoration-2 underline-offset-4">Contact</motion.span>
                         </Link>
-                        <Link to="/login">
+                        <Link to={user ? "/dashboard" : "/login"}>
                             <motion.span
                                 whileHover={{ y: -3, boxShadow: '6px 6px 0px 0px rgba(0,0,0,1)' }}
                                 whileTap={{ scale: 0.95 }}
                                 className="inline-block bg-black dark:bg-white dark:text-black text-white px-6 py-3 rounded-none hover:bg-white hover:text-black dark:hover:bg-gray-200 dark:hover:text-black transition-all border-2 border-black dark:border-white"
                             >
-                                Login
+                                {user ? "Dashboard" : "Login"}
                             </motion.span>
                         </Link>
                     </div>
@@ -249,8 +251,10 @@ const LandingPage = () => {
                                 <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="hover:underline decoration-2">Pricing</Link>
                                 <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="hover:underline decoration-2">About Us</Link>
                                 <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="hover:underline decoration-2">Contact</Link>
-                                <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                                    <span className="inline-block bg-black text-white px-6 py-3 border-2 border-black w-full text-center mt-2">Login</span>
+                                <Link to={user ? "/dashboard" : "/login"} onClick={() => setMobileMenuOpen(false)}>
+                                    <span className="inline-block bg-black text-white px-6 py-3 border-2 border-black w-full text-center mt-2">
+                                        {user ? "Dashboard" : "Login"}
+                                    </span>
                                 </Link>
                             </div>
                         </motion.div>
@@ -342,8 +346,8 @@ const LandingPage = () => {
                     animate="visible"
                 >
                     <motion.div variants={staggerItem} custom={0.8}>
-                        <Link to="/login" className="inline-block w-full sm:w-auto text-center bg-black text-white text-base sm:text-xl font-bold px-6 sm:px-12 py-3.5 sm:py-5 rounded-none shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] sm:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] hover:shadow-[12px_12px_0px_0px_rgba(255,255,255,1)] hover:-translate-y-1 transition-all border-2 border-black animate-pulse-glow">
-                            Start Tracking Free
+                        <Link to={user ? "/dashboard" : "/login"} className="inline-block w-full sm:w-auto text-center bg-black text-white text-base sm:text-xl font-bold px-6 sm:px-12 py-3.5 sm:py-5 rounded-none shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] sm:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] hover:shadow-[12px_12px_0px_0px_rgba(255,255,255,1)] hover:-translate-y-1 transition-all border-2 border-black animate-pulse-glow">
+                            {user ? "Go to Dashboard" : "Start Tracking Free"}
                         </Link>
                     </motion.div>
                     <motion.div variants={staggerItem} custom={1.0}>
@@ -635,29 +639,41 @@ const LandingPage = () => {
                         <p className="text-sm sm:text-lg font-bold text-gray-600">See how BudgetTracko stacks up against the old ways.</p>
                     </div>
 
-                    <div className="overflow-x-auto -mx-4 px-4 pb-2">
-                        <div className="bg-white border-3 sm:border-4 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] min-w-[480px] sm:min-w-[600px]">
-                            <div className="grid grid-cols-3 border-b-3 sm:border-b-4 border-black bg-gray-100">
-                                <div className="p-3 sm:p-6 font-black uppercase text-xs sm:text-base text-gray-500 flex items-center">Feature</div>
-                                <div className="p-3 sm:p-6 font-black uppercase text-xs sm:text-base text-gray-400 border-l-3 sm:border-l-4 border-black">Excel / Notebook</div>
-                                <div className="p-3 sm:p-6 font-black uppercase text-xs sm:text-xl text-brand-black bg-brand-yellow border-l-3 sm:border-l-4 border-black flex items-center gap-1 sm:gap-2">
-                                    BudgetTracko <span className="text-[8px] sm:text-[10px] bg-black text-white px-1.5 sm:px-2 py-0.5 rounded-full">PRO</span>
+                    <div className="px-1 sm:px-4">
+                        <div className="bg-white border-3 sm:border-4 border-black rounded-xl shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] sm:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] overflow-hidden">
+                            {/* Comparison Header */}
+                            <div className="grid grid-cols-5 sm:grid-cols-3 border-b-3 sm:border-b-4 border-black bg-gray-100">
+                                <div className="col-span-3 sm:col-span-1 p-3 sm:p-6 font-black uppercase text-[10px] sm:text-base text-gray-500 flex items-center">
+                                    Benefit
+                                </div>
+                                <div className="col-span-1 p-3 sm:p-6 font-black uppercase text-[10px] sm:text-base text-gray-400 border-l-3 sm:border-l-4 border-black flex items-center justify-center text-center leading-tight">
+                                    <span className="hidden sm:inline">Excel / Notebook</span>
+                                    <span className="sm:hidden">Others</span>
+                                </div>
+                                <div className="col-span-1 p-3 sm:p-6 font-black uppercase text-[10px] sm:text-base text-brand-black bg-brand-yellow border-l-3 sm:border-l-4 border-black flex items-center justify-center gap-1 sm:gap-2 text-center leading-tight">
+                                    <span className="hidden sm:inline">BudgetTracko</span>
+                                    <span className="sm:hidden text-lg">BT</span>
                                 </div>
                             </div>
+
+                            {/* Comparison Rows */}
                             {[
-                                { feat: 'Automated Charts', old: false, new: true },
-                                { feat: 'Cloud Backup', old: false, new: true },
-                                { feat: 'Mobile Access', old: false, new: true },
-                                { feat: 'Recurring Expenses', old: false, new: true },
-                                { feat: 'Bank-grade Security', old: false, new: true },
-                                { feat: 'Fun to use', old: false, new: true },
+                                { feat: 'Instant Analytics', old: false, new: true, icon: <BsBarChartLineFill className="text-blue-500" /> },
+                                { feat: 'Cloud Sync', old: false, new: true, icon: <BsCloudArrowUpFill className="text-sky-500" /> },
+                                { feat: 'Mobile Ready', old: false, new: true, icon: <FaMobileAlt className="text-gray-700 dark:text-gray-300" /> },
+                                { feat: 'Recurring', old: false, new: true, icon: <BsArrowRepeat className="text-indigo-500" /> },
+                                { feat: 'Bank Security', old: false, new: true, icon: <BsShieldCheck className="text-green-600" /> },
+                                { feat: 'No Ads / Free', old: false, new: true, icon: <FaStar className="text-amber-500" /> },
                             ].map((row, i) => (
-                                <div key={i} className={`grid grid-cols-3 ${i !== 5 ? 'border-b-2 border-gray-200' : ''}`}>
-                                    <div className="p-3 sm:p-5 font-bold text-xs sm:text-base text-gray-700 flex items-center">{row.feat}</div>
-                                    <div className="p-3 sm:p-5 border-l-3 sm:border-l-4 border-black flex items-center justify-center bg-gray-50 text-gray-400">
+                                <div key={i} className={`grid grid-cols-5 sm:grid-cols-3 ${i !== 5 ? 'border-b-2 border-gray-200' : ''} hover:bg-gray-50 transition-colors`}>
+                                    <div className="col-span-3 sm:col-span-1 p-3 sm:p-5 font-bold text-xs sm:text-base text-gray-700 flex items-center gap-2">
+                                        <span className="sm:text-lg">{row.icon}</span>
+                                        <span className="truncate">{row.feat}</span>
+                                    </div>
+                                    <div className="col-span-1 p-3 sm:p-5 border-l-3 sm:border-l-4 border-black flex items-center justify-center bg-gray-50/50 text-gray-300">
                                         <BsXCircleFill size={18} className="sm:text-[24px]" />
                                     </div>
-                                    <div className="p-3 sm:p-5 border-l-3 sm:border-l-4 border-black flex items-center justify-center bg-yellow-50/50 text-green-600">
+                                    <div className="col-span-1 p-3 sm:p-5 border-l-3 sm:border-l-4 border-black flex items-center justify-center bg-yellow-50/30 text-green-600">
                                         <BsCheckCircleFill size={20} className="sm:text-[28px]" />
                                     </div>
                                 </div>
@@ -691,9 +707,14 @@ const LandingPage = () => {
                                     <div className="text-lg font-black">Google Play</div>
                                 </div>
                             </button>
-                            <button className="bg-transparent text-white px-8 py-4 rounded-xl font-bold border-2 border-white/30 hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+                            <a
+                                href="https://github.com/BhargavK001/BudgetTracko-Expense-Manager/releases/download/v1.0.0-mobile-1/app-release.apk"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-transparent text-white px-8 py-4 rounded-xl font-bold border-2 border-white/30 hover:bg-white/10 transition-colors flex items-center justify-center gap-2 text-center"
+                            >
                                 <BsDownload size={20} /> Download APK
-                            </button>
+                            </a>
                         </div>
                     </div>
                     <div className="w-full md:w-1/2 flex justify-center">

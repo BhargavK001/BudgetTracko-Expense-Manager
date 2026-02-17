@@ -46,7 +46,8 @@ exports.getStatus = async (req, res) => {
             google: 'checking',
             cloudinary: 'checking',
             razorpay: 'checking',
-            github: 'checking'
+            github: 'checking',
+            resend: 'checking'
         }
     };
 
@@ -72,14 +73,15 @@ exports.getStatus = async (req, res) => {
     }
 
     // Check External Services (Parallel)
-    const [google, cloudinary, razorpay, github] = await Promise.all([
+    const [google, cloudinary, razorpay, github, resend] = await Promise.all([
         checkService('https://www.google.com'), // General internet check
         checkService('https://status.cloudinary.com'), // Cloudinary Service Status
         checkService('https://api.razorpay.com/'),
-        checkService('https://api.github.com')
+        checkService('https://github.com'), // Connectivity check (avoids API rate limiting)
+        checkService('https://resend.com')   // Connectivity check (avoids API auth issues)
     ]);
 
-    status.external = { google, cloudinary, razorpay, github };
+    status.external = { google, cloudinary, razorpay, github, resend };
 
     // Check Environment Variables
     const requiredEnv = [
@@ -98,7 +100,8 @@ exports.getStatus = async (req, res) => {
         'CLOUDINARY_API_SECRET',
         'RAZORPAY_KEY_ID',
         'RAZORPAY_KEY_SECRET',
-        'RAZORPAY_WEBHOOK_SECRET'
+        'RAZORPAY_WEBHOOK_SECRET',
+        'RESEND_API_KEY'
     ];
 
     const missingEnvs = requiredEnv.filter(key => !process.env[key]);

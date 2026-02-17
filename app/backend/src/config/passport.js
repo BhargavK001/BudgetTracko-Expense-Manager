@@ -75,6 +75,7 @@ passport.use(
                     displayName: profile.displayName,
                     email: email,
                     avatar: providerAvatar,
+                    registrationMethod: 'google',
                 });
 
                 done(null, user);
@@ -128,6 +129,7 @@ passport.use(
                     displayName: profile.displayName || profile.username,
                     email: email, // Note: Without email scope, this might be null.
                     avatar: providerAvatar,
+                    registrationMethod: 'github',
                 });
 
                 done(null, user);

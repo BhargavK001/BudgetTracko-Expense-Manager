@@ -168,7 +168,7 @@ const Settings = () => {
                 try {
                     await userApi.deleteAccount();
                     toast.success('Account deleted permanently');
-                    logout();
+                    await logout();
                     navigate('/');
                 } catch (err) {
                     toast.error('Failed to delete account');
