@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import SEO from '../components/common/SEO';
+import { contactApi } from '../services/api';
 
 const staggerContainer = {
     hidden: {},
@@ -46,19 +47,32 @@ const Contact = () => {
     const [formData, setFormData] = useState({ name: '', email: '', message: '' });
     const [sending, setSending] = useState(false);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.name || !formData.email || !formData.message) {
             toast.error('Please fill in all fields');
             return;
         }
+
         setSending(true);
-        toast.loading('Sending your message...', { id: 'contact' });
-        setTimeout(() => {
+        const toastId = toast.loading('Sending your message...');
+
+        try {
+            const response = await contactApi.send(formData);
+
+            if (response.data.success) {
+                toast.success(response.data.message || 'Message sent! We\'ll get back to you soon.', { id: toastId });
+                setFormData({ name: '', email: '', message: '' });
+            } else {
+                toast.error(response.data.message || 'Something went wrong.', { id: toastId });
+            }
+        } catch (error) {
+            console.error('Contact form submission error:', error);
+            const errorMessage = error.response?.data?.message || 'Failed to send message. Please try again later.';
+            toast.error(errorMessage, { id: toastId });
+        } finally {
             setSending(false);
-            toast.success('Message sent! We\'ll get back to you soon.', { id: 'contact' });
-            setFormData({ name: '', email: '', message: '' });
-        }, 1500);
+        }
     };
 
     return (

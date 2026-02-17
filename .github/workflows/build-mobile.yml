@@ -1,0 +1,72 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - feat/mobileapp
+
+jobs:
+  build:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: app/mobile/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Dependencies
+        working-directory: ./app/mobile
+        run: npm ci
+
+      - name: Setup Expo
+        working-directory: ./app/mobile
+        run: npx expo install expo-modules-autolinking
+
+      - name: Prebuild (Generate Native Android Code)
+        working-directory: ./app/mobile
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Decode Keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo $ANDROID_KEYSTORE_BASE64 | base64 --decode > app/mobile/android/app/my-release-key.keystore
+
+      - name: Build Release APK
+        working-directory: ./app/mobile/android
+        env:
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=$(pwd)/app/my-release-key.keystore \
+            -Pandroid.injected.signing.store.password=$ANDROID_STORE_PASSWORD \
+            -Pandroid.injected.signing.key.alias=$ANDROID_KEY_ALIAS \
+            -Pandroid.injected.signing.key.password=$ANDROID_KEY_PASSWORD
+
+      - name: Upload APK to Release
+        uses: softprops/action-gh-release@v1
+        if: success()
+        with:
+          tag_name: v1.0.0-mobile-${{ github.run_number }}
+          name: Mobile App Release v1.0.0 (Build ${{ github.run_number }})
+          files: app/mobile/android/app/build/outputs/apk/release/app-release.apk
+          draft: false
+          prerelease: false
