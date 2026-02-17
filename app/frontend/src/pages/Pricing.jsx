@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BsCheckCircleFill } from 'react-icons/bs';
+import { BsCheckCircleFill, BsTagFill } from 'react-icons/bs';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { toast } from 'sonner';
@@ -87,6 +87,10 @@ const Pricing = () => {
     const [showSuccess, setShowSuccess] = useState(false);
     const [searchParams] = useSearchParams();
     const hasTriggeredAutoPayment = useRef(false);
+    const [couponCode, setCouponCode] = useState('');
+    const [couponInfo, setCouponInfo] = useState(null);
+    const [validatingCoupon, setValidatingCoupon] = useState(false);
+    const [showCouponInput, setShowCouponInput] = useState(false);
 
     // Check for auto-payment trigger (e.g. returning from login)
     useEffect(() => {
@@ -141,8 +145,9 @@ const Pricing = () => {
         setLoading(true);
         try {
             // 1. Create Subscription
-            const { data: subData } = await api.post('/api/payments/create-order', { // Keeping endpoint name as create-order for now or update it? I kept it in routes.
-                plan: plan.id
+            const { data: subData } = await api.post('/api/payments/create-order', {
+                plan: plan.id,
+                couponCode: couponInfo?.coupon?.code || ''
             });
 
             const prefillData = {
@@ -259,6 +264,89 @@ const Pricing = () => {
                 >
                     Built for students & college life. Affordable plans that won't burn a hole in your pocket. 🔥
                 </motion.p>
+
+                {/* Coupon Code Input */}
+                {user && (
+                    <motion.div
+                        variants={fadeUp}
+                        initial="hidden"
+                        animate="visible"
+                        custom={0.4}
+                        className="mt-6 sm:mt-8 max-w-md mx-auto"
+                    >
+                        {!showCouponInput ? (
+                            <motion.button
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => setShowCouponInput(true)}
+                                className="text-sm font-bold border-2 border-black px-4 py-2 hover:bg-black hover:text-brand-yellow transition-colors flex items-center gap-2 mx-auto"
+                            >
+                                <BsTagFill size={14} />
+                                Have a coupon code?
+                            </motion.button>
+                        ) : (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="bg-white border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4"
+                            >
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={couponCode}
+                                        onChange={(e) => {
+                                            setCouponCode(e.target.value.toUpperCase());
+                                            if (couponInfo) setCouponInfo(null);
+                                        }}
+                                        placeholder="Enter coupon code"
+                                        className="flex-1 px-3 py-2 border-2 border-black font-bold text-sm uppercase focus:outline-none focus:ring-2 focus:ring-brand-yellow"
+                                    />
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={async () => {
+                                            if (!couponCode.trim()) {
+                                                toast.error('Please enter a coupon code');
+                                                return;
+                                            }
+                                            setValidatingCoupon(true);
+                                            try {
+                                                const res = await api.post('/api/payments/validate-coupon', {
+                                                    code: couponCode,
+                                                    plan: 'pro'
+                                                });
+                                                setCouponInfo(res.data);
+                                                toast.success('Coupon applied! 🎉');
+                                            } catch (error) {
+                                                toast.error(error.response?.data?.message || 'Invalid coupon');
+                                                setCouponInfo(null);
+                                            } finally {
+                                                setValidatingCoupon(false);
+                                            }
+                                        }}
+                                        disabled={validatingCoupon}
+                                        className="bg-black text-brand-yellow font-black px-4 py-2 border-2 border-black hover:bg-brand-yellow hover:text-black transition-colors text-sm"
+                                    >
+                                        {validatingCoupon ? '...' : 'Apply'}
+                                    </motion.button>
+                                </div>
+                                {couponInfo && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="mt-3 bg-green-100 border-2 border-green-500 p-3 flex items-center gap-2"
+                                    >
+                                        <BsCheckCircleFill className="text-green-600 flex-shrink-0" size={16} />
+                                        <div className="text-left">
+                                            <p className="text-sm font-black text-green-800">{couponInfo.coupon.code} applied!</p>
+                                            <p className="text-xs font-bold text-green-700">{couponInfo.discountInfo.description}</p>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </motion.div>
+                        )}
+                    </motion.div>
+                )}
             </div>
 
             {/* Pricing Cards */}
@@ -312,14 +400,14 @@ const Pricing = () => {
                                         onClick={() => handleSubscribe(plan)}
                                         disabled={loading || btnState.disabled}
                                         className={`block w-full text-center font-black text-base sm:text-lg py-3 sm:py-4 border-3 sm:border-4 border-black transition-all ${btnState.style === 'current'
-                                                ? 'bg-green-500 text-white cursor-default'
-                                                : btnState.style === 'upgrade'
-                                                    ? 'bg-brand-yellow text-black'
-                                                    : btnState.style === 'downgrade'
-                                                        ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
-                                                        : plan.highlight
-                                                            ? 'bg-brand-yellow text-black'
-                                                            : 'bg-black text-white hover:bg-brand-yellow hover:text-black'
+                                            ? 'bg-green-500 text-white cursor-default'
+                                            : btnState.style === 'upgrade'
+                                                ? 'bg-brand-yellow text-black'
+                                                : btnState.style === 'downgrade'
+                                                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                                                    : plan.highlight
+                                                        ? 'bg-brand-yellow text-black'
+                                                        : 'bg-black text-white hover:bg-brand-yellow hover:text-black'
                                             } ${(loading || btnState.disabled) ? 'opacity-70 cursor-not-allowed' : ''}`}
                                     >
                                         {loading && plan.id !== 'free' ? 'Processing...' : btnState.text}

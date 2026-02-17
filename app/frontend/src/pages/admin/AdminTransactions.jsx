@@ -1,17 +1,51 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BsCreditCardFill, BsDownload, BsArrowLeft, BsArrowRight } from 'react-icons/bs';
+import { BsCreditCardFill, BsDownload, BsArrowLeft, BsArrowRight, BsFilter, BsCalendar3, BsXCircle } from 'react-icons/bs';
 import { adminApi } from '../../services/adminApi';
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subDays, subWeeks, subMonths } from 'date-fns';
 
 const AdminTransactions = () => {
     const [transactions, setTransactions] = useState([]);
     const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
     const [loading, setLoading] = useState(true);
+    const [filterType, setFilterType] = useState('all'); // all, daily, weekly, monthly, custom
+    const [customRange, setCustomRange] = useState({
+        startDate: format(new Date(), 'yyyy-MM-dd'),
+        endDate: format(new Date(), 'yyyy-MM-dd')
+    });
 
-    const fetchTransactions = async (page = 1) => {
+    const fetchTransactions = async (page = 1, forceParams = null) => {
         setLoading(true);
         try {
-            const res = await adminApi.getTransactions({ page, limit: 15 });
+            const params = { page, limit: 15 };
+
+            const activeFilter = forceParams?.filterType || filterType;
+            const activeRange = forceParams?.customRange || customRange;
+
+            if (activeFilter !== 'all') {
+                let start, end = new Date();
+
+                if (activeFilter === 'daily') {
+                    start = startOfDay(new Date());
+                    end = endOfDay(new Date());
+                } else if (activeFilter === 'weekly') {
+                    start = startOfWeek(new Date(), { weekStartsOn: 1 });
+                    end = endOfWeek(new Date(), { weekStartsOn: 1 });
+                } else if (activeFilter === 'monthly') {
+                    start = startOfMonth(new Date());
+                    end = endOfMonth(new Date());
+                } else if (activeFilter === 'custom') {
+                    start = startOfDay(new Date(activeRange.startDate));
+                    end = endOfDay(new Date(activeRange.endDate));
+                }
+
+                if (start && end) {
+                    params.startDate = start.toISOString();
+                    params.endDate = end.toISOString();
+                }
+            }
+
+            const res = await adminApi.getTransactions(params);
             setTransactions(res.data.data);
             setPagination(res.data.pagination);
         } catch (error) {
@@ -24,6 +58,12 @@ const AdminTransactions = () => {
     useEffect(() => {
         fetchTransactions();
     }, []);
+
+    useEffect(() => {
+        if (filterType !== 'custom') {
+            fetchTransactions(1);
+        }
+    }, [filterType]);
 
     const handleExportPDF = () => {
         // Generate PDF using browser print
@@ -97,6 +137,104 @@ const AdminTransactions = () => {
                     <BsDownload size={14} />
                     <span>Export PDF</span>
                 </motion.button>
+            </motion.div>
+
+            {/* Filters Section */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="neo-card p-4 sm:p-6"
+            >
+                <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-2 mb-2">
+                        <BsFilter size={20} className="text-brand-black dark:text-brand-yellow" />
+                        <h2 className="text-lg font-black uppercase tracking-tight">Filters</h2>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                        <button
+                            onClick={() => setFilterType('all')}
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border-2 ${filterType === 'all'
+                                    ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
+                                    : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
+                                }`}
+                        >
+                            All Time
+                        </button>
+                        <button
+                            onClick={() => setFilterType('daily')}
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border-2 ${filterType === 'daily'
+                                    ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
+                                    : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
+                                }`}
+                        >
+                            Daily
+                        </button>
+                        <button
+                            onClick={() => setFilterType('weekly')}
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border-2 ${filterType === 'weekly'
+                                    ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
+                                    : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
+                                }`}
+                        >
+                            Weekly
+                        </button>
+                        <button
+                            onClick={() => setFilterType('monthly')}
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border-2 ${filterType === 'monthly'
+                                    ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
+                                    : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
+                                }`}
+                        >
+                            Monthly
+                        </button>
+                        <button
+                            onClick={() => setFilterType('custom')}
+                            className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border-2 ${filterType === 'custom'
+                                    ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
+                                    : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
+                                }`}
+                        >
+                            Custom Range
+                        </button>
+                    </div>
+
+                    {filterType === 'custom' && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            className="flex flex-wrap items-end gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-700"
+                        >
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Start Date</label>
+                                <input
+                                    type="date"
+                                    value={customRange.startDate}
+                                    onChange={(e) => setCustomRange({ ...customRange, startDate: e.target.value })}
+                                    className="neo-input w-full sm:w-auto text-sm"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">End Date</label>
+                                <input
+                                    type="date"
+                                    value={customRange.endDate}
+                                    onChange={(e) => setCustomRange({ ...customRange, endDate: e.target.value })}
+                                    className="neo-input w-full sm:w-auto text-sm"
+                                />
+                            </div>
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => fetchTransactions(1)}
+                                className="neo-btn neo-btn-primary py-2.5 px-6 flex items-center gap-2"
+                            >
+                                <BsCalendar3 size={14} />
+                                <span>Apply Range</span>
+                            </motion.button>
+                        </motion.div>
+                    )}
+                </div>
             </motion.div>
 
             {/* Loading */}

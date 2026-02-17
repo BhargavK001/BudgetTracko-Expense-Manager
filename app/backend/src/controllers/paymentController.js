@@ -2,6 +2,7 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Payment = require('../models/Payment');
 const User = require('../models/User');
+const Coupon = require('../models/Coupon');
 
 
 // Initialize Razorpay lazily or check for presence
@@ -18,7 +19,7 @@ const getRazorpayInstance = () => {
 // Create Subscription (Replacing createOrder)
 exports.createSubscription = async (req, res) => {
     try {
-        const { plan } = req.body;
+        const { plan, couponCode } = req.body;
 
         if (!plan) {
             return res.status(400).json({ message: 'Plan is required' });
@@ -48,8 +49,31 @@ exports.createSubscription = async (req, res) => {
 
         const razorpay = getRazorpayInstance();
 
-        // Create Subscription
-        const subscription = await razorpay.subscriptions.create({
+        // Validate coupon if provided
+        let coupon = null;
+        let appliedCoupon = null;
+        if (couponCode) {
+            coupon = await Coupon.findOne({ code: couponCode.toUpperCase(), status: 'active' });
+            if (!coupon) {
+                return res.status(400).json({ message: 'Invalid or expired coupon code' });
+            }
+            if (coupon.expiryDate && new Date(coupon.expiryDate) < new Date()) {
+                return res.status(400).json({ message: 'This coupon has expired' });
+            }
+            if (coupon.usageLimit > 0 && coupon.usedCount >= coupon.usageLimit) {
+                return res.status(400).json({ message: 'This coupon has reached its usage limit' });
+            }
+            if (coupon.usedBy.includes(req.user.id)) {
+                return res.status(400).json({ message: 'You have already used this coupon' });
+            }
+            if (!coupon.applicablePlans.includes(plan)) {
+                return res.status(400).json({ message: `This coupon is not applicable to the ${plan} plan` });
+            }
+            appliedCoupon = coupon;
+        }
+
+        // Build subscription options
+        const subscriptionOptions = {
             plan_id: planId,
             customer_notify: 1,
             total_count: 120, // 10 years of monthly payments
@@ -58,16 +82,52 @@ exports.createSubscription = async (req, res) => {
                 userId: req.user.id,
                 planType: plan
             }
-        });
+        };
+
+        // Apply coupon effects to subscription
+        if (appliedCoupon) {
+            subscriptionOptions.notes.couponCode = appliedCoupon.code;
+
+            if (appliedCoupon.type === 'trial') {
+                // Free trial: Razorpay supports trial periods via start_at
+                // Set start_at to X days from now (trial period)
+                const trialEnd = new Date();
+                trialEnd.setDate(trialEnd.getDate() + appliedCoupon.trialDays);
+                subscriptionOptions.start_at = Math.floor(trialEnd.getTime() / 1000);
+            } else if (appliedCoupon.type === 'nominal') {
+                // Nominal price: Use start_at to delay full-price billing
+                // The first charge will be handled manually or via addons
+                const nominalEnd = new Date();
+                nominalEnd.setMonth(nominalEnd.getMonth() + appliedCoupon.nominalDurationMonths);
+                subscriptionOptions.start_at = Math.floor(nominalEnd.getTime() / 1000);
+            }
+        }
+
+        // Create Subscription
+        const subscription = await razorpay.subscriptions.create(subscriptionOptions);
 
         // Determine amount based on plan
-        const amount = plan === 'pro' ? 49 : 99;
+        const planPrices = { pro: 49, squad: 99 };
+        let amount = planPrices[plan];
+
+        // Adjust recorded amount based on coupon
+        if (appliedCoupon) {
+            if (appliedCoupon.type === 'percentage') {
+                amount = Math.max(0, amount - (amount * appliedCoupon.value / 100));
+            } else if (appliedCoupon.type === 'fixed') {
+                amount = Math.max(0, amount - appliedCoupon.value);
+            } else if (appliedCoupon.type === 'trial') {
+                amount = 0; // No charge during trial
+            } else if (appliedCoupon.type === 'nominal') {
+                amount = appliedCoupon.nominalPrice; // Initial nominal charge
+            }
+        }
 
         // Create a pending payment/subscription record
         const payment = new Payment({
             userId: req.user.id,
             subscriptionId: subscription.id,
-            amount: amount, // Set correct amount immediately
+            amount: amount,
             currency: 'INR',
             status: 'created',
             plan: plan
@@ -75,11 +135,19 @@ exports.createSubscription = async (req, res) => {
 
         await payment.save();
 
+        // Mark coupon as used by this user
+        if (appliedCoupon) {
+            appliedCoupon.usedCount += 1;
+            appliedCoupon.usedBy.push(req.user.id);
+            await appliedCoupon.save();
+        }
+
         res.json({
             success: true,
             subscription_id: subscription.id,
             key: process.env.RAZORPAY_KEY_ID,
-            plan_id: planId
+            plan_id: planId,
+            couponApplied: appliedCoupon ? appliedCoupon.code : null
         });
     } catch (error) {
         if (process.env.NODE_ENV !== 'production') console.error('Error creating subscription:', error);

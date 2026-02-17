@@ -1,7 +1,7 @@
 /**
- * BudgetTracko Dark Theme Constants
- * Blends reference dark aesthetic with neo-brutalist brand identity
- */
+* BudgetTracko Dark Theme Constants
+* Blends reference dark aesthetic with neo-brutalist brand identity
+*/
 
 export const DarkTheme = {
     // Backgrounds

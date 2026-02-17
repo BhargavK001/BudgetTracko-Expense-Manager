@@ -18,7 +18,14 @@ export const adminApi = {
     markAsRead: (id) => api.patch(`/api/admin/contacts/${id}/read`),
     replyToContact: (id, replyContent) => api.post(`/api/admin/contacts/${id}/reply`, { replyContent }),
 
+    // Coupons & Promotions
+    getCoupons: (params) => api.get('/api/admin/coupons', { params }),
+    createCoupon: (data) => api.post('/api/admin/coupons', data),
+    updateCoupon: (id, data) => api.patch(`/api/admin/coupons/${id}`, data),
+    deleteCoupon: (id) => api.delete(`/api/admin/coupons/${id}`),
+
     // Config
     getConfig: () => api.get('/api/admin/config'),
     updateConfig: (key, value) => api.put('/api/admin/config', { key, value }),
+    getPublicConfig: () => api.get('/api/config/public'),
 };

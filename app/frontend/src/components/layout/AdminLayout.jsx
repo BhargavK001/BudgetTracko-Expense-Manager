@@ -10,6 +10,7 @@ import {
     BsBoxArrowRight,
     BsActivity,
     BsShieldLockFill,
+    BsTagFill,
 } from 'react-icons/bs';
 import { toast } from 'sonner';
 
@@ -18,6 +19,7 @@ const navItems = [
     { to: '/admin/transactions', icon: BsCreditCardFill, label: 'Transactions' },
     { to: '/admin/users', icon: BsPeopleFill, label: 'Users' },
     { to: '/admin/contacts', icon: BsEnvelopeFill, label: 'Contact Requests' },
+    { to: '/admin/promotions', icon: BsTagFill, label: 'Promotions' },
     { to: '/admin/settings', icon: BsGearFill, label: 'Settings' },
 ];
 
