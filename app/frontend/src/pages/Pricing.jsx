@@ -78,6 +78,8 @@ const plans = [
     },
 ];
 
+const PLAN_RANK = { free: 0, pro: 1, squad: 2 };
+
 const Pricing = () => {
     const { user, refreshUser } = useAuth();
     const navigate = useNavigate();
@@ -98,6 +100,26 @@ const Pricing = () => {
         }
     }, [user, searchParams]);
 
+    const userPlan = user?.subscription?.plan || 'free';
+    const userSubStatus = user?.subscription?.status;
+    const isUserSubActive = userSubStatus === 'active' || userSubStatus === 'authenticated';
+
+    const getButtonState = (planId) => {
+        if (!user) return { text: 'Get Started', disabled: false, style: 'default' };
+        if (planId === 'free') return { text: 'Get Started', disabled: false, style: 'default' };
+
+        if (isUserSubActive && userPlan === planId) {
+            return { text: '✓ Current Plan', disabled: true, style: 'current' };
+        }
+        if (isUserSubActive && PLAN_RANK[planId] > PLAN_RANK[userPlan]) {
+            return { text: 'Upgrade Now ⚡', disabled: false, style: 'upgrade' };
+        }
+        if (isUserSubActive && PLAN_RANK[planId] < PLAN_RANK[userPlan]) {
+            return { text: 'Downgrade', disabled: true, style: 'downgrade' };
+        }
+        return { text: 'Get Started', disabled: false, style: 'default' };
+    };
+
     const handleSubscribe = async (plan) => {
         if (!user) {
             // Redirect to login with return path
@@ -110,11 +132,16 @@ const Pricing = () => {
             return;
         }
 
+        // Block if already on this plan
+        if (isUserSubActive && userPlan === plan.id) {
+            toast.info('You are already subscribed to this plan!');
+            return;
+        }
+
         setLoading(true);
         try {
-            // 1. Create Order
-            const { data: orderData } = await api.post('/api/payments/create-order', {
-                amount: parseInt(plan.price.replace('₹', '')),
+            // 1. Create Subscription
+            const { data: subData } = await api.post('/api/payments/create-order', { // Keeping endpoint name as create-order for now or update it? I kept it in routes.
                 plan: plan.id
             });
 
@@ -126,33 +153,31 @@ const Pricing = () => {
                 prefillData.contact = user.phone;
             }
 
-            const cleanPlanName = plan.name.replace(/[^\w\s]/g, '').trim(); // Remove emojis
+            const cleanPlanName = plan.name.replace(/[^\w\s]/g, '').trim();
 
             const options = {
-                key: orderData.key,
-                amount: Number(orderData.amount), // Ensure number
-                currency: orderData.currency,
+                key: subData.key,
+                subscription_id: subData.subscription_id, // Use subscription_id
                 name: "BudgetTracko",
-                description: `Subscription for ${cleanPlanName}`,
-                order_id: orderData.order_id,
-                retry: { enabled: false }, // Disable retry to see if it helps debug
+                description: `Monthly Subscription for ${cleanPlanName}`,
+                // No amount needed for subscription flow on client side init
                 handler: async function (response) {
                     try {
                         console.log("Razorpay Response:", response);
                         // 2. Verify Payment
                         const verifyRes = await api.post('/api/payments/verify', {
-                            razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_subscription_id: response.razorpay_subscription_id,
                             razorpay_signature: response.razorpay_signature
                         });
 
                         if (verifyRes.data.success) {
-                            await refreshUser(); // Refresh user state to show new plan
+                            await refreshUser();
                             setShowSuccess(true);
                             toast.success('Subscription activated successfully! 🎉');
                             setTimeout(() => {
                                 navigate('/dashboard');
-                            }, 3500); // 3.5s for animation
+                            }, 3500);
                         }
                     } catch (error) {
                         console.error("Verification Error", error);
@@ -278,18 +303,29 @@ const Pricing = () => {
                                 ))}
                             </ul>
 
-                            <motion.button
-                                whileHover={{ y: -3, boxShadow: '6px 6px 0px 0px rgba(0,0,0,1)' }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleSubscribe(plan)}
-                                disabled={loading}
-                                className={`block w-full text-center font-black text-base sm:text-lg py-3 sm:py-4 border-3 sm:border-4 border-black transition-all ${plan.highlight
-                                    ? 'bg-brand-yellow text-black'
-                                    : 'bg-black text-white hover:bg-brand-yellow hover:text-black'
-                                    } ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                            >
-                                {loading && plan.id !== 'free' ? 'Processing...' : 'Get Started'}
-                            </motion.button>
+                            {(() => {
+                                const btnState = getButtonState(plan.id);
+                                return (
+                                    <motion.button
+                                        whileHover={!btnState.disabled ? { y: -3, boxShadow: '6px 6px 0px 0px rgba(0,0,0,1)' } : {}}
+                                        whileTap={!btnState.disabled ? { scale: 0.95 } : {}}
+                                        onClick={() => handleSubscribe(plan)}
+                                        disabled={loading || btnState.disabled}
+                                        className={`block w-full text-center font-black text-base sm:text-lg py-3 sm:py-4 border-3 sm:border-4 border-black transition-all ${btnState.style === 'current'
+                                                ? 'bg-green-500 text-white cursor-default'
+                                                : btnState.style === 'upgrade'
+                                                    ? 'bg-brand-yellow text-black'
+                                                    : btnState.style === 'downgrade'
+                                                        ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                                                        : plan.highlight
+                                                            ? 'bg-brand-yellow text-black'
+                                                            : 'bg-black text-white hover:bg-brand-yellow hover:text-black'
+                                            } ${(loading || btnState.disabled) ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                    >
+                                        {loading && plan.id !== 'free' ? 'Processing...' : btnState.text}
+                                    </motion.button>
+                                );
+                            })()}
                         </motion.div>
                     ))}
                 </motion.div>
