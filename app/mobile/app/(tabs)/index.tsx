@@ -1,72 +1,55 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadow, NeoShadowSm } from '@/constants/Theme';
 import StatCard from '@/components/StatCard';
 import TransactionItem from '@/components/TransactionItem';
+import { useTransactions, CATEGORY_ICONS, CATEGORY_COLORS } from '@/context/TransactionContext';
 
-// Dummy data for demonstration
-const DUMMY_TRANSACTIONS = [
-  {
-    id: '1',
-    icon: 'restaurant-outline' as const,
-    title: 'Tea',
-    amount: '12.0',
-    date: '16 Feb 26',
-    type: 'expense' as const,
-  },
-  {
-    id: '2',
-    icon: 'restaurant-outline' as const,
-    title: 'Amul dark chocolate smooth',
-    amount: '25.0',
-    date: '16 Feb 26',
-    type: 'expense' as const,
-  },
-  {
-    id: '3',
-    icon: 'restaurant-outline' as const,
-    title: 'Dosa',
-    amount: '40.0',
-    date: '16 Feb 26',
-    type: 'expense' as const,
-  },
-  {
-    id: '4',
-    icon: 'restaurant-outline' as const,
-    title: 'Aape',
-    amount: '45.0',
-    date: '16 Feb 26',
-    type: 'expense' as const,
-  },
-  {
-    id: '5',
-    icon: 'briefcase-outline' as const,
-    title: 'Salary',
-    amount: '10,000',
-    date: '01 Feb 26',
-    type: 'income' as const,
-    iconColor: '#4CAF50',
-    iconBgColor: '#1F2D1F',
-  },
-];
+function formatCurrency(n: number): string {
+  return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  const day = d.getDate().toString().padStart(2, '0');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const year = d.getFullYear().toString().slice(-2);
+  return `${day} ${months[d.getMonth()]} ${year}`;
+}
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good Morning';
+  if (h < 17) return 'Good Afternoon';
+  return 'Good Evening';
+}
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { transactions, getTotalIncome, getTotalExpense, getBalance } = useTransactions();
+
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const monthlyIncome = useMemo(() => getTotalIncome(currentMonth, currentYear), [getTotalIncome, currentMonth, currentYear]);
+  const monthlyExpense = useMemo(() => getTotalExpense(currentMonth, currentYear), [getTotalExpense, currentMonth, currentYear]);
+  const balance = useMemo(() => getBalance(), [getBalance]);
+
+  // Show up to 10 recent transactions
+  const recentTxs = useMemo(() => transactions.slice(0, 10), [transactions]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* ─── Sticky Header ─── */}
       <View style={styles.stickyHeader}>
         <View style={styles.headerLeft}>
-          <Text style={styles.greetingSmall}>Good Evening</Text>
-          <Text style={styles.greetingName}>Bhargav Karande</Text>
+          <Text style={styles.greetingSmall}>{getGreeting()}</Text>
+          <Text style={styles.greetingName}>BudgetTracko</Text>
         </View>
         <View style={styles.headerRight}>
-          <View style={styles.premiumBadge}>
-            <Ionicons name="diamond" size={16} color={DarkTheme.brandYellow} />
-          </View>
           <View style={styles.avatarContainer}>
             <Ionicons name="person" size={20} color={DarkTheme.brandYellow} />
           </View>
@@ -85,42 +68,44 @@ export default function HomeScreen() {
             <Text style={styles.monthText}>This month</Text>
             <Ionicons name="chevron-down" size={16} color={DarkTheme.textPrimary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.searchBtn}>
-            <Ionicons name="search" size={20} color={DarkTheme.textPrimary} />
-          </TouchableOpacity>
         </View>
 
         {/* Stat Cards */}
         <View style={styles.statsRow}>
-          <StatCard label="Spending" amount="₹2,670" type="spending" />
-          <StatCard label="Income" amount="₹10,000" type="income" />
+          <StatCard label="Spending" amount={formatCurrency(monthlyExpense)} type="spending" />
+          <StatCard label="Income" amount={formatCurrency(monthlyIncome)} type="income" />
         </View>
 
         {/* Available Balance */}
         <View style={styles.balancePill}>
-          <Text style={styles.balanceText}>Available Balance: ₹16,728</Text>
+          <Text style={styles.balanceText}>Available Balance: {formatCurrency(balance)}</Text>
         </View>
 
         {/* Recent Transactions */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recent transactions</Text>
-          <TouchableOpacity style={styles.seeAllBtn}>
-            <Text style={styles.seeAll}>See all</Text>
-          </TouchableOpacity>
         </View>
 
-        {DUMMY_TRANSACTIONS.map((tx) => (
-          <TransactionItem
-            key={tx.id}
-            icon={tx.icon}
-            iconColor={tx.iconColor || DarkTheme.accentSecondary}
-            iconBgColor={tx.iconBgColor || '#2D2517'}
-            title={tx.title}
-            amount={tx.amount}
-            date={tx.date}
-            type={tx.type}
-          />
-        ))}
+        {recentTxs.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Ionicons name="receipt-outline" size={48} color={DarkTheme.textMuted} />
+            <Text style={styles.emptyTitle}>No transactions yet</Text>
+            <Text style={styles.emptyDesc}>Tap the + button to add your first transaction</Text>
+          </View>
+        ) : (
+          recentTxs.map((tx) => (
+            <TransactionItem
+              key={tx.id}
+              icon={(CATEGORY_ICONS[tx.category] || 'ellipsis-horizontal-circle-outline') as any}
+              iconColor={CATEGORY_COLORS[tx.category] || DarkTheme.accentSecondary}
+              iconBgColor={(CATEGORY_COLORS[tx.category] || '#795548') + '33'}
+              title={tx.title}
+              amount={tx.amount.toLocaleString('en-IN')}
+              date={formatDate(tx.date)}
+              type={tx.type}
+            />
+          ))
+        )}
 
         {/* Bottom spacer for tab bar */}
         <View style={{ height: 100 }} />
@@ -165,16 +150,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  premiumBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: DarkTheme.cardBg,
-    borderWidth: 2,
-    borderColor: DarkTheme.brandYellow + '55',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   avatarContainer: {
     width: 40,
     height: 40,
@@ -217,16 +192,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: DarkTheme.textPrimary,
   },
-  searchBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: BorderRadius.sm,
-    backgroundColor: DarkTheme.cardBg,
-    borderWidth: 1.5,
-    borderColor: DarkTheme.neoBorder,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   // Stats
   statsRow: {
     flexDirection: 'row',
@@ -260,17 +225,27 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: DarkTheme.brandYellow,
   },
-  seeAllBtn: {
+  // Empty State
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xxxl + 20,
     backgroundColor: DarkTheme.cardBg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.md,
     borderWidth: 1.5,
     borderColor: DarkTheme.neoBorder,
+    gap: Spacing.sm,
   },
-  seeAll: {
+  emptyTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: '800',
+    color: DarkTheme.textPrimary,
+    marginTop: Spacing.sm,
+  },
+  emptyDesc: {
     fontSize: FontSize.sm,
     color: DarkTheme.textSecondary,
-    fontWeight: '700',
+    textAlign: 'center',
+    maxWidth: '70%',
   },
 });

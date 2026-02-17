@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadow } from '@/constants/Theme';
+import AddTransactionModal from '@/components/AddTransactionModal';
 
 type TabIconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -21,7 +22,7 @@ const TABS: TabConfig[] = [
   { name: 'more', title: 'More', icon: 'ellipsis-horizontal', iconFocused: 'ellipsis-horizontal' },
 ];
 
-function CustomTabBar({ state, descriptors, navigation }: any) {
+function CustomTabBar({ state, descriptors, navigation, onFabPress }: any) {
   const insets = useSafeAreaInsets();
   const fabIndex = 2; // FAB sits between Analysis and Accounts
 
@@ -51,7 +52,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           <React.Fragment key={route.key}>
             {/* Insert FAB before the accounts tab */}
             {tabArrayIndex === fabIndex && (
-              <TouchableOpacity style={styles.fabButton} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.fabButton} activeOpacity={0.8} onPress={onFabPress}>
                 <Ionicons name="add" size={28} color={DarkTheme.fabIcon} />
               </TouchableOpacity>
             )}
@@ -83,18 +84,23 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 }
 
 export default function TabLayout() {
+  const [showAddModal, setShowAddModal] = useState(false);
+
   return (
-    <Tabs
-      tabBar={(props) => <CustomTabBar {...props} />}
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Tabs.Screen name="index" />
-      <Tabs.Screen name="analysis" />
-      <Tabs.Screen name="accounts" />
-      <Tabs.Screen name="more" />
-    </Tabs>
+    <>
+      <Tabs
+        tabBar={(props) => <CustomTabBar {...props} onFabPress={() => setShowAddModal(true)} />}
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Tabs.Screen name="index" />
+        <Tabs.Screen name="analysis" />
+        <Tabs.Screen name="accounts" />
+        <Tabs.Screen name="more" />
+      </Tabs>
+      <AddTransactionModal visible={showAddModal} onClose={() => setShowAddModal(false)} />
+    </>
   );
 }
 

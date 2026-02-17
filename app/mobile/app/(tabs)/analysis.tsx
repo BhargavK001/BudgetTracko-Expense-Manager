@@ -1,50 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DarkTheme, Spacing, FontSize, BorderRadius } from '@/constants/Theme';
 import StatCard from '@/components/StatCard';
 import DonutChart from '@/components/DonutChart';
+import { useTransactions } from '@/context/TransactionContext';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-const CATEGORY_DATA = [
-    { name: 'Enjoyment', icon: 'headset-outline' as const, color: '#4CAF50', amount: 1283, change: '+12728.0%', changeType: 'up' as const },
-    { name: 'Food and Dining', icon: 'restaurant-outline' as const, color: '#FF9800', amount: 1137, change: '-73.5%', changeType: 'down' as const },
-    { name: 'Friend', icon: 'people-outline' as const, color: '#7C4DFF', amount: 125, change: '-20.4%', changeType: 'down' as const },
-    { name: 'Due', icon: 'document-text-outline' as const, color: '#2196F3', amount: 122, change: '-95.2%', changeType: 'down' as const },
-    { name: 'Health/Self Groom', icon: 'heart-outline' as const, color: '#E91E63', amount: 4, change: '-99.7%', changeType: 'down' as const },
-];
-
-const CHART_DATA = CATEGORY_DATA.map(c => ({ value: c.amount, color: c.color, label: c.name }));
-
-const STATS = {
-    totalTransactions: 39,
-    avgSpendingPerDay: '₹157.1',
-    avgSpendingPerTx: '₹72.17',
-    avgIncomePerDay: '₹588.2',
-    avgIncomePerTx: '₹10,000',
-};
+function formatCurrency(n: number): string {
+    return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
 
 type TimeFilter = 'Week' | 'Month' | 'Year' | 'Custom';
 
 export default function AnalysisScreen() {
     const insets = useSafeAreaInsets();
+    const { getTotalIncome, getTotalExpense, getTransactionsForMonth, getCategoryBreakdown } = useTransactions();
+
     const [selectedFilter, setSelectedFilter] = useState<TimeFilter>('Month');
-    const [currentMonthIndex, setCurrentMonthIndex] = useState(1);
-    const currentYear = 2026;
+    const now = new Date();
+    const [currentMonthIndex, setCurrentMonthIndex] = useState(now.getMonth());
+    const currentYear = now.getFullYear();
 
     const goToPrevMonth = () => setCurrentMonthIndex((prev) => (prev > 0 ? prev - 1 : 11));
     const goToNextMonth = () => setCurrentMonthIndex((prev) => (prev < 11 ? prev + 1 : 0));
+
+    const monthlyIncome = useMemo(() => getTotalIncome(currentMonthIndex, currentYear), [getTotalIncome, currentMonthIndex, currentYear]);
+    const monthlyExpense = useMemo(() => getTotalExpense(currentMonthIndex, currentYear), [getTotalExpense, currentMonthIndex, currentYear]);
+    const monthlyBalance = monthlyIncome - monthlyExpense;
+
+    const categoryData = useMemo(() => getCategoryBreakdown(currentMonthIndex, currentYear), [getCategoryBreakdown, currentMonthIndex, currentYear]);
+    const chartData = useMemo(() => categoryData.map((c) => ({ value: c.amount, color: c.color, label: c.name })), [categoryData]);
+
+    const monthlyTxs = useMemo(() => getTransactionsForMonth(currentMonthIndex, currentYear), [getTransactionsForMonth, currentMonthIndex, currentYear]);
+    const totalTransactions = monthlyTxs.length;
+    const daysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
+    const avgSpendingPerDay = totalTransactions > 0 ? monthlyExpense / daysInMonth : 0;
+    const expenseTxCount = monthlyTxs.filter((t) => t.type === 'expense').length;
+    const avgSpendingPerTx = expenseTxCount > 0 ? monthlyExpense / expenseTxCount : 0;
+    const incomeTxCount = monthlyTxs.filter((t) => t.type === 'income').length;
+    const avgIncomePerDay = monthlyIncome / daysInMonth;
+    const avgIncomePerTx = incomeTxCount > 0 ? monthlyIncome / incomeTxCount : 0;
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             {/* ─── Sticky Header ─── */}
             <View style={styles.stickyHeader}>
                 <Text style={styles.title}>Analysis</Text>
-                <TouchableOpacity style={styles.downloadBtn}>
-                    <Ionicons name="download-outline" size={18} color={DarkTheme.textPrimary} />
-                </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -80,52 +84,41 @@ export default function AnalysisScreen() {
 
                 {/* Stat Cards */}
                 <View style={styles.statsRow}>
-                    <StatCard label="Spending" amount="₹2,670" type="spending" />
-                    <StatCard label="Income" amount="₹10,000" type="income" />
+                    <StatCard label="Spending" amount={formatCurrency(monthlyExpense)} type="spending" />
+                    <StatCard label="Income" amount={formatCurrency(monthlyIncome)} type="income" />
                 </View>
 
                 {/* Balance */}
                 <View style={styles.balancePill}>
-                    <Text style={styles.balanceText}>Balance: ₹7,330</Text>
-                </View>
-
-                {/* Budget Section */}
-                <View style={styles.sectionContainer}>
-                    <Text style={styles.sectionTitle}>Budget</Text>
-                    <View style={styles.card}>
-                        <Text style={styles.budgetTitle}>No Budget for This Month?</Text>
-                        <Text style={styles.budgetDesc}>
-                            Setting a budget for your spending is a crucial step in achieving your financial goals.
-                        </Text>
-                        <TouchableOpacity style={styles.budgetButton}>
-                            <Text style={styles.budgetButtonText}>Set Up Budget</Text>
-                        </TouchableOpacity>
-                    </View>
+                    <Text style={styles.balanceText}>Balance: {formatCurrency(monthlyBalance)}</Text>
                 </View>
 
                 {/* Categories Section */}
                 <View style={styles.sectionContainer}>
                     <Text style={styles.sectionTitle}>Categories</Text>
                     <View style={styles.card}>
-                        <Text style={styles.cardSubtitle}>Category-wise spending</Text>
-                        <DonutChart data={CHART_DATA} size={220} strokeWidth={38} />
-                        {CATEGORY_DATA.map((cat, index) => (
-                            <View key={index} style={styles.categoryItem}>
-                                <View style={[styles.categoryIcon, { backgroundColor: cat.color + '22' }]}>
-                                    <Ionicons name={cat.icon} size={18} color={cat.color} />
-                                </View>
-                                <Text style={styles.categoryName}>{cat.name}</Text>
-                                <View style={styles.categoryRight}>
-                                    <Text style={styles.categoryAmount}>₹{cat.amount.toLocaleString()}</Text>
-                                    <Text style={[
-                                        styles.categoryChange,
-                                        { color: cat.changeType === 'up' ? DarkTheme.income : DarkTheme.spending }
-                                    ]}>
-                                        {cat.change}
-                                    </Text>
-                                </View>
+                        {categoryData.length === 0 ? (
+                            <View style={styles.emptyCategory}>
+                                <Ionicons name="pie-chart-outline" size={40} color={DarkTheme.textMuted} />
+                                <Text style={styles.emptyCategoryText}>No spending data for this month</Text>
                             </View>
-                        ))}
+                        ) : (
+                            <>
+                                <Text style={styles.cardSubtitle}>Category-wise spending</Text>
+                                <DonutChart data={chartData} size={220} strokeWidth={38} />
+                                {categoryData.map((cat, index) => (
+                                    <View key={index} style={styles.categoryItem}>
+                                        <View style={[styles.categoryIcon, { backgroundColor: cat.color + '22' }]}>
+                                            <Ionicons name={cat.icon as any} size={18} color={cat.color} />
+                                        </View>
+                                        <Text style={styles.categoryName}>{cat.name}</Text>
+                                        <View style={styles.categoryRight}>
+                                            <Text style={styles.categoryAmount}>{formatCurrency(cat.amount)}</Text>
+                                        </View>
+                                    </View>
+                                ))}
+                            </>
+                        )}
                     </View>
                 </View>
 
@@ -135,25 +128,25 @@ export default function AnalysisScreen() {
                     <View style={styles.card}>
                         <View style={styles.statRow}>
                             <Text style={styles.statLabel}>Number of transactions</Text>
-                            <Text style={styles.statValue}>{STATS.totalTransactions}</Text>
+                            <Text style={styles.statValue}>{totalTransactions}</Text>
                         </View>
                         <Text style={styles.statSubHeader}>Average spending</Text>
                         <View style={styles.statRow}>
                             <Text style={styles.statLabelIndented}>Per day</Text>
-                            <Text style={styles.statValue}>{STATS.avgSpendingPerDay}</Text>
+                            <Text style={styles.statValue}>{formatCurrency(Math.round(avgSpendingPerDay))}</Text>
                         </View>
                         <View style={styles.statRow}>
                             <Text style={styles.statLabelIndented}>Per transaction</Text>
-                            <Text style={styles.statValue}>{STATS.avgSpendingPerTx}</Text>
+                            <Text style={styles.statValue}>{formatCurrency(Math.round(avgSpendingPerTx))}</Text>
                         </View>
                         <Text style={styles.statSubHeader}>Average income</Text>
                         <View style={styles.statRow}>
                             <Text style={styles.statLabelIndented}>Per day</Text>
-                            <Text style={styles.statValue}>{STATS.avgIncomePerDay}</Text>
+                            <Text style={styles.statValue}>{formatCurrency(Math.round(avgIncomePerDay))}</Text>
                         </View>
                         <View style={styles.statRow}>
                             <Text style={styles.statLabelIndented}>Per transaction</Text>
-                            <Text style={styles.statValue}>{STATS.avgIncomePerTx}</Text>
+                            <Text style={styles.statValue}>{formatCurrency(Math.round(avgIncomePerTx))}</Text>
                         </View>
                     </View>
                 </View>
@@ -185,16 +178,6 @@ const styles = StyleSheet.create({
         fontSize: FontSize.xxl,
         fontWeight: '800',
         color: DarkTheme.textPrimary,
-    },
-    downloadBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: BorderRadius.sm,
-        backgroundColor: DarkTheme.cardBg,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
-        justifyContent: 'center',
-        alignItems: 'center',
     },
     scrollView: {
         flex: 1,
@@ -300,33 +283,16 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginBottom: Spacing.sm,
     },
-    // Budget
-    budgetTitle: {
-        fontSize: FontSize.lg,
-        fontWeight: '800',
-        color: DarkTheme.textPrimary,
-        marginBottom: Spacing.sm,
+    // Empty category
+    emptyCategory: {
+        alignItems: 'center',
+        paddingVertical: Spacing.xxl,
+        gap: Spacing.sm,
     },
-    budgetDesc: {
+    emptyCategoryText: {
         fontSize: FontSize.sm,
-        color: DarkTheme.textSecondary,
-        lineHeight: 20,
-        marginBottom: Spacing.lg,
-    },
-    budgetButton: {
-        alignSelf: 'flex-start',
-        borderWidth: 2,
-        borderColor: DarkTheme.brandYellow,
-        borderRadius: BorderRadius.sm,
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.sm,
-    },
-    budgetButtonText: {
-        fontSize: FontSize.sm,
-        fontWeight: '800',
-        color: DarkTheme.brandYellow,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        color: DarkTheme.textMuted,
+        fontWeight: '600',
     },
     // Categories
     categoryItem: {
@@ -357,11 +323,6 @@ const styles = StyleSheet.create({
         fontSize: FontSize.md,
         fontWeight: '700',
         color: DarkTheme.textPrimary,
-    },
-    categoryChange: {
-        fontSize: FontSize.xs,
-        fontWeight: '700',
-        marginTop: 2,
     },
     // Stats
     statRow: {

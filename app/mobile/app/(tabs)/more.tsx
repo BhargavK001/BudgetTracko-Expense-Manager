@@ -1,22 +1,60 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadowSm } from '@/constants/Theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const MENU_ITEMS = [
-    { icon: 'person-outline' as const, label: 'Profile', color: '#2196F3' },
-    { icon: 'settings-outline' as const, label: 'Settings', color: '#9E9E9E' },
-    { icon: 'notifications-outline' as const, label: 'Reminders', color: '#FF9800' },
-    { icon: 'download-outline' as const, label: 'Export Data', color: '#4CAF50' },
-    { icon: 'shield-checkmark-outline' as const, label: 'Privacy & Security', color: '#7C4DFF' },
-    { icon: 'help-circle-outline' as const, label: 'Help & Support', color: '#00BCD4' },
-    { icon: 'star-outline' as const, label: 'Rate Us', color: '#FFD700' },
-    { icon: 'share-social-outline' as const, label: 'Share App', color: '#E91E63' },
+type MenuItem = {
+    icon: React.ComponentProps<typeof Ionicons>['name'];
+    label: string;
+    color: string;
+    route?: string;
+};
+
+const MENU_ITEMS: MenuItem[] = [
+    { icon: 'person-outline', label: 'Profile', color: '#2196F3' },
+    { icon: 'settings-outline', label: 'Settings', color: '#9E9E9E' },
+    { icon: 'notifications-outline', label: 'Reminders', color: '#FF9800' },
+    { icon: 'download-outline', label: 'Export Data', color: '#4CAF50' },
+    { icon: 'shield-checkmark-outline', label: 'Privacy & Security', color: '#7C4DFF' },
+    { icon: 'help-circle-outline', label: 'Help & Support', color: '#00BCD4', route: '/help-support' },
+    { icon: 'star-outline', label: 'Rate Us', color: '#FFD700' },
+    { icon: 'share-social-outline', label: 'Share App', color: '#E91E63', route: '/share-app' },
 ];
 
 export default function MoreScreen() {
     const insets = useSafeAreaInsets();
+    const router = useRouter();
+
+    const handleMenuPress = (item: MenuItem) => {
+        if (item.route) {
+            router.push(item.route as any);
+        }
+    };
+
+    const handleLogout = () => {
+        Alert.alert(
+            'Log Out',
+            'Are you sure you want to log out? Your locally saved data will be cleared.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Log Out',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await AsyncStorage.clear();
+                            router.replace('/welcome');
+                        } catch (e) {
+                            console.error('Logout failed', e);
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -36,14 +74,18 @@ export default function MoreScreen() {
                         <Ionicons name="person" size={24} color={DarkTheme.brandYellow} />
                     </View>
                     <View style={styles.userInfo}>
-                        <Text style={styles.userName}>Bhargav Karande</Text>
-                        <Text style={styles.userEmail}>bhargav@budgettracko.com</Text>
+                        <Text style={styles.userName}>BudgetTracko User</Text>
+                        <Text style={styles.userEmail}>Local Mode</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={18} color={DarkTheme.chevron} />
                 </View>
 
                 {/* Premium Banner */}
-                <TouchableOpacity style={styles.premiumBanner}>
+                <TouchableOpacity
+                    style={styles.premiumBanner}
+                    onPress={() => router.push('/premium' as any)}
+                    activeOpacity={0.8}
+                >
                     <View style={styles.premiumLeft}>
                         <View style={styles.premiumIcon}>
                             <Ionicons name="diamond" size={20} color={DarkTheme.brandYellow} />
@@ -59,7 +101,12 @@ export default function MoreScreen() {
                 {/* Menu Items */}
                 <View style={styles.menuContainer}>
                     {MENU_ITEMS.map((item, index) => (
-                        <TouchableOpacity key={index} style={styles.menuItem} activeOpacity={0.7}>
+                        <TouchableOpacity
+                            key={index}
+                            style={styles.menuItem}
+                            activeOpacity={0.7}
+                            onPress={() => handleMenuPress(item)}
+                        >
                             <View style={[styles.menuIcon, { backgroundColor: item.color + '22' }]}>
                                 <Ionicons name={item.icon} size={18} color={item.color} />
                             </View>
@@ -70,7 +117,7 @@ export default function MoreScreen() {
                 </View>
 
                 {/* Logout */}
-                <TouchableOpacity style={styles.logoutButton}>
+                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.7}>
                     <Ionicons name="log-out-outline" size={18} color={DarkTheme.spending} />
                     <Text style={styles.logoutText}>Log Out</Text>
                 </TouchableOpacity>
