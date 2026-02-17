@@ -1,59 +1,153 @@
 import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadow } from '@/constants/Theme';
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+type TabIconName = React.ComponentProps<typeof Ionicons>['name'];
 
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
+type TabConfig = {
+  name: string;
+  title: string;
+  icon: TabIconName;
+  iconFocused: TabIconName;
+};
+
+const TABS: TabConfig[] = [
+  { name: 'index', title: 'Home', icon: 'home-outline', iconFocused: 'home' },
+  { name: 'analysis', title: 'Analysis', icon: 'bar-chart-outline', iconFocused: 'bar-chart' },
+  { name: 'accounts', title: 'Accounts', icon: 'business-outline', iconFocused: 'business' },
+  { name: 'more', title: 'More', icon: 'ellipsis-horizontal', iconFocused: 'ellipsis-horizontal' },
+];
+
+function CustomTabBar({ state, descriptors, navigation }: any) {
+  const insets = useSafeAreaInsets();
+  const fabIndex = 2; // FAB sits between Analysis and Accounts
+
+  return (
+    <View style={[styles.tabBarContainer, { paddingBottom: insets.bottom > 0 ? insets.bottom : Spacing.sm }]}>
+      {state.routes.map((route: any, index: number) => {
+        const tab = TABS.find((t) => t.name === route.name);
+        if (!tab) return null;
+
+        const isFocused = state.index === index;
+
+        const onPress = () => {
+          const event = navigation.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
+
+        const tabArrayIndex = TABS.findIndex((t) => t.name === route.name);
+
+        return (
+          <React.Fragment key={route.key}>
+            {/* Insert FAB before the accounts tab */}
+            {tabArrayIndex === fabIndex && (
+              <TouchableOpacity style={styles.fabButton} activeOpacity={0.8}>
+                <Ionicons name="add" size={28} color={DarkTheme.fabIcon} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.tabItem}
+              onPress={onPress}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={isFocused ? tab.iconFocused : tab.icon}
+                size={22}
+                color={isFocused ? DarkTheme.tabBarActive : DarkTheme.tabBarInactive}
+              />
+              <Text
+                style={[
+                  styles.tabLabel,
+                  { color: isFocused ? DarkTheme.tabBarActive : DarkTheme.tabBarInactive },
+                  isFocused && styles.tabLabelActive,
+                ]}
+              >
+                {tab.title}
+              </Text>
+            </TouchableOpacity>
+          </React.Fragment>
+        );
+      })}
+    </View>
+  );
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="two"
-        options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-        }}
-      />
+        headerShown: false,
+      }}
+    >
+      <Tabs.Screen name="index" />
+      <Tabs.Screen name="analysis" />
+      <Tabs.Screen name="accounts" />
+      <Tabs.Screen name="more" />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBarContainer: {
+    flexDirection: 'row',
+    backgroundColor: DarkTheme.tabBarBg,
+    borderTopWidth: 2,
+    borderTopColor: DarkTheme.neoBorder,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingTop: Spacing.sm,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xs,
+  },
+  tabLabel: {
+    fontSize: FontSize.xs,
+    marginTop: 2,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  tabLabelActive: {
+    fontWeight: '800',
+  },
+  fabButton: {
+    width: 54,
+    height: 54,
+    borderRadius: BorderRadius.md,
+    backgroundColor: DarkTheme.fabBg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -28,
+    borderWidth: 2.5,
+    borderColor: DarkTheme.brandBlack,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 3, height: 3 },
+        shadowOpacity: 0.5,
+        shadowRadius: 0,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+});
