@@ -112,9 +112,8 @@ const Pricing = () => {
 
         setLoading(true);
         try {
-            // 1. Create Order
-            const { data: orderData } = await api.post('/api/payments/create-order', {
-                amount: parseInt(plan.price.replace('₹', '')),
+            // 1. Create Subscription
+            const { data: subData } = await api.post('/api/payments/create-order', { // Keeping endpoint name as create-order for now or update it? I kept it in routes.
                 plan: plan.id
             });
 
@@ -126,33 +125,31 @@ const Pricing = () => {
                 prefillData.contact = user.phone;
             }
 
-            const cleanPlanName = plan.name.replace(/[^\w\s]/g, '').trim(); // Remove emojis
+            const cleanPlanName = plan.name.replace(/[^\w\s]/g, '').trim();
 
             const options = {
-                key: orderData.key,
-                amount: Number(orderData.amount), // Ensure number
-                currency: orderData.currency,
+                key: subData.key,
+                subscription_id: subData.subscription_id, // Use subscription_id
                 name: "BudgetTracko",
-                description: `Subscription for ${cleanPlanName}`,
-                order_id: orderData.order_id,
-                retry: { enabled: false }, // Disable retry to see if it helps debug
+                description: `Monthly Subscription for ${cleanPlanName}`,
+                // No amount needed for subscription flow on client side init
                 handler: async function (response) {
                     try {
                         console.log("Razorpay Response:", response);
                         // 2. Verify Payment
                         const verifyRes = await api.post('/api/payments/verify', {
-                            razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_subscription_id: response.razorpay_subscription_id,
                             razorpay_signature: response.razorpay_signature
                         });
 
                         if (verifyRes.data.success) {
-                            await refreshUser(); // Refresh user state to show new plan
+                            await refreshUser();
                             setShowSuccess(true);
                             toast.success('Subscription activated successfully! 🎉');
                             setTimeout(() => {
                                 navigate('/dashboard');
-                            }, 3500); // 3.5s for animation
+                            }, 3500);
                         }
                     } catch (error) {
                         console.error("Verification Error", error);

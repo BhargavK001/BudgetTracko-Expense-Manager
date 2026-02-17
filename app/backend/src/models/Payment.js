@@ -37,6 +37,9 @@ const PaymentSchema = new mongoose.Schema({
     receipt: {
         type: String
     },
+    subscriptionId: {
+        type: String
+    },
     createdAt: {
         type: Date,
         default: Date.now

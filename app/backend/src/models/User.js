@@ -46,13 +46,16 @@ const UserSchema = new mongoose.Schema({
         },
         status: {
             type: String,
-            enum: ['active', 'inactive', 'canceled', 'past_due'],
+            enum: ['active', 'inactive', 'canceled', 'past_due', 'created', 'authenticated'],
             default: 'active'
         },
         expiresAt: {
             type: Date
         },
         razorpayCustomerId: {
+            type: String
+        },
+        razorpaySubscriptionId: {
             type: String
         }
     },

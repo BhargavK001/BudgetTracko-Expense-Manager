@@ -102,6 +102,10 @@ const sanitizeObject = (obj) => {
     return clean;
 };
 app.use((req, res, next) => {
+    // Skip sanitization for webhooks to preserve signature
+    if (req.originalUrl === '/api/payments/webhook') {
+        return next();
+    }
     if (req.body && typeof req.body === 'object') {
         req.body = sanitizeObject(req.body);
     }
