@@ -13,13 +13,17 @@ export const AuthProvider = ({ children }) => {
             const res = await api.get('/auth/me');
             if (res.data?.user) {
                 setUser(res.data.user);
+                // Ensure flag is set if we successfully got user
+                localStorage.setItem('logged_in', 'true');
             } else {
                 setUser(null);
+                localStorage.removeItem('logged_in');
             }
         } catch (error) {
             // 401 means no valid cookie/token — user is not logged in
             if (error.response?.status === 401 || error.response?.status === 403) {
                 setUser(null);
+                localStorage.removeItem('logged_in');
             } else {
                 // Network or server error — don't log out, silently keep session
             }
@@ -40,7 +44,14 @@ export const AuthProvider = ({ children }) => {
             } catch (e) {
                 console.error("Failed to initialize CSRF token", e);
             }
-            fetchUser();
+
+            // Only fetch user if we have a local "logged_in" flag.
+            // This prevents 401 errors on startup for anonymous users.
+            if (localStorage.getItem('logged_in') === 'true') {
+                fetchUser();
+            } else {
+                setLoading(false);
+            }
         };
         initAuth();
     }, [fetchUser]);
@@ -49,6 +60,7 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const handleUnauthorized = () => {
             setUser(null);
+            localStorage.removeItem('logged_in');
         };
         window.addEventListener('auth:unauthorized', handleUnauthorized);
         return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
@@ -58,6 +70,8 @@ export const AuthProvider = ({ children }) => {
     // This function is called after redirect to refresh user state
     const login = useCallback(async () => {
         setLoading(true);
+        // Optimistically set flag so immediate fetchUser works
+        localStorage.setItem('logged_in', 'true');
         await fetchUser();
     }, [fetchUser]);
 
@@ -68,6 +82,7 @@ export const AuthProvider = ({ children }) => {
             // Logout request failed — clear local state anyway
         }
         setUser(null);
+        localStorage.removeItem('logged_in');
     }, []);
 
     return (

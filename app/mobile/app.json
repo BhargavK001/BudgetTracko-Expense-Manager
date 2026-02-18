@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "BudgetTracko",
+    "slug": "budgettracko",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/logo512.png",
+    "scheme": "budgettracko",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/logo512.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0A0A"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/logo512.png",
+        "backgroundColor": "#0A0A0A"
+      },
+      "package": "com.budgettracko.app",
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/logo512.png"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
