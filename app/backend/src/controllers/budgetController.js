@@ -81,7 +81,7 @@ exports.updateBudget = async (req, res) => {
         const budget = await Budget.findOneAndUpdate(
             { _id: req.params.id, userId: req.user._id },
             req.body,
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         );
         if (!budget) return res.status(404).json({ error: 'Budget not found' });
         res.json(budget);

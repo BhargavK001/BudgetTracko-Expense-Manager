@@ -50,7 +50,7 @@ exports.updateAccount = async (req, res) => {
         const account = await Account.findOneAndUpdate(
             { _id: req.params.id, userId: req.user._id },
             { $set: req.body },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         );
         if (!account) return res.status(404).json({ success: false, message: 'Account not found' });
         res.json({ success: true, data: account });

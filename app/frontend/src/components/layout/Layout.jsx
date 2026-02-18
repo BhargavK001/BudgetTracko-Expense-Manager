@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
@@ -14,6 +15,7 @@ import {
     BsBoxArrowRight,
 } from 'react-icons/bs';
 import { toast } from 'sonner';
+import { adminApi } from '../../services/adminApi';
 
 const navItems = [
     { to: '/dashboard', icon: BsGrid1X2Fill, label: 'Dashboard' },
@@ -68,13 +70,39 @@ const Layout = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         toast.info('Logged out successfully');
         navigate('/login');
     };
 
     const fallbackAvatar = `https://ui-avatars.com/api/?name=${user?.displayName || 'User'}&background=1a1a1a&color=facc15&bold=true&format=svg`;
+
+    const [announcement, setAnnouncement] = useState('');
+    const [announcementType, setAnnouncementType] = useState('info');
+    const [showAnnouncement, setShowAnnouncement] = useState(true);
+    const [maintenanceActive, setMaintenanceActive] = useState(false);
+    const [maintenanceMsg, setMaintenanceMsg] = useState('');
+
+    useEffect(() => {
+        const fetchConfig = async () => {
+            try {
+                const res = await adminApi.getPublicConfig();
+                const data = res.data.data;
+                if (data.announcement) {
+                    setAnnouncement(data.announcement);
+                    setAnnouncementType(data.announcement_type || 'info');
+                }
+                if (data.maintenance_mode === 'true') {
+                    setMaintenanceActive(true);
+                    setMaintenanceMsg(data.maintenance_message || 'We are performing scheduled maintenance.');
+                }
+            } catch (e) {
+                // Silent fail - public config not critical
+            }
+        };
+        fetchConfig();
+    }, []);
 
     if (loading) {
         return (
@@ -201,6 +229,38 @@ const Layout = () => {
 
             {/* ─── Main Content ─── */}
             <main className="lg:pl-60 pt-[60px] sm:pt-[68px] lg:pt-0 min-h-screen pb-32 lg:pb-8">
+                {/* Announcement Banner */}
+                {announcement && showAnnouncement && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`px-4 py-3 text-center text-sm font-bold border-b-2 border-brand-black relative ${announcementType === 'info' ? 'bg-blue-100 text-blue-900 dark:bg-blue-900/30 dark:text-blue-300' :
+                                announcementType === 'warning' ? 'bg-yellow-100 text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                                    announcementType === 'success' ? 'bg-green-100 text-green-900 dark:bg-green-900/30 dark:text-green-300' :
+                                        'bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-300'
+                            }`}
+                    >
+                        {announcement}
+                        <button
+                            onClick={() => setShowAnnouncement(false)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 opacity-60 hover:opacity-100 transition-opacity text-xs font-black"
+                        >
+                            ✕
+                        </button>
+                    </motion.div>
+                )}
+
+                {/* Maintenance Override (shown to users who somehow got through) */}
+                {maintenanceActive && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="bg-orange-100 dark:bg-orange-900/30 border-b-2 border-orange-400 px-4 py-2 text-center text-xs font-bold text-orange-800 dark:text-orange-300"
+                    >
+                        ⚠️ {maintenanceMsg}
+                    </motion.div>
+                )}
+
                 <div className="max-w-5xl mx-auto px-3 py-4 sm:p-6 lg:p-8">
                     <AnimatePresence mode="wait">
                         <motion.div

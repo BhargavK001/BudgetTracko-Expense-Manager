@@ -95,6 +95,11 @@ exports.login = async (req, res) => {
             return res.status(401).json({ success: false, message: 'Invalid credentials' });
         }
 
+        // Check if account is deactivated
+        if (user.accountStatus === 'deactivated') {
+            return res.status(403).json({ success: false, message: 'Your account has been deactivated. Please contact support.' });
+        }
+
         // Generate token and set cookie
         const token = generateToken(user);
         res.cookie('token', token, getCookieOptions());

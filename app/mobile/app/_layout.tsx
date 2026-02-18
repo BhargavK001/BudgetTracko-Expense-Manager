@@ -3,10 +3,13 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import AnimatedSplash from '../components/AnimatedSplash';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { TransactionProvider } from '@/context/TransactionContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -15,7 +18,7 @@ export {
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: 'welcome',
+  initialRouteName: 'index',
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -26,6 +29,7 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
+  const [showAnimatedSplash, setShowAnimatedSplash] = useState(true);
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
@@ -34,33 +38,48 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (loaded) {
-      SplashScreen.hideAsync();
+      // Hide native splash after a tiny delay so animated splash can take over smoothly
+      setTimeout(() => {
+        SplashScreen.hideAsync();
+      }, 100);
     }
   }, [loaded]);
+
+  const handleSplashComplete = useCallback(() => {
+    setShowAnimatedSplash(false);
+  }, []);
 
   if (!loaded) {
     return null;
   }
 
+  if (showAnimatedSplash) {
+    return <AnimatedSplash onComplete={handleSplashComplete} />;
+  }
+
   return <RootLayoutNav />;
 }
-
-import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack initialRouteName="welcome">
-          <Stack.Screen name="welcome" options={{ headerShown: false }} />
-          <Stack.Screen name="features" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-        </Stack>
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <TransactionProvider>
+      <SafeAreaProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack initialRouteName="index">
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+            <Stack.Screen name="welcome" options={{ headerShown: false }} />
+            <Stack.Screen name="features" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="help-support" options={{ headerShown: false }} />
+            <Stack.Screen name="share-app" options={{ headerShown: false }} />
+            <Stack.Screen name="premium" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+          </Stack>
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </TransactionProvider>
   );
 }

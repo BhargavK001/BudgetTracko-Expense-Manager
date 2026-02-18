@@ -8,7 +8,7 @@ const PaymentSchema = new mongoose.Schema({
     },
     orderId: {
         type: String,
-        required: true
+        required: false
     },
     paymentId: {
         type: String
@@ -35,6 +35,9 @@ const PaymentSchema = new mongoose.Schema({
         required: true
     },
     receipt: {
+        type: String
+    },
+    subscriptionId: {
         type: String
     },
     createdAt: {

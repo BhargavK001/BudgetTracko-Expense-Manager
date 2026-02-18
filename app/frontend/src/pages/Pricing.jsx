@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BsCheckCircleFill } from 'react-icons/bs';
+import { BsCheckCircleFill, BsTagFill } from 'react-icons/bs';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { toast } from 'sonner';
@@ -78,6 +78,8 @@ const plans = [
     },
 ];
 
+const PLAN_RANK = { free: 0, pro: 1, squad: 2 };
+
 const Pricing = () => {
     const { user, refreshUser } = useAuth();
     const navigate = useNavigate();
@@ -85,6 +87,10 @@ const Pricing = () => {
     const [showSuccess, setShowSuccess] = useState(false);
     const [searchParams] = useSearchParams();
     const hasTriggeredAutoPayment = useRef(false);
+    const [couponCode, setCouponCode] = useState('');
+    const [couponInfo, setCouponInfo] = useState(null);
+    const [validatingCoupon, setValidatingCoupon] = useState(false);
+    const [showCouponInput, setShowCouponInput] = useState(false);
 
     // Check for auto-payment trigger (e.g. returning from login)
     useEffect(() => {
@@ -98,6 +104,26 @@ const Pricing = () => {
         }
     }, [user, searchParams]);
 
+    const userPlan = user?.subscription?.plan || 'free';
+    const userSubStatus = user?.subscription?.status;
+    const isUserSubActive = userSubStatus === 'active' || userSubStatus === 'authenticated';
+
+    const getButtonState = (planId) => {
+        if (!user) return { text: 'Get Started', disabled: false, style: 'default' };
+        if (planId === 'free') return { text: 'Get Started', disabled: false, style: 'default' };
+
+        if (isUserSubActive && userPlan === planId) {
+            return { text: '✓ Current Plan', disabled: true, style: 'current' };
+        }
+        if (isUserSubActive && PLAN_RANK[planId] > PLAN_RANK[userPlan]) {
+            return { text: 'Upgrade Now ⚡', disabled: false, style: 'upgrade' };
+        }
+        if (isUserSubActive && PLAN_RANK[planId] < PLAN_RANK[userPlan]) {
+            return { text: 'Downgrade', disabled: true, style: 'downgrade' };
+        }
+        return { text: 'Get Started', disabled: false, style: 'default' };
+    };
+
     const handleSubscribe = async (plan) => {
         if (!user) {
             // Redirect to login with return path
@@ -110,12 +136,38 @@ const Pricing = () => {
             return;
         }
 
+        // Block if already on this plan
+        if (isUserSubActive && userPlan === plan.id) {
+            toast.info('You are already subscribed to this plan!');
+            return;
+        }
+
         setLoading(true);
         try {
-            // 1. Create Order
-            const { data: orderData } = await api.post('/api/payments/create-order', {
-                amount: parseInt(plan.price.replace('₹', '')),
-                plan: plan.id
+            // Validate coupon for selected plan if entered
+            let activeCouponCode = '';
+            if (couponCode.trim()) {
+                try {
+                    const couponRes = await api.post('/api/payments/validate-coupon', {
+                        code: couponCode,
+                        plan: plan.id
+                    });
+                    if (couponRes.data.success) {
+                        activeCouponCode = couponRes.data.coupon.code;
+                        toast.success(`Coupon applied for ${plan.name}!`);
+                    }
+                } catch (couponError) {
+                    console.error("Coupon Validation Failed for Plan", couponError);
+                    toast.error(couponError.response?.data?.message || `Coupon invalid for ${plan.name}`);
+                    setLoading(false);
+                    return; // Stop if coupon is invalid for this plan
+                }
+            }
+
+            // 1. Create Subscription
+            const { data: subData } = await api.post('/api/payments/create-order', {
+                plan: plan.id,
+                couponCode: activeCouponCode || ''
             });
 
             const prefillData = {
@@ -126,33 +178,31 @@ const Pricing = () => {
                 prefillData.contact = user.phone;
             }
 
-            const cleanPlanName = plan.name.replace(/[^\w\s]/g, '').trim(); // Remove emojis
+            const cleanPlanName = plan.name.replace(/[^\w\s]/g, '').trim();
 
             const options = {
-                key: orderData.key,
-                amount: Number(orderData.amount), // Ensure number
-                currency: orderData.currency,
+                key: subData.key,
+                subscription_id: subData.subscription_id, // Use subscription_id
                 name: "BudgetTracko",
-                description: `Subscription for ${cleanPlanName}`,
-                order_id: orderData.order_id,
-                retry: { enabled: false }, // Disable retry to see if it helps debug
+                description: `Monthly Subscription for ${cleanPlanName}`,
+                // No amount needed for subscription flow on client side init
                 handler: async function (response) {
                     try {
                         console.log("Razorpay Response:", response);
                         // 2. Verify Payment
                         const verifyRes = await api.post('/api/payments/verify', {
-                            razorpay_order_id: response.razorpay_order_id,
                             razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_subscription_id: response.razorpay_subscription_id,
                             razorpay_signature: response.razorpay_signature
                         });
 
                         if (verifyRes.data.success) {
-                            await refreshUser(); // Refresh user state to show new plan
+                            await refreshUser();
                             setShowSuccess(true);
                             toast.success('Subscription activated successfully! 🎉');
                             setTimeout(() => {
                                 navigate('/dashboard');
-                            }, 3500); // 3.5s for animation
+                            }, 3500);
                         }
                     } catch (error) {
                         console.error("Verification Error", error);
@@ -165,6 +215,15 @@ const Pricing = () => {
                 }
             };
 
+            // Handle initial charge if present (e.g. nominal coupon)
+            if (subData.initial_order_id) {
+                options.order_id = subData.initial_order_id;
+                // Since it's an order, we might need amount / currency if not standard subscription flow
+                // But Razorpay handles hybrid if subscription_id + order_id passed?
+                // Actually usually you pay the order first then sub starts.
+                // But let's trust Razorpay Standard options.
+            }
+
             console.log("Razorpay Options:", options);
 
             const rzp = new window.Razorpay(options);
@@ -175,7 +234,7 @@ const Pricing = () => {
 
         } catch (error) {
             console.error("Payment Error", error);
-            toast.error('Something went wrong initiating payment.');
+            toast.error(error.response?.data?.message || 'Something went wrong initiating payment.');
         } finally {
             setLoading(false);
         }
@@ -234,6 +293,89 @@ const Pricing = () => {
                 >
                     Built for students & college life. Affordable plans that won't burn a hole in your pocket. 🔥
                 </motion.p>
+
+                {/* Coupon Code Input */}
+                {user && (
+                    <motion.div
+                        variants={fadeUp}
+                        initial="hidden"
+                        animate="visible"
+                        custom={0.4}
+                        className="mt-6 sm:mt-8 max-w-md mx-auto"
+                    >
+                        {!showCouponInput ? (
+                            <motion.button
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => setShowCouponInput(true)}
+                                className="text-sm font-bold border-2 border-black px-4 py-2 hover:bg-black hover:text-brand-yellow transition-colors flex items-center gap-2 mx-auto"
+                            >
+                                <BsTagFill size={14} />
+                                Have a coupon code?
+                            </motion.button>
+                        ) : (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="bg-white border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] p-4"
+                            >
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={couponCode}
+                                        onChange={(e) => {
+                                            setCouponCode(e.target.value.toUpperCase());
+                                            if (couponInfo) setCouponInfo(null);
+                                        }}
+                                        placeholder="Enter coupon code"
+                                        className="flex-1 px-3 py-2 border-2 border-black font-bold text-sm uppercase focus:outline-none focus:ring-2 focus:ring-brand-yellow"
+                                    />
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={async () => {
+                                            if (!couponCode.trim()) {
+                                                toast.error('Please enter a coupon code');
+                                                return;
+                                            }
+                                            setValidatingCoupon(true);
+                                            try {
+                                                const res = await api.post('/api/payments/validate-coupon', {
+                                                    code: couponCode,
+                                                    plan: 'pro'
+                                                });
+                                                setCouponInfo(res.data);
+                                                toast.success('Coupon applied! 🎉');
+                                            } catch (error) {
+                                                toast.error(error.response?.data?.message || 'Invalid coupon');
+                                                setCouponInfo(null);
+                                            } finally {
+                                                setValidatingCoupon(false);
+                                            }
+                                        }}
+                                        disabled={validatingCoupon}
+                                        className="bg-black text-brand-yellow font-black px-4 py-2 border-2 border-black hover:bg-brand-yellow hover:text-black transition-colors text-sm"
+                                    >
+                                        {validatingCoupon ? '...' : 'Apply'}
+                                    </motion.button>
+                                </div>
+                                {couponInfo && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        className="mt-3 bg-green-100 border-2 border-green-500 p-3 flex items-center gap-2"
+                                    >
+                                        <BsCheckCircleFill className="text-green-600 flex-shrink-0" size={16} />
+                                        <div className="text-left">
+                                            <p className="text-sm font-black text-green-800">{couponInfo.coupon.code} applied!</p>
+                                            <p className="text-xs font-bold text-green-700">{couponInfo.discountInfo.description}</p>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </motion.div>
+                        )}
+                    </motion.div>
+                )}
             </div>
 
             {/* Pricing Cards */}
@@ -278,18 +420,29 @@ const Pricing = () => {
                                 ))}
                             </ul>
 
-                            <motion.button
-                                whileHover={{ y: -3, boxShadow: '6px 6px 0px 0px rgba(0,0,0,1)' }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleSubscribe(plan)}
-                                disabled={loading}
-                                className={`block w-full text-center font-black text-base sm:text-lg py-3 sm:py-4 border-3 sm:border-4 border-black transition-all ${plan.highlight
-                                    ? 'bg-brand-yellow text-black'
-                                    : 'bg-black text-white hover:bg-brand-yellow hover:text-black'
-                                    } ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                            >
-                                {loading && plan.id !== 'free' ? 'Processing...' : 'Get Started'}
-                            </motion.button>
+                            {(() => {
+                                const btnState = getButtonState(plan.id);
+                                return (
+                                    <motion.button
+                                        whileHover={!btnState.disabled ? { y: -3, boxShadow: '6px 6px 0px 0px rgba(0,0,0,1)' } : {}}
+                                        whileTap={!btnState.disabled ? { scale: 0.95 } : {}}
+                                        onClick={() => handleSubscribe(plan)}
+                                        disabled={loading || btnState.disabled}
+                                        className={`block w-full text-center font-black text-base sm:text-lg py-3 sm:py-4 border-3 sm:border-4 border-black transition-all ${btnState.style === 'current'
+                                            ? 'bg-green-500 text-white cursor-default'
+                                            : btnState.style === 'upgrade'
+                                                ? 'bg-brand-yellow text-black'
+                                                : btnState.style === 'downgrade'
+                                                    ? 'bg-gray-400 text-gray-700 cursor-not-allowed'
+                                                    : plan.highlight
+                                                        ? 'bg-brand-yellow text-black'
+                                                        : 'bg-black text-white hover:bg-brand-yellow hover:text-black'
+                                            } ${(loading || btnState.disabled) ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                    >
+                                        {loading && plan.id !== 'free' ? 'Processing...' : btnState.text}
+                                    </motion.button>
+                                );
+                            })()}
                         </motion.div>
                     ))}
                 </motion.div>
