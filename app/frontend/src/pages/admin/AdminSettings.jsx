@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { adminApi } from '../../services/adminApi';
 import { useTheme } from '../../context/ThemeContext';
 import { toast } from 'sonner';
+import ConfirmationModal from '../../components/common/ConfirmationModal';
 
 const AdminSettings = () => {
     const { theme, toggleTheme } = useTheme();
@@ -18,6 +19,13 @@ const AdminSettings = () => {
     const [saving, setSaving] = useState(false);
     const [savingMaintenance, setSavingMaintenance] = useState(false);
     const [savingAnnouncement, setSavingAnnouncement] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmModalConfig, setConfirmModalConfig] = useState({
+        title: '',
+        message: '',
+        onConfirm: () => { },
+        type: 'info'
+    });
 
     useEffect(() => {
         const fetchConfig = async () => {
@@ -146,9 +154,16 @@ const AdminSettings = () => {
                         whileTap={{ scale: 0.95 }}
                         onClick={() => {
                             if (!maintenanceMode) {
-                                if (window.confirm('Are you sure you want to enable Maintenance Mode? This will block all non-admin users from accessing the application.')) {
-                                    handleToggleMaintenance();
-                                }
+                                setConfirmModalConfig({
+                                    title: 'Enable Maintenance Mode?',
+                                    message: 'This will block all non-admin users from accessing the application until disabled. Are you sure?',
+                                    onConfirm: () => {
+                                        handleToggleMaintenance();
+                                        setShowConfirmModal(false);
+                                    },
+                                    type: 'warning'
+                                });
+                                setShowConfirmModal(true);
                             } else {
                                 handleToggleMaintenance();
                             }
@@ -427,6 +442,16 @@ const AdminSettings = () => {
                     </a>
                 </div>
             </motion.div>
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                onConfirm={confirmModalConfig.onConfirm}
+                title={confirmModalConfig.title}
+                message={confirmModalConfig.message}
+                type={confirmModalConfig.type}
+            />
         </div>
     );
 };
