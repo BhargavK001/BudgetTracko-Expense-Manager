@@ -134,17 +134,39 @@ exports.getAnalyticsData = async (req, res) => {
  */
 exports.getTransactions = async (req, res) => {
     try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
+        const { page: qPage, limit: qLimit, startDate, endDate } = req.query;
+        const page = parseInt(qPage) || 1;
+        const limit = parseInt(qLimit) || 20;
         const skip = (page - 1) * limit;
 
+        // Build query
+        const query = {};
+        if (startDate || endDate) {
+            query.createdAt = {};
+            if (startDate) {
+                const start = new Date(startDate);
+                if (isNaN(start.getTime())) {
+                    return res.status(400).json({ success: false, message: 'Invalid startDate' });
+                }
+                query.createdAt.$gte = start;
+            }
+            if (endDate) {
+                const end = new Date(endDate);
+                if (isNaN(end.getTime())) {
+                    return res.status(400).json({ success: false, message: 'Invalid endDate' });
+                }
+                end.setHours(23, 59, 59, 999);
+                query.createdAt.$lte = end;
+            }
+        }
+
         const [transactions, total] = await Promise.all([
-            Payment.find()
+            Payment.find(query)
                 .populate('userId', 'displayName email')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit),
-            Payment.countDocuments()
+            Payment.countDocuments(query)
         ]);
 
         res.json({
@@ -276,14 +298,14 @@ exports.getAppConfig = async (req, res) => {
 exports.updateAppConfig = async (req, res) => {
     try {
         const { key, value } = req.body;
-        if (!key || !value) {
+        if (!key || value === undefined || value === null) {
             return res.status(400).json({ success: false, message: 'Key and value are required' });
         }
 
         const config = await AppConfig.findOneAndUpdate(
             { key },
             { value, updatedAt: new Date() },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
         );
 
         res.json({ success: true, data: config });

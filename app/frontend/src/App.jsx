@@ -35,6 +35,7 @@ import AdminTransactions from './pages/admin/AdminTransactions';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminContacts from './pages/admin/AdminContacts';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminPromotions from './pages/admin/AdminPromotions';
 
 
 // Page transition variants
@@ -109,6 +110,7 @@ const AnimatedRoutes = () => {
           <Route path="transactions" element={<PageTransition><AdminTransactions /></PageTransition>} />
           <Route path="users" element={<PageTransition><AdminUsers /></PageTransition>} />
           <Route path="contacts" element={<PageTransition><AdminContacts /></PageTransition>} />
+          <Route path="promotions" element={<PageTransition><AdminPromotions /></PageTransition>} />
           <Route path="settings" element={<PageTransition><AdminSettings /></PageTransition>} />
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
         </Route>

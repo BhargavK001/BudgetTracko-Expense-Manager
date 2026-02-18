@@ -20,6 +20,7 @@ const statusRoutes = require('./routes/status.routes');
 const contactRoutes = require('./routes/contact');
 const adminRoutes = require('./routes/adminRoutes');
 const { getPublicVersion } = require('./controllers/adminController');
+const maintenanceMiddleware = require('./middleware/maintenanceMiddleware');
 
 // Helper to get domain for cookies
 const getCookieDomain = () => {
@@ -201,6 +202,9 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// Maintenance mode check (after rate limiter, before routes)
+app.use(maintenanceMiddleware);
+
 // Routes
 app.use('/auth', authRoutes);
 app.use('/api/user', userRoutes);
@@ -221,6 +225,23 @@ app.get('/api/csrf-token', (req, res) => {
 app.use('/api/status', statusRoutes);
 app.use('/api/admin', adminRoutes);
 app.get('/api/config/version', getPublicVersion);
+
+// Public config endpoint (for maintenance mode, announcements)
+app.get('/api/config/public', async (req, res) => {
+    try {
+        const AppConfig = require('./models/AppConfig');
+        const configs = await AppConfig.find({
+            key: { $in: ['maintenance_mode', 'maintenance_message', 'announcement', 'announcement_type'] }
+        });
+        const configMap = configs.reduce((acc, item) => {
+            acc[item.key] = item.value;
+            return acc;
+        }, {});
+        res.json({ success: true, data: configMap });
+    } catch (error) {
+        res.status(500).json({ success: false, data: {} });
+    }
+});
 
 // Basic route
 app.get('/', (req, res) => {

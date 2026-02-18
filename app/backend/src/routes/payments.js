@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const passport = require('passport');
 const paymentController = require('../controllers/paymentController');
+const couponController = require('../controllers/couponController');
 
 // Middleware to protect routes
 const auth = require('../middleware/authMiddleware');
@@ -11,6 +12,7 @@ router.post('/create-order', auth, paymentController.createSubscription); // Map
 router.post('/verify', auth, paymentController.verifyPayment);
 router.post('/cancel', auth, paymentController.cancelSubscription);
 router.get('/history', auth, paymentController.getPaymentHistory);
+router.post('/validate-coupon', auth, couponController.validateCoupon);
 router.post('/webhook', paymentController.handleWebhook); // Webhooks typically don't use user auth, they verify signature
 
 module.exports = router;
