@@ -124,24 +124,23 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
         }
     };
 
+    // Persistence watcher
+    useEffect(() => {
+        if (!isLoading) {
+            persist(transactions);
+        }
+    }, [transactions, isLoading]);
+
     const addTransaction = useCallback(async (tx: Omit<Transaction, 'id'>) => {
         const newTx: Transaction = {
             ...tx,
             id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
         };
-        setTransactions((prev) => {
-            const updated = [newTx, ...prev];
-            persist(updated);
-            return updated;
-        });
+        setTransactions((prev) => [newTx, ...prev]);
     }, []);
 
     const deleteTransaction = useCallback(async (id: string) => {
-        setTransactions((prev) => {
-            const updated = prev.filter((t) => t.id !== id);
-            persist(updated);
-            return updated;
-        });
+        setTransactions((prev) => prev.filter((t) => t.id !== id));
     }, []);
 
     const getTransactionsForMonth = useCallback(

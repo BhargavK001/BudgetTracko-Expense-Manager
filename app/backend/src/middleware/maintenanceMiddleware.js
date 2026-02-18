@@ -23,13 +23,18 @@ const maintenanceMiddleware = async (req, res, next) => {
             return next();
         }
 
-        // Check maintenance mode from DB
-        const config = await AppConfig.findOne({ key: 'maintenance_mode' });
+        // Check maintenance mode and message in one go
+        const configs = await AppConfig.find({
+            key: { $in: ['maintenance_mode', 'maintenance_message'] }
+        });
 
-        if (config && config.value === 'true') {
-            // Get optional maintenance message
-            const messageConfig = await AppConfig.findOne({ key: 'maintenance_message' });
-            const message = messageConfig?.value || 'We are currently performing scheduled maintenance. Please try again later.';
+        const configMap = configs.reduce((acc, item) => {
+            acc[item.key] = item.value;
+            return acc;
+        }, {});
+
+        if (configMap.maintenance_mode === 'true') {
+            const message = configMap.maintenance_message || 'We are currently performing scheduled maintenance. Please try again later.';
 
             return res.status(503).json({
                 success: false,

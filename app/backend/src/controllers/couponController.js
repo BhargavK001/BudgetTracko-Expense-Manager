@@ -78,10 +78,37 @@ exports.createCoupon = async (req, res) => {
  */
 exports.updateCoupon = async (req, res) => {
     try {
+        const {
+            code,
+            type,
+            value,
+            trialDays,
+            nominalPrice,
+            nominalDurationMonths,
+            applicablePlans,
+            expiryDate,
+            usageLimit,
+            status,
+            description
+        } = req.body;
+
+        const updateObj = {};
+        if (code) updateObj.code = code.toUpperCase();
+        if (type) updateObj.type = type;
+        if (value !== undefined) updateObj.value = value;
+        if (trialDays !== undefined) updateObj.trialDays = trialDays;
+        if (nominalPrice !== undefined) updateObj.nominalPrice = Math.max(5, nominalPrice);
+        if (nominalDurationMonths !== undefined) updateObj.nominalDurationMonths = nominalDurationMonths;
+        if (applicablePlans) updateObj.applicablePlans = applicablePlans;
+        if (expiryDate !== undefined) updateObj.expiryDate = expiryDate;
+        if (usageLimit !== undefined) updateObj.usageLimit = usageLimit;
+        if (status) updateObj.status = status;
+        if (description !== undefined) updateObj.description = description;
+
         const coupon = await Coupon.findByIdAndUpdate(
             req.params.id,
-            { $set: req.body },
-            { returnDocument: 'after' }
+            { $set: updateObj },
+            { returnDocument: 'after', runValidators: true }
         );
 
         if (!coupon) {
@@ -143,7 +170,7 @@ exports.validateCoupon = async (req, res) => {
         }
 
         // Check if user already used this coupon
-        if (coupon.usedBy.includes(req.user.id)) {
+        if (coupon.usedBy.some(id => id.toString() === req.user.id.toString())) {
             return res.status(400).json({ success: false, message: 'You have already used this coupon' });
         }
 

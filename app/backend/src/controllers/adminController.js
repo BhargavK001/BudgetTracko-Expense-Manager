@@ -144,11 +144,17 @@ exports.getTransactions = async (req, res) => {
         if (startDate || endDate) {
             query.createdAt = {};
             if (startDate) {
-                query.createdAt.$gte = new Date(startDate);
+                const start = new Date(startDate);
+                if (isNaN(start.getTime())) {
+                    return res.status(400).json({ success: false, message: 'Invalid startDate' });
+                }
+                query.createdAt.$gte = start;
             }
             if (endDate) {
-                // To include the entire end date, we set it to the beginning of the next day
                 const end = new Date(endDate);
+                if (isNaN(end.getTime())) {
+                    return res.status(400).json({ success: false, message: 'Invalid endDate' });
+                }
                 end.setHours(23, 59, 59, 999);
                 query.createdAt.$lte = end;
             }

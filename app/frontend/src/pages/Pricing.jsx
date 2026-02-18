@@ -144,10 +144,30 @@ const Pricing = () => {
 
         setLoading(true);
         try {
+            // Validate coupon for selected plan if entered
+            let activeCouponCode = '';
+            if (couponCode.trim()) {
+                try {
+                    const couponRes = await api.post('/api/payments/validate-coupon', {
+                        code: couponCode,
+                        plan: plan.id
+                    });
+                    if (couponRes.data.success) {
+                        activeCouponCode = couponRes.data.coupon.code;
+                        toast.success(`Coupon applied for ${plan.name}!`);
+                    }
+                } catch (couponError) {
+                    console.error("Coupon Validation Failed for Plan", couponError);
+                    toast.error(couponError.response?.data?.message || `Coupon invalid for ${plan.name}`);
+                    setLoading(false);
+                    return; // Stop if coupon is invalid for this plan
+                }
+            }
+
             // 1. Create Subscription
             const { data: subData } = await api.post('/api/payments/create-order', {
                 plan: plan.id,
-                couponCode: couponInfo?.coupon?.code || ''
+                couponCode: activeCouponCode || ''
             });
 
             const prefillData = {
@@ -195,6 +215,15 @@ const Pricing = () => {
                 }
             };
 
+            // Handle initial charge if present (e.g. nominal coupon)
+            if (subData.initial_order_id) {
+                options.order_id = subData.initial_order_id;
+                // Since it's an order, we might need amount / currency if not standard subscription flow
+                // But Razorpay handles hybrid if subscription_id + order_id passed?
+                // Actually usually you pay the order first then sub starts.
+                // But let's trust Razorpay Standard options.
+            }
+
             console.log("Razorpay Options:", options);
 
             const rzp = new window.Razorpay(options);
@@ -205,7 +234,7 @@ const Pricing = () => {
 
         } catch (error) {
             console.error("Payment Error", error);
-            toast.error('Something went wrong initiating payment.');
+            toast.error(error.response?.data?.message || 'Something went wrong initiating payment.');
         } finally {
             setLoading(false);
         }

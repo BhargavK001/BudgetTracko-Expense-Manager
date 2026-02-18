@@ -144,7 +144,15 @@ const AdminSettings = () => {
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={handleToggleMaintenance}
+                        onClick={() => {
+                            if (!maintenanceMode) {
+                                if (window.confirm('Are you sure you want to enable Maintenance Mode? This will block all non-admin users from accessing the application.')) {
+                                    handleToggleMaintenance();
+                                }
+                            } else {
+                                handleToggleMaintenance();
+                            }
+                        }}
                         disabled={savingMaintenance}
                         className={`relative w-12 h-7 sm:w-14 sm:h-8 rounded-full border-2 border-brand-black transition-colors duration-300 flex-shrink-0 ${maintenanceMode ? 'bg-red-500' : 'bg-gray-300 dark:bg-gray-600'}`}
                     >

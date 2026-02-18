@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DarkTheme, Spacing, FontSize, BorderRadius } from '@/constants/Theme';
 import StatCard from '@/components/StatCard';
 import DonutChart from '@/components/DonutChart';
-import { useTransactions } from '@/context/TransactionContext';
+import { useTransactions, Category, CATEGORY_COLORS, CATEGORY_ICONS } from '@/context/TransactionContext';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -13,35 +13,107 @@ function formatCurrency(n: number): string {
     return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-type TimeFilter = 'Week' | 'Month' | 'Year' | 'Custom';
+type TimeFilter = 'Week' | 'Month' | 'Year';
 
 export default function AnalysisScreen() {
     const insets = useSafeAreaInsets();
-    const { getTotalIncome, getTotalExpense, getTransactionsForMonth, getCategoryBreakdown } = useTransactions();
+    const { transactions } = useTransactions();
 
     const [selectedFilter, setSelectedFilter] = useState<TimeFilter>('Month');
     const now = new Date();
     const [currentMonthIndex, setCurrentMonthIndex] = useState(now.getMonth());
-    const currentYear = now.getFullYear();
+    const [currentYear, setCurrentYear] = useState(now.getFullYear());
 
-    const goToPrevMonth = () => setCurrentMonthIndex((prev) => (prev > 0 ? prev - 1 : 11));
-    const goToNextMonth = () => setCurrentMonthIndex((prev) => (prev < 11 ? prev + 1 : 0));
+    const goToPrevMonth = () => {
+        if (currentMonthIndex === 0) {
+            setCurrentMonthIndex(11);
+            setCurrentYear((y) => y - 1);
+        } else {
+            setCurrentMonthIndex((prev) => prev - 1);
+        }
+    };
 
-    const monthlyIncome = useMemo(() => getTotalIncome(currentMonthIndex, currentYear), [getTotalIncome, currentMonthIndex, currentYear]);
-    const monthlyExpense = useMemo(() => getTotalExpense(currentMonthIndex, currentYear), [getTotalExpense, currentMonthIndex, currentYear]);
+    const goToNextMonth = () => {
+        if (currentMonthIndex === 11) {
+            setCurrentMonthIndex(0);
+            setCurrentYear((y) => y + 1);
+        } else {
+            setCurrentMonthIndex((prev) => prev + 1);
+        }
+    };
+
+    // Calculate Date Range based on filter
+    const dateRange = useMemo(() => {
+        let start = new Date(currentYear, currentMonthIndex, 1);
+        let end = new Date(currentYear, currentMonthIndex + 1, 0, 23, 59, 59, 999);
+
+        if (selectedFilter === 'Year') {
+            start = new Date(currentYear, 0, 1);
+            end = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+        } else if (selectedFilter === 'Week') {
+            const today = new Date();
+            // If viewing current month/year, show last 7 days from today
+            if (currentMonthIndex === today.getMonth() && currentYear === today.getFullYear()) {
+                end = new Date(today);
+                end.setHours(23, 59, 59, 999);
+                start = new Date(end);
+                start.setDate(end.getDate() - 7);
+                start.setHours(0, 0, 0, 0);
+            } else {
+                // Else show first 7 days of that month
+                start = new Date(currentYear, currentMonthIndex, 1);
+                end = new Date(currentYear, currentMonthIndex, 7, 23, 59, 59, 999);
+            }
+        }
+        return { start, end };
+    }, [selectedFilter, currentMonthIndex, currentYear]);
+
+    // Local filtered transactions
+    const filteredTxs = useMemo(() => {
+        const { start, end } = dateRange;
+        return transactions.filter((t) => {
+            const d = new Date(t.date);
+            return d >= start && d <= end;
+        });
+    }, [transactions, dateRange]);
+
+    const monthlyIncome = useMemo(() =>
+        filteredTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
+        [filteredTxs]);
+
+    const monthlyExpense = useMemo(() =>
+        filteredTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
+        [filteredTxs]);
+
     const monthlyBalance = monthlyIncome - monthlyExpense;
 
-    const categoryData = useMemo(() => getCategoryBreakdown(currentMonthIndex, currentYear), [getCategoryBreakdown, currentMonthIndex, currentYear]);
+    const categoryData = useMemo(() => {
+        const expenses = filteredTxs.filter(t => t.type === 'expense');
+        const map = new Map<Category, number>();
+        expenses.forEach((t) => {
+            map.set(t.category, (map.get(t.category) || 0) + t.amount);
+        });
+        return Array.from(map.entries())
+            .map(([name, amount]) => ({
+                name,
+                amount,
+                color: CATEGORY_COLORS[name] || '#795548',
+                icon: CATEGORY_ICONS[name] || 'ellipsis-horizontal-circle-outline',
+            }))
+            .sort((a, b) => b.amount - a.amount);
+    }, [filteredTxs]);
+
     const chartData = useMemo(() => categoryData.map((c) => ({ value: c.amount, color: c.color, label: c.name })), [categoryData]);
 
-    const monthlyTxs = useMemo(() => getTransactionsForMonth(currentMonthIndex, currentYear), [getTransactionsForMonth, currentMonthIndex, currentYear]);
-    const totalTransactions = monthlyTxs.length;
-    const daysInMonth = new Date(currentYear, currentMonthIndex + 1, 0).getDate();
-    const avgSpendingPerDay = totalTransactions > 0 ? monthlyExpense / daysInMonth : 0;
-    const expenseTxCount = monthlyTxs.filter((t) => t.type === 'expense').length;
+    const totalTransactions = filteredTxs.length;
+    const diffTime = Math.abs(dateRange.end.getTime() - dateRange.start.getTime());
+    const daysInRange = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+
+    const avgSpendingPerDay = totalTransactions > 0 ? monthlyExpense / daysInRange : 0;
+    const expenseTxCount = filteredTxs.filter((t) => t.type === 'expense').length;
     const avgSpendingPerTx = expenseTxCount > 0 ? monthlyExpense / expenseTxCount : 0;
-    const incomeTxCount = monthlyTxs.filter((t) => t.type === 'income').length;
-    const avgIncomePerDay = monthlyIncome / daysInMonth;
+    const incomeTxCount = filteredTxs.filter((t) => t.type === 'income').length;
+    const avgIncomePerDay = monthlyIncome / daysInRange;
     const avgIncomePerTx = incomeTxCount > 0 ? monthlyIncome / incomeTxCount : 0;
 
     return (
@@ -58,7 +130,7 @@ export default function AnalysisScreen() {
             >
                 {/* Time Filter */}
                 <View style={styles.filterRow}>
-                    {(['Week', 'Month', 'Year', 'Custom'] as TimeFilter[]).map((filter) => (
+                    {(['Week', 'Month', 'Year'] as TimeFilter[]).map((filter) => (
                         <TouchableOpacity
                             key={filter}
                             style={[styles.filterChip, selectedFilter === filter && styles.filterChipActive]}
@@ -76,7 +148,14 @@ export default function AnalysisScreen() {
                     <TouchableOpacity onPress={goToPrevMonth} style={styles.monthArrow}>
                         <Ionicons name="chevron-back" size={20} color={DarkTheme.textPrimary} />
                     </TouchableOpacity>
-                    <Text style={styles.monthText}>{MONTHS[currentMonthIndex]} {currentYear}</Text>
+                    <Text style={styles.monthText}>
+                        {selectedFilter === 'Year'
+                            ? currentYear
+                            : selectedFilter === 'Week'
+                                ? `${MONTHS[currentMonthIndex]} (Week)`
+                                : `${MONTHS[currentMonthIndex]} ${currentYear}`
+                        }
+                    </Text>
                     <TouchableOpacity onPress={goToNextMonth} style={styles.monthArrow}>
                         <Ionicons name="chevron-forward" size={20} color={DarkTheme.textPrimary} />
                     </TouchableOpacity>
@@ -100,7 +179,7 @@ export default function AnalysisScreen() {
                         {categoryData.length === 0 ? (
                             <View style={styles.emptyCategory}>
                                 <Ionicons name="pie-chart-outline" size={40} color={DarkTheme.textMuted} />
-                                <Text style={styles.emptyCategoryText}>No spending data for this month</Text>
+                                <Text style={styles.emptyCategoryText}>No spending data for this selection</Text>
                             </View>
                         ) : (
                             <>
