@@ -15,12 +15,12 @@ import {
 import { toast } from 'sonner';
 
 const navItems = [
-    { to: '/admin/dashboard', icon: BsGrid1X2Fill, label: 'Dashboard' },
-    { to: '/admin/transactions', icon: BsCreditCardFill, label: 'Transactions' },
-    { to: '/admin/users', icon: BsPeopleFill, label: 'Users' },
-    { to: '/admin/contacts', icon: BsEnvelopeFill, label: 'Contact Requests' },
-    { to: '/admin/promotions', icon: BsTagFill, label: 'Promotions' },
-    { to: '/admin/settings', icon: BsGearFill, label: 'Settings' },
+    { to: '/admin/dashboard', icon: BsGrid1X2Fill, label: 'Dashboard', mobileLabel: 'Home' },
+    { to: '/admin/transactions', icon: BsCreditCardFill, label: 'Transactions', mobileLabel: 'Txns' },
+    { to: '/admin/users', icon: BsPeopleFill, label: 'Users', mobileLabel: 'Users' },
+    { to: '/admin/contacts', icon: BsEnvelopeFill, label: 'Contact Requests', mobileLabel: 'Contact' },
+    { to: '/admin/promotions', icon: BsTagFill, label: 'Promotions', mobileLabel: 'Promo' },
+    { to: '/admin/settings', icon: BsGearFill, label: 'Settings', mobileLabel: 'Settings' },
 ];
 
 const SidebarItem = ({ to, icon: Icon, label, isActive }) => (
@@ -160,6 +160,15 @@ const AdminLayout = () => {
                     </motion.div>
                 </Link>
                 <div className="flex items-center gap-2">
+                    <Link to="/admin/settings">
+                        <motion.button
+                            whileTap={{ scale: 0.85 }}
+                            className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-brand-black dark:text-white border-2 border-brand-black neo-shadow-sm"
+                            title="Settings"
+                        >
+                            <BsGearFill size={14} />
+                        </motion.button>
+                    </Link>
                     <motion.button
                         whileTap={{ scale: 0.85 }}
                         onClick={handleLogout}
@@ -172,7 +181,7 @@ const AdminLayout = () => {
             </header>
 
             {/* Main Content */}
-            <main className="lg:pl-64 pt-[60px] sm:pt-[68px] lg:pt-0 min-h-screen pb-20 lg:pb-8">
+            <main className="lg:pl-64 pt-20 sm:pt-24 lg:pt-0 min-h-screen pb-24 lg:pb-8">
                 <div className="max-w-6xl mx-auto px-3 py-4 sm:p-6 lg:p-8">
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -207,7 +216,7 @@ const AdminLayout = () => {
                                 <item.icon size={16} />
                             </motion.div>
                             <span className={`text-[9px] font-bold mt-0.5 uppercase tracking-wider truncate max-w-full ${location.pathname === item.to ? 'text-brand-black dark:text-brand-yellow' : 'text-light-text-secondary dark:text-dark-text-secondary'
-                                }`}>{item.label}</span>
+                                }`}>{item.mobileLabel || item.label}</span>
                         </motion.div>
                     </Link>
                 ))}

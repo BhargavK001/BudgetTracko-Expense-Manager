@@ -43,6 +43,7 @@ const AdminSettings = () => {
                 if (configMap.announcement_type) setAnnouncementType(configMap.announcement_type);
             } catch (error) {
                 console.error('Failed to load config:', error);
+                toast.error('Failed to load settings');
             } finally {
                 setLoading(false);
             }

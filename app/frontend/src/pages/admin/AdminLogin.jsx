@@ -59,7 +59,7 @@ const AdminLogin = () => {
         toast.loading('Authenticating...', { id: 'admin-login' });
 
         try {
-            const response = await authApi.login(formData);
+            const response = await authApi.login({ ...formData, expectedRole: 'admin' });
             if (response.data.success) {
                 await login();
                 const meResponse = await authApi.getMe();

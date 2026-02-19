@@ -49,7 +49,9 @@ export const authApi = {
     signup: (data) => api.post('/auth/signup', data),
     login: (data) => api.post('/auth/login', data),
     logout: () => api.get('/auth/logout'),
-    getMe: () => api.get('/auth/me')
+    getMe: () => api.get('/auth/me'),
+    forgotPassword: (data) => api.post('/auth/forgotpassword', data),
+    resetPassword: (token, data) => api.put(`/auth/resetpassword/${token}`, data)
 };
 
 // ─── Transactions ───

@@ -23,6 +23,7 @@ import Privacy from './pages/Privacy';
 import TermsOfService from './pages/TermsOfService';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
 import StatusPage from './pages/StatusPage';
@@ -91,6 +92,7 @@ const AnimatedRoutes = () => {
           <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
           <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
           <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+          <Route path="/reset-password/:token" element={<PageTransition><ResetPassword /></PageTransition>} />
         </Route>
 
         <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
