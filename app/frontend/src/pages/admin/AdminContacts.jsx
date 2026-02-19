@@ -23,6 +23,7 @@ const AdminContacts = () => {
             setPagination(res.data.pagination);
         } catch (error) {
             console.error('Failed to fetch contact requests:', error);
+            toast.error('Failed to load contact requests');
         } finally {
             setLoading(false);
         }
@@ -109,8 +110,8 @@ const AdminContacts = () => {
                         whileTap={{ scale: 0.95 }}
                         onClick={() => setStatusFilter(f.value)}
                         className={`text-[10px] font-black uppercase tracking-wider px-4 py-2 rounded-lg border-2 transition-colors ${statusFilter === f.value
-                                ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black dark:border-brand-yellow'
-                                : 'bg-white text-brand-black border-gray-300 dark:bg-dark-card dark:text-dark-text dark:border-gray-700 hover:border-brand-black'
+                            ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black dark:border-brand-yellow'
+                            : 'bg-white text-brand-black border-gray-300 dark:bg-dark-card dark:text-dark-text dark:border-gray-700 hover:border-brand-black'
                             }`}
                     >
                         {f.label}

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BsTagFill, BsPlusCircleFill, BsTrashFill, BsCheckCircleFill, BsArrowLeft, BsArrowRight, BsChevronUp, BsInfoCircleFill } from 'react-icons/bs';
+import { BsTagFill, BsPlusCircleFill, BsTrashFill, BsCheckCircleFill, BsArrowLeft, BsArrowRight, BsChevronUp, BsInfoCircleFill, BsPencilFill } from 'react-icons/bs';
 import { adminApi } from '../../services/adminApi';
 import { toast } from 'sonner';
 
@@ -30,6 +30,7 @@ const AdminPromotions = () => {
     const [loading, setLoading] = useState(true);
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [form, setForm] = useState({ ...emptyForm });
+    const [editingId, setEditingId] = useState(null);
     const [saving, setSaving] = useState(false);
     const [statusFilter, setStatusFilter] = useState('');
 
@@ -43,6 +44,7 @@ const AdminPromotions = () => {
             setPagination(res.data.pagination);
         } catch (error) {
             console.error('Failed to fetch coupons:', error);
+            toast.error('Failed to load coupons');
         } finally {
             setLoading(false);
         }
@@ -52,23 +54,42 @@ const AdminPromotions = () => {
         fetchCoupons();
     }, [statusFilter]);
 
-    const handleCreate = async () => {
+    const handleSubmit = async () => {
         if (!form.code.trim()) {
             toast.error('Coupon code is required');
             return;
         }
         setSaving(true);
         try {
-            await adminApi.createCoupon(form);
-            toast.success('Coupon created successfully');
+            if (editingId) {
+                await adminApi.updateCoupon(editingId, form);
+                toast.success('Coupon updated successfully');
+            } else {
+                await adminApi.createCoupon(form);
+                toast.success('Coupon created successfully');
+            }
             setShowCreateForm(false);
             setForm({ ...emptyForm });
-            fetchCoupons();
+            setEditingId(null);
+            fetchCoupons(pagination.page);
         } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to create coupon');
+            toast.error(error.response?.data?.message || `Failed to ${editingId ? 'update' : 'create'} coupon`);
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleEdit = (coupon) => {
+        setForm({
+            ...emptyForm,
+            ...coupon,
+            // Ensure dates are formatted correctly for input if needed, usually YYYY-MM-DD
+            expiryDate: coupon.expiryDate ? new Date(coupon.expiryDate).toISOString().split('T')[0] : '',
+            // Ensure arrays/objects are properly set
+        });
+        setEditingId(coupon._id);
+        setShowCreateForm(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleToggleStatus = async (id, currentStatus) => {
@@ -82,15 +103,26 @@ const AdminPromotions = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this coupon?')) return;
-        try {
-            await adminApi.deleteCoupon(id);
-            toast.success('Coupon deleted');
-            fetchCoupons(pagination.page);
-        } catch (error) {
-            toast.error('Failed to delete coupon');
-        }
+    const handleDelete = (id) => {
+        toast('Are you sure you want to delete this coupon?', {
+            action: {
+                label: 'Delete',
+                onClick: async () => {
+                    try {
+                        await adminApi.deleteCoupon(id);
+                        toast.success('Coupon deleted');
+                        fetchCoupons(pagination.page);
+                    } catch (error) {
+                        toast.error('Failed to delete coupon');
+                    }
+                },
+            },
+            cancel: {
+                label: 'Cancel',
+            },
+            description: 'This action cannot be undone.',
+            duration: 5000,
+        });
     };
 
     const getTypeLabel = (type) => {
@@ -157,7 +189,13 @@ const AdminPromotions = () => {
                 transition={{ delay: 0.05 }}
             >
                 <motion.button
-                    onClick={() => setShowCreateForm(!showCreateForm)}
+                    onClick={() => {
+                        setShowCreateForm(!showCreateForm);
+                        if (showCreateForm) {
+                            setEditingId(null);
+                            setForm({ ...emptyForm });
+                        }
+                    }}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
                     className={`w-full neo-btn flex items-center justify-center gap-2 py-3 sm:py-3.5 text-sm sm:text-base ${showCreateForm
@@ -179,7 +217,7 @@ const AdminPromotions = () => {
                 </motion.button>
             </motion.div>
 
-            {/* Inline Create Form */}
+            {/* Inline Create/Edit Form */}
             <AnimatePresence>
                 {showCreateForm && (
                     <motion.div
@@ -191,8 +229,17 @@ const AdminPromotions = () => {
                     >
                         <div className="neo-card p-4 sm:p-6 space-y-4 sm:space-y-5">
                             <h3 className="text-sm sm:text-base font-black uppercase tracking-tighter flex items-center gap-2">
-                                <BsPlusCircleFill className="text-brand-yellow" size={16} />
-                                New Coupon Details
+                                {editingId ? (
+                                    <>
+                                        <BsPencilFill className="text-brand-yellow" size={16} />
+                                        Edit Coupon
+                                    </>
+                                ) : (
+                                    <>
+                                        <BsPlusCircleFill className="text-brand-yellow" size={16} />
+                                        New Coupon Details
+                                    </>
+                                )}
                             </h3>
 
                             {/* Code & Description */}
@@ -428,7 +475,11 @@ const AdminPromotions = () => {
                                 <motion.button
                                     whileHover={{ scale: 1.03 }}
                                     whileTap={{ scale: 0.97 }}
-                                    onClick={() => { setShowCreateForm(false); setForm({ ...emptyForm }); }}
+                                    onClick={() => {
+                                        setShowCreateForm(false);
+                                        setForm({ ...emptyForm });
+                                        setEditingId(null);
+                                    }}
                                     className="neo-btn border-gray-300 dark:border-gray-600 text-xs sm:text-sm py-2.5 w-full sm:w-auto"
                                 >
                                     Cancel
@@ -436,7 +487,7 @@ const AdminPromotions = () => {
                                 <motion.button
                                     whileHover={{ scale: 1.03 }}
                                     whileTap={{ scale: 0.97 }}
-                                    onClick={handleCreate}
+                                    onClick={handleSubmit}
                                     disabled={saving || !form.code.trim()}
                                     className="neo-btn neo-btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-xs sm:text-sm py-2.5 w-full sm:w-auto"
                                 >
@@ -448,7 +499,7 @@ const AdminPromotions = () => {
                                     ) : (
                                         <>
                                             <BsCheckCircleFill size={14} />
-                                            Create Coupon
+                                            {editingId ? 'Update Coupon' : 'Create Coupon'}
                                         </>
                                     )}
                                 </motion.button>
@@ -575,6 +626,14 @@ const AdminPromotions = () => {
                                                 }`}
                                         >
                                             {coupon.status === 'active' ? 'Off' : 'On'}
+                                        </motion.button>
+                                        <motion.button
+                                            whileHover={{ scale: 1.05 }}
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={() => handleEdit(coupon)}
+                                            className="p-1.5 sm:p-2 rounded-md sm:rounded-lg border-2 border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors"
+                                        >
+                                            <BsPencilFill className="text-[10px] sm:text-xs" />
                                         </motion.button>
                                         <motion.button
                                             whileHover={{ scale: 1.05 }}
