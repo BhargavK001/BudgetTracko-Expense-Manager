@@ -82,7 +82,7 @@ exports.signup = async (req, res) => {
  */
 exports.login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const { email, password, expectedRole } = req.body;
 
         if (!email || !password) {
             return res.status(400).json({ success: false, message: 'Please provide email and password' });
@@ -98,6 +98,16 @@ exports.login = async (req, res) => {
         // Check if account is deactivated
         if (user.accountStatus === 'deactivated') {
             return res.status(403).json({ success: false, message: 'Your account has been deactivated. Please contact support.' });
+        }
+
+        // Enforce role separation if expectedRole is provided
+        if (expectedRole) {
+            if (expectedRole === 'admin' && user.role !== 'admin') {
+                return res.status(403).json({ success: false, message: 'Access denied. Admin privileges required.' });
+            }
+            if (expectedRole === 'user' && user.role === 'admin') {
+                return res.status(403).json({ success: false, message: 'Admins must login via the Admin Portal.' });
+            }
         }
 
         // Generate token and set cookie

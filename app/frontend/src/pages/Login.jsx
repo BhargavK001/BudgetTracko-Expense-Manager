@@ -82,7 +82,7 @@ const Login = () => {
         toast.loading('Signing you in...', { id: 'login' });
 
         try {
-            const response = await authApi.login(formData);
+            const response = await authApi.login({ ...formData, expectedRole: 'user' });
             if (response.data.success) {
                 await login(); // Refresh user state in AuthContext
                 toast.success('Welcome back! Redirecting to dashboard...', { id: 'login' });
