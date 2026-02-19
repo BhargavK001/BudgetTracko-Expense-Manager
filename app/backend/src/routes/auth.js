@@ -7,6 +7,8 @@ const authController = require('../controllers/authController');
 // Local Auth
 router.post('/signup', authController.signup);
 router.post('/login', authController.login);
+router.post('/forgotpassword', authController.forgotPassword);
+router.put('/resetpassword/:resettoken', authController.resetPassword);
 
 // Google Auth
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
