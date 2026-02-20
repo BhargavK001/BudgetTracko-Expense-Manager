@@ -13,8 +13,10 @@ class TrackoPulseSocket {
             return;
         }
 
-        // Force port 5000 for local development to bypass Vite proxy dropping websocket headers
-        const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        // In local development, force port 5000 to bypass Vite proxy dropping websocket headers.
+        // In production, fallback to the current window origin so it works on any domain.
+        const fallbackUrl = import.meta.env.PROD ? window.location.origin : 'http://localhost:5000';
+        const backendUrl = import.meta.env.VITE_API_URL || fallbackUrl;
 
         // Auth is cookie-based: the HTTP-only 'token' cookie is sent automatically
         // via withCredentials: true during the WebSocket handshake

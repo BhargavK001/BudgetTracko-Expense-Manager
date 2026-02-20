@@ -6,7 +6,7 @@ const https = require('https');
 const checkService = (url, options = {}) => {
     return new Promise((resolve) => {
         const req = https.get(url, { ...options, headers: { 'User-Agent': 'BudgetTracko-Monitor', ...options.headers } }, (res) => {
-            resolve(res.statusCode >= 200 && res.statusCode < 400 ? 'online' : `error: ${res.statusCode}`);
+            resolve(res.statusCode >= 200 && res.statusCode < 500 ? 'online' : `error: ${res.statusCode}`);
         });
         req.on('error', (err) => resolve('unreachable'));
         req.setTimeout(5000, () => {
@@ -73,15 +73,27 @@ exports.getStatus = async (req, res) => {
     }
 
     // Check External Services (Parallel)
-    const [google, cloudinary, razorpay, github, resend] = await Promise.all([
+    const [google, cloudinary, razorpay, github, resend, geminiApi, groqApi, routerApi] = await Promise.all([
         checkService('https://www.google.com'), // General internet check
         checkService('https://status.cloudinary.com'), // Cloudinary Service Status
         checkService('https://api.razorpay.com/'),
         checkService('https://github.com'), // Connectivity check (avoids API rate limiting)
-        checkService('https://resend.com')   // Connectivity check (avoids API auth issues)
+        checkService('https://resend.com'),   // Connectivity check (avoids API auth issues)
+        checkService('https://generativelanguage.googleapis.com'), // Gemini
+        checkService('https://api.groq.com'), // Groq Cloud
+        checkService('https://openrouter.ai') // OpenRouter
     ]);
 
-    status.external = { google, cloudinary, razorpay, github, resend };
+    status.external = {
+        google,
+        cloudinary,
+        razorpay,
+        github,
+        resend,
+        tracko_ai_gemini: process.env.GEMINI_API_KEY ? geminiApi : 'offline',
+        tracko_ai_groq: process.env.GROQ_API_KEY ? groqApi : 'offline',
+        tracko_ai_router: process.env.OPENROUTER_API_KEY ? routerApi : 'offline'
+    };
 
     // Check Environment Variables
     const requiredEnv = [
@@ -101,7 +113,10 @@ exports.getStatus = async (req, res) => {
         'RAZORPAY_KEY_ID',
         'RAZORPAY_KEY_SECRET',
         'RAZORPAY_WEBHOOK_SECRET',
-        'RESEND_API_KEY'
+        'RESEND_API_KEY',
+        'GEMINI_API_KEY',
+        'GROQ_API_KEY',
+        'OPENROUTER_API_KEY'
     ];
 
     const missingEnvs = requiredEnv.filter(key => !process.env[key]);

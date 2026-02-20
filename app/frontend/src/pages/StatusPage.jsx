@@ -244,7 +244,7 @@ const StatusPage = () => {
                             <div className="space-y-3">
                                 {status.external && Object.entries(status.external).map(([service, state]) => (
                                     <div key={service} className="flex items-center justify-between p-2 border-b-2 border-dashed border-gray-300 last:border-0">
-                                        <span className="font-bold uppercase">{service}</span>
+                                        <span className="font-bold uppercase">{service.replace(/_/g, ' ')}</span>
                                         <div className="flex items-center gap-2">
                                             <div className={`w-3 h-3 rounded-full ${state === 'online' || state === '200' ? 'bg-green-500' : 'bg-red-500'}`}></div>
                                             <span className="text-sm font-bold">{state === 'online' ? 'OK' : state}</span>
