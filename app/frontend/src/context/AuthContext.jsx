@@ -1,6 +1,8 @@
 import { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import api, { setCsrfToken } from '../services/api';
 
+import { demoData } from '../data/demoData';
+
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -47,7 +49,10 @@ export const AuthProvider = ({ children }) => {
 
             // Only fetch user if we have a local "logged_in" flag.
             // This prevents 401 errors on startup for anonymous users.
-            if (localStorage.getItem('logged_in') === 'true') {
+            if (localStorage.getItem('demo_mode') === 'true') {
+                setUser(demoData.user);
+                setLoading(false);
+            } else if (localStorage.getItem('logged_in') === 'true') {
                 fetchUser();
             } else {
                 setLoading(false);
@@ -75,7 +80,20 @@ export const AuthProvider = ({ children }) => {
         await fetchUser();
     }, [fetchUser]);
 
+    const loginDemo = useCallback(() => {
+        setLoading(true);
+        setUser(demoData.user);
+        localStorage.setItem('demo_mode', 'true');
+        setLoading(false);
+    }, []);
+
     const logout = useCallback(async () => {
+        if (localStorage.getItem('demo_mode')) {
+            localStorage.removeItem('demo_mode');
+            setUser(null);
+            return;
+        }
+
         try {
             await api.get('/auth/logout');
         } catch {
@@ -86,7 +104,7 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, setUser, loading, login, logout, refreshUser: fetchUser }}>
+        <AuthContext.Provider value={{ user, setUser, loading, login, loginDemo, logout, refreshUser: fetchUser }}>
             {children}
         </AuthContext.Provider>
     );

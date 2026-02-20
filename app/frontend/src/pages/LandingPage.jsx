@@ -146,7 +146,8 @@ const WalletSvg = ({ size = 48, className = '' }) => (
 
 const LandingPage = () => {
     const { theme } = useTheme();
-    const { user } = useAuth();
+    const { user, loginDemo } = useAuth();
+    const navigate = useNavigate();
     const heroRef = useRef(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [savingsAmount, setSavingsAmount] = useState(500);
@@ -351,9 +352,12 @@ const LandingPage = () => {
                         </Link>
                     </motion.div>
                     <motion.div variants={staggerItem} custom={1.0}>
-                        <a href="#demo" className="inline-block w-full sm:w-auto text-center bg-white text-black text-base sm:text-xl font-bold px-6 sm:px-12 py-3.5 sm:py-5 rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all border-2 border-black box-border">
+                        <button onClick={() => {
+                            loginDemo();
+                            navigate('/dashboard');
+                        }} className="inline-block w-full sm:w-auto text-center bg-white text-black text-base sm:text-xl font-bold px-6 sm:px-12 py-3.5 sm:py-5 rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all border-2 border-black box-border cursor-pointer">
                             View Demo
-                        </a>
+                        </button>
                     </motion.div>
                 </motion.div>
 
