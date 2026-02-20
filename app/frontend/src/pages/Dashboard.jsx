@@ -63,16 +63,19 @@ const RenderCatIcon = ({ category, type, size = 16 }) => {
 };
 
 /* ─── Custom Tooltip ─── */
+/* ─── Custom Tooltip ─── */
 const ChartTooltip = ({ active, payload, label, isDark }) => {
     if (!active || !payload?.length) return null;
     return (
-        <div className={`px-3 py-2 rounded-lg border-2 text-xs font-bold ${isDark ? 'bg-dark-card border-gray-700 text-dark-text' : 'bg-light-card border-brand-black text-light-text'}`}
-            style={{ boxShadow: '3px 3px 0px 0px rgba(0,0,0,0.15)' }}>
-            <p className="opacity-60 mb-1">{label}</p>
+        <div className={`px-4 py-3 rounded-xl border border-white/20 backdrop-blur-md shadow-xl text-xs font-bold ${isDark ? 'bg-black/60 text-white' : 'bg-white/80 text-black'}`}>
+            <p className="opacity-70 mb-2 uppercase tracking-wider text-[10px]">{label}</p>
             {payload.map((p, i) => (
-                <div key={i} className="flex items-center gap-2 mb-0.5">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.stroke }} />
-                    <span style={{ color: p.stroke }}>{p.name}: ₹{p.value?.toLocaleString()}</span>
+                <div key={i} className="flex items-center justify-between gap-4 mb-1">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.stroke }} />
+                        <span className="text-sm">{p.name}</span>
+                    </div>
+                    <span className="font-black text-sm" style={{ color: p.stroke }}>₹{p.value?.toLocaleString()}</span>
                 </div>
             ))}
         </div>
@@ -160,13 +163,19 @@ const Dashboard = () => {
 
     // Charts Data
     const spendingData = useMemo(() => {
+        const currentMonth = format(new Date(), 'MMM');
         const data = dateRange === 'year'
             ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => ({
                 name: m,
                 income: 0,
                 expense: 0
             }))
-            : [{ name: 'W1', income: 0, expense: 0 }, { name: 'W2', income: 0, expense: 0 }, { name: 'W3', income: 0, expense: 0 }, { name: 'W4', income: 0, expense: 0 }];
+            : [
+                { name: `1-7 ${currentMonth}`, income: 0, expense: 0 },
+                { name: `8-14 ${currentMonth}`, income: 0, expense: 0 },
+                { name: `15-21 ${currentMonth}`, income: 0, expense: 0 },
+                { name: `22+ ${currentMonth}`, income: 0, expense: 0 }
+            ];
 
         if (dateRange === 'year') {
             filteredTransactions.forEach(t => {
@@ -371,31 +380,74 @@ const Dashboard = () => {
                 {/* Left Column (Charts - Takes 2/3 width on large screens) */}
                 <div className="lg:col-span-2 space-y-4 sm:space-y-6">
                     {/* Spending Trends */}
-                    <motion.div variants={fadeUp(0.2)} initial="hidden" animate="visible" className="neo-card p-3 sm:p-5 h-64 sm:h-80">
-                        <div className="flex justify-between items-center mb-3 sm:mb-4">
-                            <h3 className="text-sm sm:text-base font-black uppercase tracking-tight flex items-center gap-2">
-                                <BsActivity /> Spending Trends
-                            </h3>
+                    <motion.div variants={fadeUp(0.2)} initial="hidden" animate="visible" className="neo-card p-4 sm:p-6 h-80 sm:h-96 relative overflow-hidden group">
+                        <div className="flex justify-between items-center mb-2 z-10 relative">
+                            <div>
+                                <h3 className="text-base sm:text-lg font-black uppercase tracking-tight flex items-center gap-2">
+                                    <BsActivity className="text-brand-primary" /> Spending Analysis
+                                </h3>
+                                <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mt-1">Income vs Expense Trends</p>
+                            </div>
+                            {/* Timeframe Selector (Visual Only) */}
+                            <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+                                {['1W', '1M', '3M', '6M'].map((t, i) => (
+                                    <button key={t} className={`px-2 py-1 text-[10px] font-bold rounded ${i === 1 ? 'bg-white dark:bg-gray-700 shadow-sm text-black dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}>
+                                        {t}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                        <div className="h-48 sm:h-64 w-full" style={{ width: '100%', minHeight: '200px' }}>
+
+                        <div className="h-60 sm:h-72 w-full" style={{ width: '100%', minHeight: '240px' }}>
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={spendingData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                                <AreaChart data={spendingData} margin={{ top: 10, right: 10, left: -20, bottom: 10 }}>
                                     <defs>
                                         <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.2} />
+                                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.4} />
                                             <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
                                         </linearGradient>
                                         <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
-                                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                            <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.4} />
+                                            <stop offset="95%" stopColor="#F43F5E" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
-                                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: axisColor, fontWeight: 700 }} axisLine={false} tickLine={false} dy={8} />
-                                    <YAxis tick={{ fontSize: 11, fill: axisColor, fontWeight: 700 }} axisLine={false} tickLine={false} tickFormatter={v => `₹${v}`} />
-                                    <Tooltip content={<ChartTooltip isDark={isDark} />} />
-                                    <Area type="monotone" dataKey="income" stroke="#10B981" strokeWidth={2.5} fill="url(#incomeGrad)" strokeDasharray="5 5" name="Income" />
-                                    <Area type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2.5} fill="url(#expenseGrad)" name="Expense" />
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#f0f0f0'} />
+                                    <XAxis
+                                        dataKey="name"
+                                        tick={{ fontSize: 10, fill: isDark ? '#FFF' : axisColor, fontWeight: 700 }}
+                                        tickMargin={10}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        interval="preserveStartEnd"
+                                    />
+                                    <YAxis
+                                        tick={{ fontSize: 10, fill: isDark ? '#FFF' : axisColor, fontWeight: 700 }}
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tickFormatter={v => `₹${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v}`}
+                                    />
+                                    <Tooltip
+                                        content={<ChartTooltip isDark={isDark} />}
+                                        cursor={{ stroke: isDark ? '#555' : '#ddd', strokeWidth: 1, strokeDasharray: '4 4' }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="income"
+                                        stroke="#10B981"
+                                        strokeWidth={3}
+                                        fill="url(#incomeGrad)"
+                                        activeDot={{ r: 6, strokeWidth: 0, fill: '#10B981' }}
+                                        name="Income"
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="expense"
+                                        stroke="#F43F5E"
+                                        strokeWidth={3}
+                                        fill="url(#expenseGrad)"
+                                        activeDot={{ r: 6, strokeWidth: 0, fill: '#F43F5E' }}
+                                        name="Expense"
+                                    />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>
