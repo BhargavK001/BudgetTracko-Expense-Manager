@@ -68,7 +68,7 @@ const TransactionDetailModal = ({ transaction, onClose, onEdit, onDelete }) => {
                     <div className="text-center">
                         <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Amount</p>
                         <h2 className={`text-2xl sm:text-4xl font-black ${colorClass}`}>
-                            {isTransfer ? '' : isExpense ? '-' : '+'}₹{Math.abs(transaction.amount).toLocaleString()}
+                            {isTransfer ? '' : isExpense ? '-' : '+'}₹{Number(Math.abs(transaction.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </h2>
                     </div>
 

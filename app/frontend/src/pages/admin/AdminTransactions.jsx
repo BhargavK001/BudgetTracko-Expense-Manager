@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { BsCreditCardFill, BsDownload, BsArrowLeft, BsArrowRight, BsFilter, BsCalendar3, BsXCircle } from 'react-icons/bs';
 import { adminApi } from '../../services/adminApi';
@@ -50,6 +51,7 @@ const AdminTransactions = () => {
             setPagination(res.data.pagination);
         } catch (error) {
             console.error('Failed to fetch transactions:', error);
+            toast.error('Failed to load transactions');
         } finally {
             setLoading(false);
         }
@@ -155,8 +157,8 @@ const AdminTransactions = () => {
                         <button
                             onClick={() => setFilterType('all')}
                             className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border-2 ${filterType === 'all'
-                                    ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
-                                    : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
+                                ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
+                                : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
                                 }`}
                         >
                             All Time
@@ -164,8 +166,8 @@ const AdminTransactions = () => {
                         <button
                             onClick={() => setFilterType('daily')}
                             className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border-2 ${filterType === 'daily'
-                                    ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
-                                    : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
+                                ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
+                                : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
                                 }`}
                         >
                             Daily
@@ -173,8 +175,8 @@ const AdminTransactions = () => {
                         <button
                             onClick={() => setFilterType('weekly')}
                             className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border-2 ${filterType === 'weekly'
-                                    ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
-                                    : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
+                                ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
+                                : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
                                 }`}
                         >
                             Weekly
@@ -182,8 +184,8 @@ const AdminTransactions = () => {
                         <button
                             onClick={() => setFilterType('monthly')}
                             className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border-2 ${filterType === 'monthly'
-                                    ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
-                                    : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
+                                ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
+                                : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
                                 }`}
                         >
                             Monthly
@@ -191,8 +193,8 @@ const AdminTransactions = () => {
                         <button
                             onClick={() => setFilterType('custom')}
                             className={`px-4 py-2 rounded-lg font-bold text-sm transition-all border-2 ${filterType === 'custom'
-                                    ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
-                                    : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
+                                ? 'bg-brand-black text-brand-yellow border-brand-black dark:bg-brand-yellow dark:text-brand-black'
+                                : 'bg-transparent border-gray-200 dark:border-gray-800 hover:border-brand-black dark:hover:border-brand-yellow'
                                 }`}
                         >
                             Custom Range

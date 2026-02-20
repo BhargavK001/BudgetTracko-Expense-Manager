@@ -41,7 +41,7 @@ exports.getBudgets = async (req, res) => {
             return {
                 ...budget.toObject(),
                 spent,
-                percent: budget.amount > 0 ? Math.round((spent / budget.amount) * 100) : 0
+                percent: budget.amount > 0 ? Number(((spent / budget.amount) * 100).toFixed(2)) : 0
             };
         }));
 

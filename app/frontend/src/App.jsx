@@ -10,9 +10,11 @@ import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Analytics from './pages/Analytics';
 import Budgets from './pages/Budgets';
+import RecurringBills from './pages/RecurringBills';
 import Accounts from './pages/Accounts';
 import Settings from './pages/Settings';
 import Billing from './pages/Billing';
+import AskTracko from './pages/AskTracko/AskTracko';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Contact from './pages/Contact';
@@ -23,6 +25,7 @@ import Privacy from './pages/Privacy';
 import TermsOfService from './pages/TermsOfService';
 import Signup from './pages/Signup';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import AuthCallback from './pages/AuthCallback';
 import NotFound from './pages/NotFound';
 import StatusPage from './pages/StatusPage';
@@ -91,6 +94,7 @@ const AnimatedRoutes = () => {
           <Route path="/login" element={<PageTransition><Login /></PageTransition>} />
           <Route path="/signup" element={<PageTransition><Signup /></PageTransition>} />
           <Route path="/forgot-password" element={<PageTransition><ForgotPassword /></PageTransition>} />
+          <Route path="/reset-password/:token" element={<PageTransition><ResetPassword /></PageTransition>} />
         </Route>
 
         <Route path="/contact" element={<PageTransition><Contact /></PageTransition>} />
@@ -122,6 +126,7 @@ const AnimatedRoutes = () => {
             <Route path="analytics" element={<PageTransition><Analytics /></PageTransition>} />
             <Route path="budgets" element={<PageTransition><Budgets /></PageTransition>} />
             <Route path="accounts" element={<PageTransition><Accounts /></PageTransition>} />
+            <Route path="tracko-pulse" element={<PageTransition><AskTracko /></PageTransition>} />
             <Route path="settings" element={<PageTransition><Settings /></PageTransition>} />
             <Route path="billing" element={<PageTransition><Billing /></PageTransition>} />
           </Route>

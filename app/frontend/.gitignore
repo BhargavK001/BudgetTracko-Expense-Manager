@@ -10,6 +10,7 @@ build/
 .env.local
 .env.example
 .env.production
+.env.development
 # IDE
 .vscode/
 .idea/

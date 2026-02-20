@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { BsPeopleFill, BsPersonCheckFill, BsCreditCard2FrontFill, BsCashCoin, BsPersonPlusFill, BsEnvelopeFill } from 'react-icons/bs';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -63,6 +64,7 @@ const AdminDashboard = () => {
                 setAnalytics(analyticsRes.data.data);
             } catch (error) {
                 console.error('Failed to fetch dashboard data:', error);
+                toast.error('Failed to load dashboard data');
             } finally {
                 setLoading(false);
             }

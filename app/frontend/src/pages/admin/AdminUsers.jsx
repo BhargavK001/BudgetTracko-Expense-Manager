@@ -19,6 +19,7 @@ const AdminUsers = () => {
             setPagination(res.data.pagination);
         } catch (error) {
             console.error('Failed to fetch users:', error);
+            toast.error('Failed to load users');
         } finally {
             setLoading(false);
         }
@@ -145,8 +146,8 @@ const AdminUsers = () => {
 
                                 {/* Status */}
                                 <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1.5 rounded-lg border ${user.accountStatus === 'active'
-                                        ? 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800'
-                                        : 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800'
+                                    ? 'bg-green-100 text-green-800 border-green-300 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800'
+                                    : 'bg-red-100 text-red-800 border-red-300 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800'
                                     }`}>
                                     {user.accountStatus || 'active'}
                                 </span>
@@ -163,8 +164,8 @@ const AdminUsers = () => {
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => handleToggleStatus(user._id, user.accountStatus || 'active')}
                                 className={`text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-lg border-2 transition-colors flex-shrink-0 ${(user.accountStatus || 'active') === 'active'
-                                        ? 'border-red-500 text-red-500 hover:bg-red-500 hover:text-white'
-                                        : 'border-green-500 text-green-500 hover:bg-green-500 hover:text-white'
+                                    ? 'border-red-500 text-red-500 hover:bg-red-500 hover:text-white'
+                                    : 'border-green-500 text-green-500 hover:bg-green-500 hover:text-white'
                                     }`}
                             >
                                 {(user.accountStatus || 'active') === 'active' ? 'Deactivate' : 'Activate'}

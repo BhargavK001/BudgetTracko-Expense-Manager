@@ -44,7 +44,7 @@ app.use(helmet({
             scriptSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],  // needed for inline styles
             imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com', 'https://*.googleusercontent.com', 'https://avatars.githubusercontent.com'],
-            connectSrc: ["'self'", process.env.FRONTEND_URL],
+            connectSrc: ["'self'", process.env.FRONTEND_URL, "ws:", "wss:"],
             fontSrc: ["'self'"],
             objectSrc: ["'none'"],
             frameSrc: ["'none'"],
@@ -214,6 +214,8 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/recurring', require('./routes/recurring'));
+app.use('/api/tracko-pulse', require('./tracko-pulse/api/routes/ask-tracko'));
 
 app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' })); // Simple health check
 // CSRF Token Endpoint - Explicitly fetch token
