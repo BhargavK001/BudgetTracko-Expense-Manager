@@ -2,7 +2,7 @@
 ### Implementation Plan for BudgetTracko Ecosystem
 
 > **Target Users:** Students & Young Professionals
-> **AI Stack:** Gemini 1.5 Flash (Primary) + Groq / LLaMA 3 (Fallback)
+> **AI Stack:** Gemini 2.5 Flash (Primary) + Groq / Llama 3.3 70B (Fallback 1) + OpenRouter (Fallback 2)
 > **Purpose:** An intelligent AI layer that sits on top of existing BudgetTracko transaction data and gives human-like financial advice.
 
 ---
@@ -15,14 +15,17 @@ Tracko-Pulse is not a standalone app. It is an extension of BudgetTracko — it 
 
 ## 🔑 API Strategy
 
-### Primary — Google Gemini 1.5 Flash
-Gemini is the main AI provider. It is free via Google AI Studio with a limit of 15 requests per minute and 1 million tokens per day, which is more than sufficient for a student-scale app. Its large context window makes it ideal for passing full monthly summaries. Get your key at aistudio.google.com.
+### Primary — Google Gemini 2.5 Flash
+Gemini is the main AI provider. It is free via Google AI Studio with generous limits, which is more than sufficient for a student-scale app. Its large context window makes it ideal for passing full monthly summaries. Get your key at aistudio.google.com.
 
-### Fallback — Groq (LLaMA 3 8B)
-Groq is the automatic backup. If Gemini takes longer than 5 seconds or throws any error, the system silently switches to Groq and completes the request. Groq is free, extremely fast due to its custom hardware, and allows 30 requests per minute with 14,400 requests per day. Get your key at console.groq.com. Users will never know a switch happened.
+### Fallback 1 — Groq (Llama 3.3 70B)
+Groq is the first automatic backup. If Gemini takes longer than 5 seconds or throws any error, the system silently switches to Groq and completes the request. Groq is free, extremely fast due to its custom hardware, and has excellent rate limits. Get your key at console.groq.com. Users will never know a switch happened.
 
-### Why Two Providers?
-Relying on a single free-tier API is risky. Rate limits, outages, or key expiry can break the entire feature. The fallback costs nothing extra and makes the product feel reliable even on a zero-budget infrastructure.
+### Fallback 2 — OpenRouter (Free Models)
+OpenRouter acts as the ultimate safety net. If both Gemini and Groq fail, the system falls back to OpenRouter's free model routing. This ensures the app remains functional even if earlier providers experience total downtime. Get your key at openrouter.ai.
+
+### Why Three Providers?
+Relying on a single free-tier API is risky. Rate limits, outages, or key expiry can break the entire feature. A multi-layered fallback costs nothing extra and makes the product feel incredibly reliable even on a zero-budget infrastructure.
 
 ---
 
@@ -50,7 +53,7 @@ A real-time chat interface where users ask financial questions in plain language
 **Savings Goals** — User names a goal, a target amount, and a deadline. The AI calculates the required daily or weekly saving and tells them whether it's realistic given their current balance.
 
 ### How It Works
-The user types a question on the frontend. The backend summarizes their current transaction data, combines it with the question into a structured prompt, and sends it to Gemini (or Groq as fallback). The response comes back in 2–4 short sentences and is displayed in the chat UI.
+The user types a question on the frontend. The backend summarizes their current transaction data, combines it with the question into a structured prompt, and sends it to Gemini (or Groq/OpenRouter as fallback). The response comes back in 2–4 short sentences and is displayed in the chat UI.
 
 ### Prompt Structure (What Gets Sent to the AI)
 Every prompt includes the following in this exact order: a persona instruction telling the AI to be direct and slightly witty, the user's financial snapshot (budget, spent, balance, top categories, upcoming bills), and then the user's actual question. The AI is instructed to answer in 2–4 sentences using only the data provided.
@@ -121,7 +124,7 @@ tracko-pulse/
 ## 🗺️ Implementation Roadmap
 
 ### Phase 1 — Foundation (Week 1–2)
-Set up both API keys and confirm they work independently. Build the transaction summarizer and test it against real sample data. Build the AI client with fallback logic and verify that Groq actually triggers when Gemini is blocked or slow. Build all prompt templates and test each one manually using a tool like Postman before connecting any frontend.
+Set up all three API keys and confirm they work independently. Build the transaction summarizer and test it against real sample data. Build the AI client with multi-level fallback logic and verify that Groq and OpenRouter actually trigger when primary providers are blocked or slow. Build all prompt templates and test each one manually using a tool like Postman before connecting any frontend.
 
 ### Phase 2 — Ask Tracko Chat (Week 3)
 Build the chat API routes for general questions and savings goals separately. Connect both to the frontend chat UI. Test edge cases including zero balance, no upcoming bills, and first-time users with very few transactions to make sure the AI response still makes sense.
@@ -141,7 +144,8 @@ Add proper error messages on the frontend for when the AI service is unavailable
 
 - [ ] Gemini API key added to `.env` and tested
 - [ ] Groq API key added to `.env` and tested
-- [ ] Fallback confirmed — Groq fires when Gemini times out or errors
+- [ ] OpenRouter API key added to `.env` and tested
+- [ ] Fallbacks confirmed — Groq & OpenRouter fire when primary providers time out or error
 - [ ] Transaction summarizer tested with real sample data
 - [ ] All prompt templates reviewed and approved by the team
 - [ ] Ask Tracko general chat working end-to-end
