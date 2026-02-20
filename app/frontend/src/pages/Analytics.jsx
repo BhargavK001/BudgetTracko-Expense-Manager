@@ -34,7 +34,7 @@ const BUDGET_LIMITS = {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF1971', '#EF4444', '#10B981'];
 
 const Analytics = () => {
-    const { transactions } = useGlobalContext();
+    const { transactions, recurringBills = [] } = useGlobalContext();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
 
@@ -599,29 +599,32 @@ const Analytics = () => {
                         <h3 className="text-sm sm:text-base font-black uppercase tracking-tight">Recurring Bills</h3>
                     </div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
-                        {/* Fake "Recurring" detection based on categories/names */}
-                        {filteredTransactions
-                            .filter(t => (t.category === 'Bills' || t.category === 'Education' || t.description?.toLowerCase().includes('netflix') || t.description?.toLowerCase().includes('rent')))
+                        {/* Real recurring bills from context */}
+                        {recurringBills
+                            .slice()
+                            .sort((a, b) => a.dueDate - b.dueDate)
                             .slice(0, 4)
                             .map((bill, i) => (
-                                <div key={i} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
+                                <div key={bill._id || i} className="flex items-center justify-between p-2 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700">
                                     <div className="flex items-center gap-3">
                                         <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400">
                                             <BsReceipt size={14} />
                                         </div>
                                         <div>
-                                            <p className="text-xs font-black truncate max-w-[100px]">{bill.description || bill.category}</p>
-                                            <p className="text-[10px] text-gray-400 font-bold">Due {format(safeParse(bill.date), 'MMM dd')}</p>
+                                            <p className="text-xs font-black truncate max-w-[100px]">{bill.name}</p>
+                                            <p className="text-[10px] text-gray-400 font-bold">Due {bill.dueDate}{[1, 21, 31].includes(bill.dueDate) ? 'st' : [2, 22].includes(bill.dueDate) ? 'nd' : [3, 23].includes(bill.dueDate) ? 'rd' : 'th'}</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
                                         <p className="text-xs font-black text-red-500">-₹{Math.abs(bill.amount).toLocaleString()}</p>
-                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-500">Auto-Pay</span>
+                                        {bill.autoPay && (
+                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-500">Auto-Pay</span>
+                                        )}
                                     </div>
                                 </div>
                             ))}
-                        {filteredTransactions.filter(t => t.category === 'Bills').length === 0 && (
-                            <div className="text-center text-gray-400 text-xs font-bold py-4">No upcoming bills detected.</div>
+                        {recurringBills.length === 0 && (
+                            <div className="text-center text-gray-400 text-xs font-bold py-4">No recurring bills added.</div>
                         )}
                     </div>
                 </motion.div>

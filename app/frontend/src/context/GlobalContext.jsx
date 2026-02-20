@@ -1,5 +1,5 @@
 import { createContext, useReducer, useEffect, useContext } from 'react';
-import { transactionApi, accountApi, categoryApi, budgetApi } from '../services/api';
+import { transactionApi, accountApi, categoryApi, budgetApi, recurringApi } from '../services/api';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
 import { demoData } from '../data/demoData';
@@ -12,6 +12,7 @@ const initialState = {
     budgets: [],
     loading: true,
     error: null,
+    recurringBills: [],
 };
 
 // Create Context
@@ -76,6 +77,20 @@ const AppReducer = (state, action) => {
             };
         case 'DELETE_BUDGET':
             return { ...state, budgets: state.budgets.filter(b => b._id !== action.payload) };
+        // ─── Recurring Bills ───
+        case 'GET_RECURRING_BILLS':
+            return { ...state, recurringBills: action.payload };
+        case 'ADD_RECURRING_BILL':
+            return { ...state, recurringBills: [...state.recurringBills, action.payload] };
+        case 'UPDATE_RECURRING_BILL':
+            return {
+                ...state,
+                recurringBills: state.recurringBills.map(b =>
+                    b._id === action.payload._id ? action.payload : b
+                ),
+            };
+        case 'DELETE_RECURRING_BILL':
+            return { ...state, recurringBills: state.recurringBills.filter(b => b._id !== action.payload) };
         case 'ERROR':
             return { ...state, error: action.payload, loading: false };
         default:
@@ -408,6 +423,69 @@ export const GlobalProvider = ({ children }) => {
         }
     }
 
+    // ─── Recurring Bill Actions ───
+    async function getRecurringBills() {
+        if (user?.isDemo) {
+            dispatch({ type: 'GET_RECURRING_BILLS', payload: demoData.recurringBills || [] });
+            return;
+        }
+        try {
+            const res = await recurringApi.getAll();
+            dispatch({ type: 'GET_RECURRING_BILLS', payload: res.data.data });
+        } catch (err) {
+            // Silently fail UI will show empty list
+        }
+    }
+
+    async function addRecurringBill(data) {
+        if (user?.isDemo) {
+            const newBill = { ...data, _id: Math.random().toString(36).substr(2, 9) };
+            dispatch({ type: 'ADD_RECURRING_BILL', payload: newBill });
+            toast.success('Bill created (Demo)');
+            return newBill;
+        }
+        try {
+            const res = await recurringApi.create(data);
+            dispatch({ type: 'ADD_RECURRING_BILL', payload: res.data.data });
+            toast.success('Bill added');
+            return res.data.data;
+        } catch (err) {
+            toast.error(err.response?.data?.error?.[0] || 'Failed to add bill');
+        }
+    }
+
+    async function updateRecurringBill(id, data) {
+        if (user?.isDemo) {
+            const updatedBill = { ...data, _id: id };
+            dispatch({ type: 'UPDATE_RECURRING_BILL', payload: updatedBill });
+            toast.success('Bill updated (Demo)');
+            return updatedBill;
+        }
+        try {
+            const res = await recurringApi.update(id, data);
+            dispatch({ type: 'UPDATE_RECURRING_BILL', payload: res.data.data });
+            toast.success('Bill updated');
+            return res.data.data;
+        } catch (err) {
+            toast.error(err.response?.data?.error?.[0] || 'Failed to update bill');
+        }
+    }
+
+    async function deleteRecurringBill(id) {
+        if (user?.isDemo) {
+            dispatch({ type: 'DELETE_RECURRING_BILL', payload: id });
+            toast.success('Bill deleted (Demo)');
+            return;
+        }
+        try {
+            await recurringApi.delete(id);
+            dispatch({ type: 'DELETE_RECURRING_BILL', payload: id });
+            toast.success('Bill deleted');
+        } catch (err) {
+            toast.error('Failed to delete bill');
+        }
+    }
+
     // Load data when user is authenticated
     // Load data when user is authenticated
     useEffect(() => {
@@ -416,6 +494,7 @@ export const GlobalProvider = ({ children }) => {
             dispatch({ type: 'GET_ACCOUNTS', payload: demoData.accounts });
             dispatch({ type: 'GET_CATEGORIES', payload: demoData.categories });
             dispatch({ type: 'GET_BUDGETS', payload: demoData.budgets });
+            dispatch({ type: 'GET_RECURRING_BILLS', payload: demoData.recurringBills || [] });
             dispatch({ type: 'SET_LOADING', payload: false });
         } else if (user) {
             getTransactions();
@@ -455,7 +534,12 @@ export const GlobalProvider = ({ children }) => {
                 getBudgets,
                 addBudget,
                 updateBudget,
-                deleteBudget
+                deleteBudget,
+                recurringBills: state.recurringBills,
+                getRecurringBills,
+                addRecurringBill,
+                updateRecurringBill,
+                deleteRecurringBill
             }}
         >
             {children}

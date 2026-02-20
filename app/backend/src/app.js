@@ -214,6 +214,7 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/recurring', require('./routes/recurring'));
 
 app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' })); // Simple health check
 // CSRF Token Endpoint - Explicitly fetch token

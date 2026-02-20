@@ -8,6 +8,7 @@ import { BsPlus, BsX, BsSearch, BsFilter, BsTrash3, BsFunnel, BsCalendar3, BsLis
 import { getCategoryIcon } from '../utils/iconMap';
 import SEO from '../components/common/SEO';
 import CalendarView from '../components/CalendarView';
+import RecurringBills from './RecurringBills';
 
 /* ─── Render Category Icon ─── */
 const RenderCatIcon = ({ category, size = 16 }) => {
@@ -33,6 +34,7 @@ const Transactions = () => {
     const [selectedTransaction, setSelectedTransaction] = useState(null);
     const [editMode, setEditMode] = useState(null); // Transaction object to edit
     const [viewMode, setViewMode] = useState('list'); // 'list' | 'calendar'
+    const [activeTab, setActiveTab] = useState('history'); // 'history' | 'recurring'
 
     // Filter States
     const [searchTerm, setSearchTerm] = useState('');
@@ -132,42 +134,59 @@ const Transactions = () => {
                     </div>
                 </div>
 
-                {/* Search & Filter Bar */}
-                <div className="flex flex-col gap-2 sm:gap-3">
-                    <div className="relative">
-                        <BsSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                        <input
-                            type="text"
-                            placeholder="Search transactions..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full neo-input !pl-10 py-2.5 text-sm"
-                        />
-                    </div>
-                    <div className="flex gap-2">
-                        <div className="relative flex-1 sm:flex-none">
-                            <BsFunnel className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-                            <select
-                                value={filterCategory}
-                                onChange={(e) => setFilterCategory(e.target.value)}
-                                className="neo-input !pl-10 py-2.5 text-xs sm:text-sm appearance-none pr-8 cursor-pointer w-full"
-                            >
-                                {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                        </div>
-                        {viewMode === 'list' && (
-                            <select
-                                value={filterDate}
-                                onChange={(e) => setFilterDate(e.target.value)}
-                                className="neo-input py-2.5 px-2 sm:px-3 text-xs sm:text-sm cursor-pointer flex-1 sm:flex-none"
-                            >
-                                <option value="all">All Time</option>
-                                <option value="thisMonth">This Month</option>
-                                <option value="lastMonth">Last Month</option>
-                            </select>
-                        )}
-                    </div>
+                {/* Tabs */}
+                <div className="flex gap-4 border-b-2 border-gray-100 dark:border-gray-800 font-black uppercase tracking-wider text-xs sm:text-sm">
+                    <button
+                        onClick={() => setActiveTab('history')}
+                        className={`pb-2 border-b-2 transition-colors ${activeTab === 'history' ? 'border-brand-primary text-brand-black dark:text-white' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        History
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('recurring')}
+                        className={`pb-2 border-b-2 transition-colors ${activeTab === 'recurring' ? 'border-brand-primary text-brand-black dark:text-white' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        Recurring Bills
+                    </button>
                 </div>
+
+                {activeTab === 'history' && (
+                    <div className="flex flex-col gap-2 sm:gap-3">
+                        <div className="relative">
+                            <BsSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                            <input
+                                type="text"
+                                placeholder="Search transactions..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full neo-input !pl-10 py-2.5 text-sm"
+                            />
+                        </div>
+                        <div className="flex gap-2">
+                            <div className="relative flex-1 sm:flex-none">
+                                <BsFunnel className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                                <select
+                                    value={filterCategory}
+                                    onChange={(e) => setFilterCategory(e.target.value)}
+                                    className="neo-input !pl-10 py-2.5 text-xs sm:text-sm appearance-none pr-8 cursor-pointer w-full"
+                                >
+                                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                            </div>
+                            {viewMode === 'list' && (
+                                <select
+                                    value={filterDate}
+                                    onChange={(e) => setFilterDate(e.target.value)}
+                                    className="neo-input py-2.5 px-2 sm:px-3 text-xs sm:text-sm cursor-pointer flex-1 sm:flex-none"
+                                >
+                                    <option value="all">All Time</option>
+                                    <option value="thisMonth">This Month</option>
+                                    <option value="lastMonth">Last Month</option>
+                                </select>
+                            )}
+                        </div>
+                    </div>
+                )}
             </motion.div>
 
             {/* Form */}
@@ -194,7 +213,9 @@ const Transactions = () => {
             </AnimatePresence>
 
             {/* Content */}
-            {viewMode === 'list' ? (
+            {activeTab === 'recurring' ? (
+                <RecurringBills />
+            ) : viewMode === 'list' ? (
                 filteredTransactions.length > 0 ? (
                     <div className="space-y-4 sm:space-y-5">
                         {Object.entries(grouped).map(([dateLabel, items]) => (

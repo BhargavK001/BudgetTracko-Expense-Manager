@@ -13,12 +13,12 @@ export const demoData = {
         { _id: 'acc3', name: 'Cash Stash', type: 'Cash', balance: 450, color: '#F59E0B' }
     ],
     categories: [
-        { _id: 'cat1', name: 'Food & Canteen', type: 'expense', icon: '🍔', color: '#F59E0B' }, // Zomato, Canteen
-        { _id: 'cat2', name: 'Travel (Metro/Auto)', type: 'expense', icon: '�', color: '#3B82F6' },
-        { _id: 'cat3', name: 'Pocket Money', type: 'income', icon: '💰', color: '#10B981' },
-        { _id: 'cat4', name: 'Recharge & Bills', type: 'expense', icon: '�', color: '#EF4444' }, // Jio/Data
-        { _id: 'cat5', name: 'Fun & Movies', type: 'expense', icon: '🎬', color: '#8B5CF6' },
-        { _id: 'cat6', name: 'Stationery & Xerox', type: 'expense', icon: '📚', color: '#6366F1' }
+        { _id: 'cat1', name: 'Food & Canteen', type: 'expense', icon: 'food', color: '#F59E0B' }, // Zomato, Canteen
+        { _id: 'cat2', name: 'Travel (Metro/Auto)', type: 'expense', icon: 'transport', color: '#3B82F6' },
+        { _id: 'cat3', name: 'Pocket Money', type: 'income', icon: 'money', color: '#10B981' },
+        { _id: 'cat4', name: 'Recharge & Bills', type: 'expense', icon: 'bills', color: '#EF4444' }, // Jio/Data
+        { _id: 'cat5', name: 'Fun & Movies', type: 'expense', icon: 'entertainment', color: '#8B5CF6' },
+        { _id: 'cat6', name: 'Stationery & Xerox', type: 'expense', icon: 'education', color: '#6366F1' }
     ],
     transactions: [
         // ─── WEEK 1 (1st - 7th) ───
@@ -153,6 +153,11 @@ export const demoData = {
         { _id: 'bud1', name: 'Monthly Food & Canteen', amount: 3000, spent: 2200, color: '#F59E0B' }, // Often overshot
         { _id: 'bud2', name: 'Travel & Metro', amount: 1500, spent: 500, color: '#3B82F6' },
         { _id: 'bud3', name: 'Party & Fun', amount: 2000, spent: 450, color: '#8B5CF6' }
+    ],
+    recurringBills: [
+        { _id: 'rec1', name: 'Netflix', amount: 649, dueDate: 18, category: 'Entertainment', frequency: 'monthly', autoPay: true },
+        { _id: 'rec2', name: 'Electricity', amount: 1450, dueDate: 22, category: 'Bills', frequency: 'monthly', autoPay: false },
+        { _id: 'rec3', name: 'Hostel Rent', amount: 4500, dueDate: 5, category: 'Housing', frequency: 'monthly', autoPay: true }
     ]
 };
 

@@ -113,7 +113,7 @@ const CircularGauge = ({ percent, label, size = 100, strokeWidth = 10 }) => {
 /* ─── Main Dashboard ─── */
 const Dashboard = () => {
     const { user } = useAuth();
-    const { transactions, loading, deleteTransaction } = useGlobalContext();
+    const { transactions, loading, deleteTransaction, recurringBills = [] } = useGlobalContext();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const [dateRange, setDateRange] = useState('month');
@@ -230,15 +230,22 @@ const Dashboard = () => {
         { category: 'Entertainment', limit: 2000, spent: categoryData.find(c => c.name === 'Entertainment')?.value || 0 },
     ];
 
-    const UpcomingBillIcon = ({ type }) => {
-        const icons = { netflix: BsFilm, electricity: BsLightningChargeFill };
-        const Icon = icons[type] || BsReceipt;
+    const UpcomingBillIcon = ({ category, name }) => {
+        const lowerName = name?.toLowerCase() || '';
+        if (lowerName.includes('netflix')) return <BsFilm size={16} />;
+        if (lowerName.includes('elect') || lowerName.includes('power')) return <BsLightningChargeFill size={16} />;
+        if (lowerName.includes('rent') || lowerName.includes('housing')) return <BsWallet2 size={16} />;
+
+        const Icon = getCategoryIcon(category || 'Bills');
         return <Icon size={16} />;
     };
-    const upcomingBills = [
-        { name: 'Netflix', date: 'Feb 18', amount: 649, type: 'netflix' },
-        { name: 'Electricity', date: 'Feb 22', amount: 1450, type: 'electricity' },
-    ];
+
+    const dashboardBills = useMemo(() => {
+        return recurringBills
+            .slice()
+            .sort((a, b) => a.dueDate - b.dueDate)
+            .slice(0, 3);
+    }, [recurringBills]);
 
     const axisColor = isDark ? '#666' : '#999';
     const gridColor = isDark ? '#333' : '#e5e5e5';
@@ -618,29 +625,38 @@ const Dashboard = () => {
                         </div>
                     </motion.div>
 
-                    {/* Upcoming Bills */}
-                    <motion.div variants={fadeUp(0.4)} initial="hidden" animate="visible" className="neo-card p-3 sm:p-5">
-                        <h3 className="text-sm sm:text-base font-black uppercase tracking-tight mb-3 sm:mb-4 flex items-center gap-2">
-                            <BsCalendarCheck /> Upcoming Bills
-                        </h3>
-                        <div className="space-y-3">
-                            {upcomingBills.map((bill, i) => (
-                                <div key={i} className="flex items-center justify-between p-2.5 rounded-xl bg-light-bg dark:bg-dark-bg border border-gray-200 dark:border-gray-700">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                                            <UpcomingBillIcon type={bill.type} />
+                    {/* Upcoming Bills (Premium Dash Style) */}
+                    <motion.div variants={fadeUp(0.4)} initial="hidden" animate="visible" className="neo-card p-4 sm:p-5">
+                        <div className="flex justify-between items-center mb-5">
+                            <h3 className="text-sm sm:text-base font-black uppercase tracking-widest flex items-center gap-2">
+                                <BsCalendarCheck className="text-brand-primary" strokeWidth={1} /> Upcoming Bills
+                            </h3>
+                        </div>
+                        <div className="space-y-4">
+                            {dashboardBills.length > 0 ? (
+                                dashboardBills.map((bill, i) => (
+                                    <div key={bill._id || i} className="flex items-center justify-between p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-gray-100 dark:border-white/10 hover:border-brand-primary/50 transition-all group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 flex items-center justify-center bg-brand-yellow/10 text-brand-black dark:text-brand-yellow rounded-xl border border-brand-black/5 dark:border-white/5 shadow-sm">
+                                                <UpcomingBillIcon category={bill.category} name={bill.name} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="font-black text-sm text-brand-black dark:text-white truncate">{bill.name}</p>
+                                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Due {format(new Date(new Date().getFullYear(), new Date().getMonth(), bill.dueDate), 'MMM dd')}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="font-bold text-xs">{bill.name}</p>
-                                            <p className="text-[10px] font-semibold text-gray-500">Due {bill.date}</p>
+                                        <div className="text-right flex flex-col items-end gap-1">
+                                            <p className="font-black text-base text-brand-black dark:text-white">₹{bill.amount}</p>
+                                            <button className="text-[10px] font-black text-white bg-black dark:bg-white dark:text-black px-3 py-1 rounded-lg uppercase tracking-widest hover:scale-105 active:scale-95 transition-transform shadow-sm">Pay</button>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="font-black text-xs">₹{bill.amount}</p>
-                                        <button className="text-[10px] font-bold text-brand-primary uppercase hover:underline">Pay</button>
-                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8 border-2 border-dashed border-gray-100 dark:border-white/5 rounded-2xl">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">No Bills Added</p>
+                                    <Link to="/recurring" className="text-[10px] font-black text-brand-primary uppercase mt-2 inline-block hover:underline">+ Add First Bill</Link>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </motion.div>
 

@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Analytics from './pages/Analytics';
 import Budgets from './pages/Budgets';
+import RecurringBills from './pages/RecurringBills';
 import Accounts from './pages/Accounts';
 import Settings from './pages/Settings';
 import Billing from './pages/Billing';

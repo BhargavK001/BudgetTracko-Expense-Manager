@@ -6,6 +6,7 @@ import {
     BsPencil, BsPlus, BsTrash, BsExclamationTriangleFill,
     BsCheckCircleFill, BsX, BsCalendarWeek, BsCalendar3, BsCalendar4
 } from 'react-icons/bs';
+import { toast } from 'sonner';
 import SEO from '../components/common/SEO';
 import CategoryManager from '../components/CategoryManager';
 
@@ -87,9 +88,14 @@ const Budgets = () => {
     };
 
     const handleDelete = async (id) => {
-        if (window.confirm('Delete this budget?')) {
-            await deleteBudget(id);
-        }
+        toast('Confirm Deletion', {
+            description: 'Are you sure you want to delete this budget?',
+            action: {
+                label: 'Delete',
+                onClick: async () => await deleteBudget(id)
+            },
+            cancel: { label: 'Cancel' }
+        });
     };
 
     return (

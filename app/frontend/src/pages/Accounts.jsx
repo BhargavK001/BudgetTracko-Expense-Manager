@@ -85,9 +85,14 @@ const Accounts = () => {
 
     const handleDelete = async (id, e) => {
         e.stopPropagation();
-        if (window.confirm('Are you sure you want to delete this account? This cannot be undone.')) {
-            await deleteAccount(id);
-        }
+        toast('Confirm Deletion', {
+            description: 'Are you sure you want to delete this account? This cannot be undone.',
+            action: {
+                label: 'Delete',
+                onClick: async () => await deleteAccount(id)
+            },
+            cancel: { label: 'Cancel' }
+        });
     };
 
     const inputClass = "mt-1 block w-full rounded-xl bg-light-bg dark:bg-dark-bg border-2 border-brand-black dark:border-gray-600 text-light-text dark:text-dark-text p-2.5 text-sm font-semibold focus:outline-none focus:border-brand-yellow focus:ring-2 focus:ring-brand-yellow/30 transition-all";
