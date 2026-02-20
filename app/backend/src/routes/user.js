@@ -333,8 +333,9 @@ router.post('/import/csv', upload.single('file'), async (req, res) => {
             }
 
             const type = row.Type.toLowerCase();
-            const amount = Math.abs(parseFloat(row.Amount));
-            if (isNaN(amount)) {
+            const rawAmount = Math.abs(parseFloat(row.Amount));
+            const amount = Number(rawAmount.toFixed(2));
+            if (isNaN(amount) || amount === 0) {
                 stats.skipped++;
                 continue;
             }

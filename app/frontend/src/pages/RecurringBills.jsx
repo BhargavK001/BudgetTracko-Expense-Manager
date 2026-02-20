@@ -146,7 +146,7 @@ const RecurringBills = () => {
                     <div>
                         <p className="text-[9px] sm:text-[10px] uppercase font-black text-gray-500 tracking-widest leading-none mb-1">Monthly Est.</p>
                         <p className="font-black text-brand-black dark:text-white text-base sm:text-lg leading-none tracking-tight">
-                            ₹{totalMonthly.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                            ₹{Number(totalMonthly).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                     </div>
                 </div>
@@ -241,7 +241,7 @@ const RecurringBills = () => {
                                         </div>
                                         <div>
                                             <p className="font-black text-brand-black dark:text-white flex items-baseline gap-1">
-                                                ₹{bill.amount.toLocaleString()}
+                                                ₹{Number(bill.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                 <span className="text-[10px] text-gray-400 uppercase font-bold">/{bill.frequency.substring(0, 2)}</span>
                                             </p>
                                         </div>
@@ -415,3 +415,4 @@ const RecurringBills = () => {
 };
 
 export default RecurringBills;
+

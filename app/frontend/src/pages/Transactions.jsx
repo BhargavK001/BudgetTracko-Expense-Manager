@@ -258,7 +258,7 @@ const Transactions = () => {
 
                                                 <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-2">
                                                     <span className={`font-black text-xs sm:text-sm ${t.type === 'transfer' ? 'text-blue-500 dark:text-blue-400' : t.amount < 0 ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                                                        {t.type === 'transfer' ? '' : t.amount > 0 ? '+' : ''}₹{Math.abs(t.amount).toLocaleString()}
+                                                        {t.type === 'transfer' ? '' : t.amount > 0 ? '+' : ''}₹{Number(Math.abs(t.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </span>
                                                 </div>
                                             </motion.div>

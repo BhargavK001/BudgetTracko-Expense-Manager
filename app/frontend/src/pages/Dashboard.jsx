@@ -47,7 +47,7 @@ const AnimatedNumber = ({ value, prefix = '' }) => {
         const tick = (now) => {
             const t = Math.min((now - start) / duration, 1);
             const eased = 1 - Math.pow(1 - t, 3);
-            setDisplay((num * eased).toFixed(2));
+            setDisplay(Number((num * eased).toFixed(2)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
             if (t < 1) requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);
@@ -75,7 +75,7 @@ const ChartTooltip = ({ active, payload, label, isDark }) => {
                         <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.stroke }} />
                         <span className="text-sm">{p.name}</span>
                     </div>
-                    <span className="font-black text-sm" style={{ color: p.stroke }}>₹{p.value?.toLocaleString()}</span>
+                    <span className="font-black text-sm" style={{ color: p.stroke }}>₹{Number(p.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
             ))}
         </div>
@@ -113,7 +113,7 @@ const CircularGauge = ({ percent, label, size = 100, strokeWidth = 10 }) => {
 /* ─── Main Dashboard ─── */
 const Dashboard = () => {
     const { user } = useAuth();
-    const { transactions, loading, deleteTransaction, recurringBills = [] } = useGlobalContext();
+    const { transactions, accounts = [], loading, deleteTransaction, recurringBills = [] } = useGlobalContext();
     const { theme } = useTheme();
     const isDark = theme === 'dark';
     const [dateRange, setDateRange] = useState('month');
@@ -134,21 +134,27 @@ const Dashboard = () => {
     }, [transactions, dateRange]);
 
     // Financial totals
-    const { income, expense, total } = useMemo(() => {
+    const { income, expense } = useMemo(() => {
         const amounts = filteredTransactions.filter(t => t.type !== 'transfer').map(t => t.amount);
         const inc = amounts.filter(a => a > 0).reduce((s, a) => s + a, 0);
         const exp = amounts.filter(a => a < 0).reduce((s, a) => s + a, 0) * -1;
-        return { income: inc.toFixed(2), expense: exp.toFixed(2), total: (inc - exp).toFixed(2) };
+        return { income: inc.toFixed(2), expense: exp.toFixed(2) };
     }, [filteredTransactions]);
+
+    // Total Accounts Balance (Net Worth)
+    const totalAccountsBalance = useMemo(() => {
+        const sum = accounts.reduce((acc, account) => acc + (Number(account.balance) || 0), 0);
+        return sum.toFixed(2);
+    }, [accounts]);
 
     // Daily Spend & Savings Rate
     const { dailyAvg, savingsRate } = useMemo(() => {
-        if (!filteredTransactions.length) return { dailyAvg: '0', savingsRate: 0 };
+        if (!filteredTransactions.length) return { dailyAvg: '0.00', savingsRate: '0.00' };
         const days = new Date().getDate();
         const yearlyDays = 365;
         const avg = dateRange === 'month' ? (expense / days) : (expense / yearlyDays);
         const rate = income > 0 ? ((parseFloat(income) - parseFloat(expense)) / parseFloat(income)) * 100 : 0;
-        return { dailyAvg: avg.toFixed(0), savingsRate: Math.max(0, Math.round(rate)) };
+        return { dailyAvg: avg.toFixed(2), savingsRate: Math.max(0, rate).toFixed(2) };
     }, [expense, income, dateRange, filteredTransactions]);
 
     // Spending velocity (pace vs 30 day average)
@@ -157,8 +163,8 @@ const Dashboard = () => {
         const dayOfMonth = new Date().getDate();
         const expectedPace = (parseFloat(expense) / dayOfMonth) * 30; // projected monthly expense
         const budgetTarget = 30000; // default monthly target
-        const pacePercent = budgetTarget > 0 ? Math.round((expectedPace / budgetTarget) * 100) : 0;
-        return { projected: expectedPace, target: budgetTarget, percent: Math.min(pacePercent, 150), isOverPace: pacePercent > 100 };
+        const pacePercent = budgetTarget > 0 ? ((expectedPace / budgetTarget) * 100).toFixed(2) : 0;
+        return { projected: expectedPace.toFixed(2), target: budgetTarget, percent: Math.min(Number(pacePercent), 150), isOverPace: Number(pacePercent) > 100 };
     }, [expense, dateRange]);
 
     // Charts Data
@@ -261,7 +267,7 @@ const Dashboard = () => {
             .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
         if (yesterdaySpend > 0) {
-            toast.info(`You spent ₹${yesterdaySpend.toLocaleString()} yesterday.`, {
+            toast.info(`You spent ₹${Number(yesterdaySpend).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} yesterday.`, {
                 description: 'Keep tracking to stay on budget!',
                 duration: 5000,
             });
@@ -271,7 +277,7 @@ const Dashboard = () => {
             const percent = (b.spent / b.limit) * 100;
             if (percent >= 90) {
                 toast.warning(`Budget Alert: ${b.category}`, {
-                    description: `You've used ${Math.round(percent)}% of your limit!`,
+                    description: `You've used ${Number(percent).toFixed(2)}% of your limit!`,
                     duration: 6000,
                 });
             }
@@ -362,7 +368,7 @@ const Dashboard = () => {
             <motion.div variants={fadeUp(0.1)} initial="hidden" animate="visible"
                 className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
                 {[
-                    { label: 'Total Balance', value: total, icon: BsWallet2, color: 'text-blue-500' },
+                    { label: 'Total Balance', value: totalAccountsBalance, icon: BsWallet2, color: 'text-blue-500' },
                     { label: 'Monthly Income', value: income, icon: BsArrowDownLeft, color: 'text-green-500' },
                     { label: 'Monthly Expense', value: expense, icon: BsArrowUpRight, color: 'text-red-500' },
                     { label: 'Daily Avg Spend', value: dailyAvg, icon: BsLightningChargeFill, color: 'text-brand-yellow' }
@@ -431,7 +437,7 @@ const Dashboard = () => {
                                         tick={{ fontSize: 10, fill: isDark ? '#FFF' : axisColor, fontWeight: 700 }}
                                         axisLine={false}
                                         tickLine={false}
-                                        tickFormatter={v => `₹${v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v}`}
+                                        tickFormatter={v => `₹${v >= 1000 ? (v / 1000).toFixed(2) + 'k' : v}`}
                                     />
                                     <Tooltip
                                         content={<ChartTooltip isDark={isDark} />}
@@ -498,7 +504,7 @@ const Dashboard = () => {
                                         </div>
                                     </div>
                                     <span className={`font-black text-xs sm:text-sm shrink-0 ml-2 ${t.type === 'transfer' ? 'text-blue-500' : t.amount > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-                                        {t.type === 'transfer' ? '' : t.amount > 0 ? '+' : ''}₹{Math.abs(t.amount).toLocaleString()}
+                                        {t.type === 'transfer' ? '' : t.amount > 0 ? '+' : ''}₹{Number(Math.abs(t.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
                                 </motion.div>
                             ))}
@@ -532,7 +538,7 @@ const Dashboard = () => {
                             </h3>
                             <div className="space-y-2">
                                 <div className="flex justify-between text-xs font-bold">
-                                    <span>Projected: ₹{Math.round(spendingVelocity.projected).toLocaleString()}</span>
+                                    <span>Projected: ₹{Number(spendingVelocity.projected).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                     <span className={spendingVelocity.isOverPace ? 'text-red-500' : 'text-green-500'}>
                                         {spendingVelocity.isOverPace ? <><BsExclamationTriangleFill className="inline mr-1" size={10} /> Over pace</> : <><BsCheckCircleFill className="inline mr-1" size={10} /> On track</>}
                                     </span>
@@ -548,7 +554,7 @@ const Dashboard = () => {
                                     <div className="absolute right-0 top-0 h-full w-0.5 bg-brand-black dark:bg-white/40" />
                                 </div>
                                 <p className="text-[10px] font-semibold text-gray-400">
-                                    Target: ₹{spendingVelocity.target.toLocaleString()}/month
+                                    Target: ₹{Number(spendingVelocity.target).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/month
                                 </p>
                             </div>
                         </motion.div>
@@ -568,15 +574,17 @@ const Dashboard = () => {
                                 const dotColor = percent > 90 ? 'bg-red-500' : percent > 70 ? 'bg-yellow-500' : b.spent > 0 ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-700';
                                 return (
                                     <div key={i} className="group relative flex flex-col items-center gap-1">
-                                        <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg ${dotColor} transition-transform group-hover:scale-110 flex items-center justify-center`}>
-                                            <span className="text-[7px] sm:text-[8px] font-black text-white">{Math.round(percent)}%</span>
+                                        <div className="relative w-6 h-6 sm:w-8 sm:h-8">
+                                            <div className={`absolute inset-0 rounded-lg ${dotColor} transition-transform group-hover:scale-110 flex items-center justify-center`}>
+                                                <span className="text-[7px] sm:text-[8px] font-black text-white">{Number(percent).toFixed(1)}%</span>
+                                            </div>
                                         </div>
                                         <span className="text-[7px] sm:text-[8px] font-bold text-gray-400 text-center truncate w-full">{b.category}</span>
                                         {/* Tooltip */}
                                         <div className="absolute -top-16 left-1/2 -translate-x-1/2 hidden group-hover:block z-10">
                                             <div className="bg-brand-black text-white p-2 rounded-lg text-[9px] font-bold whitespace-nowrap shadow-lg">
                                                 <p>{b.category}</p>
-                                                <p>₹{b.spent.toLocaleString()} / ₹{b.limit.toLocaleString()}</p>
+                                                <p>₹{Number(b.spent).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ₹{Number(b.limit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -587,7 +595,7 @@ const Dashboard = () => {
                         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                             <div className="flex justify-between text-[10px] font-bold text-gray-400 mb-1">
                                 <span>Overall</span>
-                                <span>{Math.round(budgetData.reduce((s, b) => s + b.spent, 0) / budgetData.reduce((s, b) => s + b.limit, 0) * 100)}%</span>
+                                <span>{Number((budgetData.reduce((s, b) => s + b.spent, 0) / budgetData.reduce((s, b) => s + b.limit, 0) * 100) || 0).toFixed(2)}%</span>
                             </div>
                             <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                                 <motion.div
@@ -620,7 +628,7 @@ const Dashboard = () => {
                             )}
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                                 <span className="text-xs font-bold text-gray-500 uppercase">Total</span>
-                                <span className="text-lg font-black">{parseFloat(expense) > 0 ? `₹${Math.round(expense)}` : '-'}</span>
+                                <span className="text-lg font-black">{parseFloat(expense) > 0 ? `₹${Number(expense).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}</span>
                             </div>
                         </div>
                     </motion.div>
@@ -646,7 +654,7 @@ const Dashboard = () => {
                                             </div>
                                         </div>
                                         <div className="text-right flex flex-col items-end gap-1">
-                                            <p className="font-black text-base text-brand-black dark:text-white">₹{bill.amount}</p>
+                                            <p className="font-black text-base text-brand-black dark:text-white">₹{Number(bill.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                             <button className="text-[10px] font-black text-white bg-black dark:bg-white dark:text-black px-3 py-1 rounded-lg uppercase tracking-widest hover:scale-105 active:scale-95 transition-transform shadow-sm">Pay</button>
                                         </div>
                                     </div>

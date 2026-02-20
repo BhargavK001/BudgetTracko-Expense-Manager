@@ -165,7 +165,7 @@ const Analytics = () => {
             const actual = filteredTransactions
                 .filter(t => t.category === category && (t.amount < 0 || t.type === 'expense') && t.type !== 'transfer')
                 .reduce((s, t) => s + Math.abs(t.amount), 0);
-            return { category, budget: limit, actual, percent: limit > 0 ? Math.round((actual / limit) * 100) : 0 };
+            return { category, budget: limit, actual, percent: limit > 0 ? ((actual / limit) * 100).toFixed(2) : '0.00' };
         }).sort((a, b) => b.actual - a.actual);
     }, [filteredTransactions]);
 
@@ -173,7 +173,7 @@ const Analytics = () => {
     const summary = useMemo(() => {
         const inc = filteredTransactions.filter(t => t.type === 'income' || (t.type !== 'transfer' && t.amount > 0)).reduce((s, t) => s + Math.abs(t.amount), 0);
         const exp = filteredTransactions.filter(t => t.type === 'expense' || (t.type !== 'transfer' && t.amount < 0)).reduce((s, t) => s + Math.abs(t.amount), 0);
-        return { income: inc, expense: exp, savings: inc - exp, savingsRate: inc > 0 ? Math.round(((inc - exp) / inc) * 100) : 0 };
+        return { income: inc, expense: exp, savings: inc - exp, savingsRate: inc > 0 ? (((inc - exp) / inc) * 100).toFixed(2) : '0.00' };
     }, [filteredTransactions]);
 
     // ─── Tooltip ───
@@ -188,7 +188,7 @@ const Analytics = () => {
                                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.stroke || entry.fill }} />
                                 <span className="text-sm">{entry.name}</span>
                             </div>
-                            <span className="font-black text-sm" style={{ color: entry.stroke || entry.fill }}>₹{entry.value?.toLocaleString()}</span>
+                            <span className="font-black text-sm" style={{ color: entry.stroke || entry.fill }}>₹{Number(entry.value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </div>
                     ))}
                 </div>
@@ -294,7 +294,7 @@ const Analytics = () => {
                         </div>
                         <s.icon className={`${s.color} mx-auto mb-1`} size={14} />
                         <p className="text-[8px] font-bold text-gray-400 uppercase">{s.label}</p>
-                        <p className={`text-xs font-black ${s.color}`}>₹{s.value.toLocaleString()}</p>
+                        <p className={`text-xs font-black ${s.color}`}>₹{Number(s.value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                     </div>
                 ))}
             </div>
@@ -337,7 +337,7 @@ const Analytics = () => {
                                 tick={{ fontSize: 10, fill: isDark ? '#FFF' : axisColor, fontWeight: 700 }}
                                 axisLine={false}
                                 tickLine={false}
-                                tickFormatter={v => v >= 1000 ? `₹${(v / 1000).toFixed(1)}k` : `₹${v}`}
+                                tickFormatter={v => v >= 1000 ? `₹${(v / 1000).toFixed(2)}k` : `₹${v}`}
                             />
                             <Tooltip content={<CustomTooltip />} cursor={{ stroke: isDark ? '#555' : '#ddd', strokeWidth: 1, strokeDasharray: '4 4' }} />
                             <Area type="monotone" dataKey="income" name="Income" stroke="#10B981" strokeWidth={3} fill="url(#incomeGrad)" activeDot={{ r: 6, strokeWidth: 0, fill: '#10B981' }} />
@@ -383,16 +383,14 @@ const Analytics = () => {
                                     {/* Center Text */}
                                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                                         <span className="text-[10px] uppercase font-bold text-gray-400">Total</span>
-                                        <span className="text-lg font-black">
-                                            ₹{categoryData.reduce((a, b) => a + b.value, 0).toLocaleString()}
-                                        </span>
+                                        ₹{Number(categoryData.reduce((a, b) => a + b.value, 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </div>
                                 </div>
                                 {/* Custom Legend with Percentages */}
                                 <div className="w-full grid grid-cols-2 gap-2 mt-4">
                                     {categoryData.map((entry, index) => {
                                         const total = categoryData.reduce((a, b) => a + b.value, 0);
-                                        const percent = ((entry.value / total) * 100).toFixed(1);
+                                        const percent = ((entry.value / total) * 100).toFixed(2);
                                         return (
                                             <div key={index} className="flex items-center justify-between p-1.5 rounded-lg bg-gray-50 dark:bg-gray-800/50">
                                                 <div className="flex items-center gap-2 overflow-hidden">
@@ -401,7 +399,7 @@ const Analytics = () => {
                                                 </div>
                                                 <div className="text-right shrink-0">
                                                     <div className="text-[10px] font-black">{percent}%</div>
-                                                    <div className="text-[9px] text-gray-400">₹{entry.value.toLocaleString()}</div>
+                                                    <div className="text-[9px] text-gray-400">₹{Number(entry.value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                                                 </div>
                                             </div>
                                         );
@@ -436,7 +434,7 @@ const Analytics = () => {
                                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
                                                 {entry.name}
                                             </span>
-                                            <span className="text-sm font-black">₹{entry.value.toLocaleString()}</span>
+                                            <span className="text-sm font-black">₹{Number(entry.value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                         </div>
                                         <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                                             <motion.div
@@ -464,7 +462,7 @@ const Analytics = () => {
                 <div className="flex flex-col items-end px-4 border-r border-gray-200 dark:border-gray-700/50">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">Income</span>
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-black text-gray-800 dark:text-gray-100">₹{summary.income.toLocaleString()}</span>
+                        <span className="text-sm font-black text-gray-800 dark:text-gray-100">₹{Number(summary.income).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         <div className="bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400 px-1.5 py-0.5 rounded-md flex items-center gap-1">
                             <BsGraphUp size={10} />
                             <span className="text-[10px] font-bold">12%</span>
@@ -476,7 +474,7 @@ const Analytics = () => {
                 <div className="flex flex-col items-end px-4 border-r border-gray-200 dark:border-gray-700/50">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">Expense</span>
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-black text-gray-800 dark:text-gray-100">₹{summary.expense.toLocaleString()}</span>
+                        <span className="text-sm font-black text-gray-800 dark:text-gray-100">₹{Number(summary.expense).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         <div className="bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400 px-1.5 py-0.5 rounded-md flex items-center gap-1">
                             <BsGraphUp size={10} />
                             <span className="text-[10px] font-bold">5%</span>
@@ -489,7 +487,7 @@ const Analytics = () => {
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-0.5">Net Savings</span>
                     <div className="flex items-center gap-2">
                         <span className={`text-sm font-black ${summary.savings >= 0 ? 'text-brand-primary' : 'text-red-500'}`}>
-                            {summary.savings >= 0 ? '+' : ''}₹{summary.savings.toLocaleString()}
+                            {summary.savings >= 0 ? '+' : ''}₹{Number(summary.savings).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                         <div className={`px-1.5 py-0.5 rounded-md flex items-center gap-1 ${summary.savings >= 0 ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-400'}`}>
                             {summary.savings >= 0 ? <BsGraphUp size={10} /> : <BsGraphDown size={10} />}
@@ -530,7 +528,7 @@ const Analytics = () => {
                                     tick={{ fontSize: 10, fill: axisColor, fontWeight: 700 }}
                                     axisLine={false}
                                     tickLine={false}
-                                    tickFormatter={v => v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`}
+                                    tickFormatter={v => v >= 1000 ? `₹${(v / 1000).toFixed(2)}k` : `₹${v}`}
                                 />
                                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
                                 {/* Budget Bar (Background) */}
@@ -616,7 +614,7 @@ const Analytics = () => {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-xs font-black text-red-500">-₹{Math.abs(bill.amount).toLocaleString()}</p>
+                                        <p className="text-xs font-black text-red-500">-₹{Number(Math.abs(bill.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                         {bill.autoPay && (
                                             <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-500">Auto-Pay</span>
                                         )}
@@ -662,7 +660,7 @@ const Analytics = () => {
                                 tick={{ fontSize: 10, fill: axisColor, fontWeight: 700 }}
                                 axisLine={false}
                                 tickLine={false}
-                                tickFormatter={v => v >= 1000 ? `₹${(v / 1000).toFixed(0)}k` : `₹${v}`}
+                                tickFormatter={v => v >= 1000 ? `₹${(v / 1000).toFixed(2)}k` : `₹${v}`}
                             />
                             <ReferenceLine y={0} stroke={axisColor} strokeDasharray="3 3" />
                             <Tooltip content={<CustomTooltip />} cursor={{ fill: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' }} />
@@ -670,7 +668,7 @@ const Analytics = () => {
                                 {trendData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.savings >= 0 ? 'url(#savGreen)' : 'url(#savRed)'} />
                                 ))}
-                                <LabelList dataKey="savings" position="top" formatter={(val) => `₹${val}`} style={{ fontSize: '10px', fontWeight: 'bold', fill: axisColor }} />
+                                <LabelList dataKey="savings" position="top" formatter={(val) => `₹${Number(val).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} style={{ fontSize: '10px', fontWeight: 'bold', fill: axisColor }} />
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>

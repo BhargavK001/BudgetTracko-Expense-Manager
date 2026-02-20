@@ -141,12 +141,12 @@ const Budgets = () => {
                                 Total {activePeriod.charAt(0).toUpperCase() + activePeriod.slice(1)} Budget
                             </p>
                             <h3 className="text-xl sm:text-3xl font-black">
-                                ₹{totalSpent.toLocaleString()} <span className="text-sm sm:text-lg text-gray-500 font-bold">/ ₹{totalBudget.toLocaleString()}</span>
+                                ₹{totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-sm sm:text-lg text-gray-500 font-bold">/ ₹{totalBudget.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </h3>
                         </div>
                         <div className="sm:text-right flex gap-2 items-center">
                             <span className={`text-xs sm:text-sm font-black px-2 py-1 rounded bg-white/10 ${totalPercent > 90 ? 'text-red-400' : 'text-green-400'}`}>
-                                {totalPercent.toFixed(0)}% Used
+                                {totalPercent.toFixed(2)}% Used
                             </span>
                             <button onClick={openAddForm}
                                 className="p-2 bg-brand-yellow text-brand-black rounded-lg hover:scale-105 transition-transform">
@@ -271,8 +271,8 @@ const Budgets = () => {
                             </div>
 
                             <div className="flex justify-between items-end mb-2">
-                                <span className="text-xl sm:text-2xl font-black">₹{(budget.spent || 0).toLocaleString()}</span>
-                                <span className="text-xs sm:text-sm font-bold text-gray-400">/ ₹{budget.amount.toLocaleString()}</span>
+                                <span className="text-xl sm:text-2xl font-black">₹{Number(budget.spent || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className="text-xs sm:text-sm font-bold text-gray-400">/ ₹{Number(budget.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
 
                             <div className="w-full h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-200 dark:border-gray-700">
@@ -288,10 +288,10 @@ const Budgets = () => {
                                 <span className={`text-xs font-black ${textColor}`}>
                                     {percent > 100 ? (
                                         <span className="flex items-center gap-1"><BsExclamationTriangleFill /> Over Budget!</span>
-                                    ) : `${(100 - percent).toFixed(0)}% left`}
+                                    ) : `${(100 - percent).toFixed(2)}% left`}
                                 </span>
                                 <span className="text-[10px] font-bold text-gray-400">
-                                    ₹{Math.max(0, budget.amount - (budget.spent || 0)).toLocaleString()} remaining
+                                    ₹{Math.max(0, budget.amount - (budget.spent || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} remaining
                                 </span>
                             </div>
                         </motion.div>
