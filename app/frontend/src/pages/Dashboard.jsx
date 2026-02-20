@@ -68,8 +68,13 @@ const ChartTooltip = ({ active, payload, label, isDark }) => {
     return (
         <div className={`px-3 py-2 rounded-lg border-2 text-xs font-bold ${isDark ? 'bg-dark-card border-gray-700 text-dark-text' : 'bg-light-card border-brand-black text-light-text'}`}
             style={{ boxShadow: '3px 3px 0px 0px rgba(0,0,0,0.15)' }}>
-            <p className="opacity-60 mb-0.5">{label || payload[0].name}</p>
-            <p>₹{payload[0].value?.toLocaleString()}</p>
+            <p className="opacity-60 mb-1">{label}</p>
+            {payload.map((p, i) => (
+                <div key={i} className="flex items-center gap-2 mb-0.5">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.stroke }} />
+                    <span style={{ color: p.stroke }}>{p.name}: ₹{p.value?.toLocaleString()}</span>
+                </div>
+            ))}
         </div>
     );
 };
@@ -158,15 +163,39 @@ const Dashboard = () => {
         const data = dateRange === 'year'
             ? ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => ({
                 name: m,
-                spending: filteredTransactions.filter(t => safeParse(t.date).getMonth() === i && (t.amount < 0 || t.type === 'expense') && t.type !== 'transfer')
-                    .reduce((s, t) => s + Math.abs(t.amount), 0),
+                income: 0,
+                expense: 0
             }))
-            : [{ name: 'W1', spending: 0 }, { name: 'W2', spending: 0 }, { name: 'W3', spending: 0 }, { name: 'W4', spending: 0 }];
+            : [{ name: 'W1', income: 0, expense: 0 }, { name: 'W2', income: 0, expense: 0 }, { name: 'W3', income: 0, expense: 0 }, { name: 'W4', income: 0, expense: 0 }];
 
-        if (dateRange === 'month') {
-            filteredTransactions.filter(t => (t.amount < 0 || t.type === 'expense') && t.type !== 'transfer').forEach(t => {
-                const idx = Math.min(Math.floor((safeParse(t.date).getDate() - 1) / 7), 3);
-                data[idx].spending += Math.abs(t.amount);
+        if (dateRange === 'year') {
+            filteredTransactions.forEach(t => {
+                const date = safeParse(t.date);
+                const monthIdx = date.getMonth();
+                const amount = parseFloat(t.amount);
+                if (amount > 0) {
+                    data[monthIdx].income += amount;
+                } else {
+                    data[monthIdx].expense += Math.abs(amount);
+                }
+            });
+        } else {
+            // Month view - split into 4 weeks
+            filteredTransactions.forEach(t => {
+                const date = safeParse(t.date);
+                // Simple week calculation: 1-7, 8-14, 15-21, 22+
+                const day = date.getDate();
+                let weekIdx = 0;
+                if (day > 21) weekIdx = 3;
+                else if (day > 14) weekIdx = 2;
+                else if (day > 7) weekIdx = 1;
+
+                const amount = parseFloat(t.amount);
+                if (amount > 0) {
+                    data[weekIdx].income += amount;
+                } else {
+                    data[weekIdx].expense += Math.abs(amount);
+                }
             });
         }
         return data;
@@ -352,7 +381,11 @@ const Dashboard = () => {
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={spendingData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
                                     <defs>
-                                        <linearGradient id="spendGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.2} />
+                                            <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                                        </linearGradient>
+                                        <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2} />
                                             <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                                         </linearGradient>
@@ -361,7 +394,8 @@ const Dashboard = () => {
                                     <XAxis dataKey="name" tick={{ fontSize: 11, fill: axisColor, fontWeight: 700 }} axisLine={false} tickLine={false} dy={8} />
                                     <YAxis tick={{ fontSize: 11, fill: axisColor, fontWeight: 700 }} axisLine={false} tickLine={false} tickFormatter={v => `₹${v}`} />
                                     <Tooltip content={<ChartTooltip isDark={isDark} />} />
-                                    <Area type="monotone" dataKey="spending" stroke="#ef4444" strokeWidth={2.5} fill="url(#spendGrad)" />
+                                    <Area type="monotone" dataKey="income" stroke="#10B981" strokeWidth={2.5} fill="url(#incomeGrad)" strokeDasharray="5 5" name="Income" />
+                                    <Area type="monotone" dataKey="expense" stroke="#ef4444" strokeWidth={2.5} fill="url(#expenseGrad)" name="Expense" />
                                 </AreaChart>
                             </ResponsiveContainer>
                         </div>

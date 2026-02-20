@@ -21,85 +21,132 @@ export const demoData = {
         { _id: 'cat6', name: 'Stationery & Xerox', type: 'expense', icon: '📚', color: '#6366F1' }
     ],
     transactions: [
+        // ─── WEEK 1 (1st - 7th) ───
         {
             _id: 'tx1',
             text: 'Dad Sent Pocket Money',
-            amount: 8000,
+            amount: 15000,
             type: 'income',
-            date: new Date().toISOString(), // Today
+            date: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
             category: 'Pocket Money',
             accountId: { _id: 'acc1', name: 'Pocket Money (SBI)', color: '#1E3A8A' },
             description: 'Monthly allowance'
         },
         {
             _id: 'tx2',
-            text: 'Canteen Samosa & Chai',
-            amount: 45,
+            text: 'Hostel Fees / Rent Share',
+            amount: -4500,
             type: 'expense',
-            date: new Date().toISOString(), // Today
-            category: 'Food & Canteen',
-            accountId: { _id: 'acc3', name: 'Cash Stash', color: '#F59E0B' },
-            description: 'Evening snacks with friends'
+            date: new Date(new Date().getFullYear(), new Date().getMonth(), 3).toISOString(),
+            category: 'Recharge & Bills',
+            accountId: { _id: 'acc1', name: 'Pocket Money (SBI)', color: '#1E3A8A' },
+            description: 'Monthly rent share'
         },
         {
             _id: 'tx3',
-            text: 'Zomato - Burger King',
-            amount: 350,
+            text: 'Grocery & Essentials',
+            amount: -1200,
             type: 'expense',
-            date: new Date(Date.now() - 86400000).toISOString(), // Yesterday
+            date: new Date(new Date().getFullYear(), new Date().getMonth(), 5).toISOString(),
             category: 'Food & Canteen',
             accountId: { _id: 'acc2', name: 'Paytm / UPI', color: '#10B981' },
-            description: 'Late night cravings'
+            description: 'Stocking up for the month'
         },
+
+        // ─── WEEK 2 (8th - 14th) ───
         {
             _id: 'tx4',
             text: 'Metro Card Recharge',
-            amount: 500,
+            amount: -800,
             type: 'expense',
-            date: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+            date: new Date(new Date().getFullYear(), new Date().getMonth(), 10).toISOString(),
             category: 'Travel (Metro/Auto)',
             accountId: { _id: 'acc2', name: 'Paytm / UPI', color: '#10B981' },
-            description: 'Monthly metro pass top-up'
+            description: 'Monthly pass'
         },
         {
             _id: 'tx5',
-            text: 'Netflix Mobile Plan',
-            amount: 149,
+            text: 'Stationery & Books',
+            amount: -650,
             type: 'expense',
-            date: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
-            category: 'Recharge & Bills',
-            accountId: { _id: 'acc2', name: 'Paytm / UPI', color: '#10B981' },
-            description: 'Monthly subscription'
+            date: new Date(new Date().getFullYear(), new Date().getMonth(), 12).toISOString(),
+            category: 'Stationery & Xerox',
+            accountId: { _id: 'acc3', name: 'Cash Stash', color: '#F59E0B' },
+            description: 'Practical journals and pens'
         },
         {
             _id: 'tx6',
-            text: 'Xerox Notes (Physics)',
-            amount: 120,
+            text: 'Canteen Snacks',
+            amount: -150,
             type: 'expense',
-            date: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
-            category: 'Stationery & Xerox',
+            date: new Date(new Date().getFullYear(), new Date().getMonth(), 14).toISOString(),
+            category: 'Food & Canteen',
             accountId: { _id: 'acc3', name: 'Cash Stash', color: '#F59E0B' },
-            description: 'Exam preparation notes'
+            description: 'Samosa party'
         },
+
+        // ─── WEEK 3 (15th - 21st) ───
         {
             _id: 'tx7',
-            text: 'Movie Tickets (PVR)',
-            amount: 450,
-            type: 'expense',
-            date: new Date(Date.now() - 432000000).toISOString(), // 5 days ago
-            category: 'Fun & Movies',
+            text: 'Freelance Project Payment',
+            amount: 5000,
+            type: 'income',
+            date: new Date(new Date().getFullYear(), new Date().getMonth(), 16).toISOString(),
+            category: 'Pocket Money', // Or 'Side Hustle' if we add it
             accountId: { _id: 'acc1', name: 'Pocket Money (SBI)', color: '#1E3A8A' },
-            description: 'Weekend movie with batchmates'
+            description: 'Logo design for a friend'
         },
         {
             _id: 'tx8',
-            text: 'Jio 5G Data Pack',
-            amount: 61,
+            text: 'Weekend Movie & Dinner',
+            amount: -1800,
             type: 'expense',
-            date: new Date(Date.now() - 518400000).toISOString(), // 6 days ago
+            date: new Date(new Date().getFullYear(), new Date().getMonth(), 18).toISOString(),
+            category: 'Fun & Movies',
+            accountId: { _id: 'acc2', name: 'Paytm / UPI', color: '#10B981' },
+            description: 'Treat for friends'
+        },
+        {
+            _id: 'tx9',
+            text: 'Mobile Data Plan',
+            amount: -299,
+            type: 'expense',
+            date: new Date(new Date().getFullYear(), new Date().getMonth(), 20).toISOString(),
             category: 'Recharge & Bills',
             accountId: { _id: 'acc2', name: 'Paytm / UPI', color: '#10B981' },
-            description: 'Extra data for project work'
+            description: 'Jio 5G Pack'
+        },
+
+        // ─── WEEK 4 (22nd - End) ───
+        {
+            _id: 'tx10',
+            text: 'Xerox & Printouts',
+            amount: -80,
+            type: 'expense',
+            date: new Date(new Date().getFullYear(), new Date().getMonth(), 24).toISOString(),
+            category: 'Stationery & Xerox',
+            accountId: { _id: 'acc3', name: 'Cash Stash', color: '#F59E0B' },
+            description: 'Assignment submission'
+        },
+        {
+            _id: 'tx11',
+            text: 'Midnight Cravings (Zomato)',
+            amount: -450,
+            type: 'expense',
+            date: new Date(new Date().getFullYear(), new Date().getMonth(), 26).toISOString(),
+            category: 'Food & Canteen',
+            accountId: { _id: 'acc2', name: 'Paytm / UPI', color: '#10B981' },
+            description: 'Stress eating during exams'
+        },
+        {
+            _id: 'tx12',
+            text: 'Borrowed from Roommate',
+            amount: 500,
+            type: 'income',
+            date: new Date(new Date().getFullYear(), new Date().getMonth(), 28).toISOString(),
+            category: 'Pocket Money',
+            accountId: { _id: 'acc3', name: 'Cash Stash', color: '#F59E0B' },
+            description: 'Short on cash for end month'
         }
     ],
     budgets: [
