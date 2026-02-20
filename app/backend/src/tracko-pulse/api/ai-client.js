@@ -99,7 +99,8 @@ class AIClient {
             body: JSON.stringify({
                 model: "llama-3.3-70b-versatile",
                 messages: [{ role: "user", content: prompt }],
-                stream: false
+                stream: false,
+                max_tokens: 150
             }),
             signal: controller.signal
         });
@@ -127,7 +128,8 @@ class AIClient {
             body: JSON.stringify({
                 model: "openrouter/free",
                 messages: [{ role: "user", content: prompt }],
-                stream: false
+                stream: false,
+                max_tokens: 150
             }),
             signal: controller.signal
         });

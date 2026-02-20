@@ -44,7 +44,7 @@ app.use(helmet({
             scriptSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],  // needed for inline styles
             imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com', 'https://*.googleusercontent.com', 'https://avatars.githubusercontent.com'],
-            connectSrc: ["'self'", process.env.FRONTEND_URL],
+            connectSrc: ["'self'", process.env.FRONTEND_URL, "ws:", "wss:"],
             fontSrc: ["'self'"],
             objectSrc: ["'none'"],
             frameSrc: ["'none'"],

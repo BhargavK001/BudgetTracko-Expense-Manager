@@ -4,17 +4,22 @@
  * Summarizes an array of transactions and budget data into a compact payload 
  * for the AI to process. This prevents sending raw, massive arrays to the APIs.
  */
-const summarizeTransactionsForAI = (transactions, budget, next7DaysBills = []) => {
+const summarizeTransactionsForAI = (transactions, budget, next7DaysBills = [], trueTotalBalance = null) => {
     if (!transactions || !Array.isArray(transactions)) {
         return { error: "No transaction data provided." };
     }
-
-    const currentMonth = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+    const currentMonth = new Date().toLocaleString('en-IN', {
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'Asia/Kolkata'
+    });
 
     // Calculate total spent
     const totalSpent = transactions.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
     const totalBudget = Number(budget?.amount) || 0;
-    const remainingBalance = totalBudget - totalSpent;
+
+    // If we passed the actual Account balance, use it. Otherwise guess based on budget.
+    const remainingBalance = trueTotalBalance !== null ? trueTotalBalance : (totalBudget - totalSpent);
 
     // Aggregate by category
     const categoryTotals = {};

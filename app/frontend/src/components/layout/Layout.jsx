@@ -13,7 +13,8 @@ import {
     BsPiggyBank,
     BsWallet2,
     BsBoxArrowRight,
-    BsCalendarCheck
+    BsCalendarCheck,
+    BsLightningChargeFill
 } from 'react-icons/bs';
 import { toast } from 'sonner';
 import { adminApi } from '../../services/adminApi';
@@ -24,6 +25,7 @@ const navItems = [
     { to: '/transactions', icon: BsCreditCardFill, label: 'Transactions' },
     { to: '/budgets', icon: BsPiggyBank, label: 'Budgets' },
     { to: '/accounts', icon: BsWallet2, label: 'Accounts' },
+    { to: '/tracko-pulse', icon: BsLightningChargeFill, label: 'Tracko Pulse' },
     { to: '/settings', icon: BsGearFill, label: 'Settings' },
 ];
 

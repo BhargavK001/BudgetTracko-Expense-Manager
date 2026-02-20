@@ -14,6 +14,7 @@ import RecurringBills from './pages/RecurringBills';
 import Accounts from './pages/Accounts';
 import Settings from './pages/Settings';
 import Billing from './pages/Billing';
+import AskTracko from './pages/AskTracko/AskTracko';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Contact from './pages/Contact';
@@ -125,6 +126,7 @@ const AnimatedRoutes = () => {
             <Route path="analytics" element={<PageTransition><Analytics /></PageTransition>} />
             <Route path="budgets" element={<PageTransition><Budgets /></PageTransition>} />
             <Route path="accounts" element={<PageTransition><Accounts /></PageTransition>} />
+            <Route path="tracko-pulse" element={<PageTransition><AskTracko /></PageTransition>} />
             <Route path="settings" element={<PageTransition><Settings /></PageTransition>} />
             <Route path="billing" element={<PageTransition><Billing /></PageTransition>} />
           </Route>

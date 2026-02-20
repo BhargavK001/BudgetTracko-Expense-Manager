@@ -14,6 +14,14 @@ export default defineConfig({
   optimizeDeps: {
     include: ['react-helmet-async'],
   },
+  server: {
+    proxy: {
+      '/socket.io': {
+        target: 'http://localhost:5000',
+        ws: true,
+      },
+    }
+  },
   build: {
     sourcemap: false, // Never expose source code in production
     chunkSizeWarningLimit: 1000, // Increase warning limit to 1000kB
