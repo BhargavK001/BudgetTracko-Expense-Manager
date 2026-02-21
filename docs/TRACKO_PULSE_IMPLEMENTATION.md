@@ -142,21 +142,21 @@ Add proper error messages on the frontend for when the AI service is unavailable
 
 ## 📋 Developer Checklist
 
-- [ ] Gemini API key added to `.env` and tested
-- [ ] Groq API key added to `.env` and tested
-- [ ] OpenRouter API key added to `.env` and tested
-- [ ] Fallbacks confirmed — Groq & OpenRouter fire when primary providers time out or error
-- [ ] Transaction summarizer tested with real sample data
-- [ ] All prompt templates reviewed and approved by the team
-- [ ] Ask Tracko general chat working end-to-end
-- [ ] Savings goal calculator working end-to-end
+- [x] Gemini API key added to `.env` and tested
+- [x] Groq API key added to `.env` and tested
+- [x] OpenRouter API key added to `.env` and tested
+- [x] Fallbacks confirmed — Groq & OpenRouter fire when primary providers time out or error
+- [x] Transaction summarizer tested with real sample data
+- [x] All prompt templates reviewed and approved by the team
+- [x] Ask Tracko general chat working end-to-end
+- [x] Savings goal calculator working end-to-end (Integrated into main chat prompt context)
 - [ ] Pulse Analysis JSON response parsing with fallback working
 - [ ] Friday evening nudge cron job tested
 - [ ] Subscription guardian logic tested
 - [ ] Streak alert cron job tested
-- [ ] `.env` confirmed in `.gitignore` — keys never committed
-- [ ] Confirmed via logs that raw transaction arrays are never sent directly to AI
-- [ ] Loading states and error states present on all AI-powered UI components
+- [x] `.env` confirmed in `.gitignore` — keys never committed
+- [x] Confirmed via logs that raw transaction arrays are never sent directly to AI
+- [x] Loading states and error states present on all AI-powered UI components
 
 ---
 

@@ -489,7 +489,7 @@ const Pricing = () => {
 
             {/* FAQ Section */}
             <section className="py-16 sm:py-24 px-4 sm:px-6 bg-white border-t-4 border-black">
-                <div className="max-w-3xl mx-auto">
+                <div className="max-w-5xl lg:max-w-6xl mx-auto">
                     <motion.h2
                         variants={fadeUp}
                         initial="hidden"

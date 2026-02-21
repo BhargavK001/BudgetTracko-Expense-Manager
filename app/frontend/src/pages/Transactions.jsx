@@ -9,6 +9,7 @@ import { getCategoryIcon } from '../utils/iconMap';
 import SEO from '../components/common/SEO';
 import CalendarView from '../components/CalendarView';
 import RecurringBills from './RecurringBills';
+import Budgets from './Budgets';
 
 /* ─── Render Category Icon ─── */
 const RenderCatIcon = ({ category, size = 16 }) => {
@@ -34,7 +35,7 @@ const Transactions = () => {
     const [selectedTransaction, setSelectedTransaction] = useState(null);
     const [editMode, setEditMode] = useState(null); // Transaction object to edit
     const [viewMode, setViewMode] = useState('list'); // 'list' | 'calendar'
-    const [activeTab, setActiveTab] = useState('history'); // 'history' | 'recurring'
+    const [activeTab, setActiveTab] = useState('history'); // 'history' | 'recurring' | 'budgets'
 
     // Filter States
     const [searchTerm, setSearchTerm] = useState('');
@@ -148,6 +149,12 @@ const Transactions = () => {
                     >
                         Recurring Bills
                     </button>
+                    <button
+                        onClick={() => setActiveTab('budgets')}
+                        className={`pb-2 border-b-2 transition-colors ${activeTab === 'budgets' ? 'border-brand-primary text-brand-black dark:text-white' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        Budgets
+                    </button>
                 </div>
 
                 {activeTab === 'history' && (
@@ -213,90 +220,105 @@ const Transactions = () => {
             </AnimatePresence>
 
             {/* Content */}
-            {activeTab === 'recurring' ? (
-                <RecurringBills />
-            ) : viewMode === 'list' ? (
-                filteredTransactions.length > 0 ? (
-                    <div className="space-y-4 sm:space-y-5">
-                        {Object.entries(grouped).map(([dateLabel, items]) => (
-                            <div key={dateLabel}>
-                                <div className="flex items-center gap-3 mb-2 sm:mb-3">
-                                    <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary shrink-0">
-                                        {dateLabel}
-                                    </span>
-                                    <div className="flex-1 h-[2px] bg-gray-200 dark:bg-gray-800 rounded-full" />
-                                </div>
+            <div className="relative overflow-visible">
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={activeTab + viewMode}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.25, ease: 'easeInOut' }}
+                        className="w-full h-full"
+                    >
+                        {activeTab === 'budgets' ? (
+                            <Budgets />
+                        ) : activeTab === 'recurring' ? (
+                            <RecurringBills />
+                        ) : viewMode === 'list' ? (
+                            filteredTransactions.length > 0 ? (
+                                <div className="space-y-4 sm:space-y-5">
+                                    {Object.entries(grouped).map(([dateLabel, items]) => (
+                                        <div key={dateLabel}>
+                                            <div className="flex items-center gap-3 mb-2 sm:mb-3">
+                                                <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary shrink-0">
+                                                    {dateLabel}
+                                                </span>
+                                                <div className="flex-1 h-[2px] bg-gray-200 dark:bg-gray-800 rounded-full" />
+                                            </div>
 
-                                <div className="neo-card overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
-                                    <AnimatePresence>
-                                        {items.map(t => (
-                                            <motion.div
-                                                key={t._id || t.id}
-                                                variants={listItem}
-                                                initial="hidden" animate="visible" exit="exit" layout
-                                                onClick={() => setSelectedTransaction(t)}
-                                                className="flex items-center justify-between p-3 sm:p-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group cursor-pointer"
-                                            >
-                                                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                                                    <div className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 bg-light-bg dark:bg-dark-bg border-2 border-brand-black dark:border-gray-600 rounded-xl flex items-center justify-center">
-                                                        <RenderCatIcon category={t.category} size={16} />
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className="font-bold text-xs sm:text-sm truncate">{t.text}</p>
-                                                        <div className="flex items-center gap-1.5 mt-0.5">
-                                                            <span className="text-[9px] sm:text-[10px] font-bold uppercase px-1 sm:px-1.5 py-0.5 bg-light-bg dark:bg-dark-bg border border-gray-200 dark:border-gray-700 rounded text-light-text-secondary dark:text-dark-text-secondary">
-                                                                {t.category || 'General'}
-                                                            </span>
-                                                            {t.paymentMode && (
-                                                                <span className="text-[9px] sm:text-[10px] font-semibold text-gray-400 hidden sm:inline">
-                                                                    • {t.paymentMode}
+                                            <div className="neo-card overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
+                                                <AnimatePresence>
+                                                    {items.map(t => (
+                                                        <motion.div
+                                                            key={t._id || t.id}
+                                                            variants={listItem}
+                                                            initial="hidden" animate="visible" exit="exit" layout
+                                                            onClick={() => setSelectedTransaction(t)}
+                                                            className="flex items-center justify-between p-3 sm:p-4 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group cursor-pointer"
+                                                        >
+                                                            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                                                                <div className="w-9 h-9 sm:w-10 sm:h-10 flex-shrink-0 bg-light-bg dark:bg-dark-bg border-2 border-brand-black dark:border-gray-600 rounded-xl flex items-center justify-center">
+                                                                    <RenderCatIcon category={t.category} size={16} />
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <p className="font-bold text-xs sm:text-sm truncate">{t.text}</p>
+                                                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                                                        <span className="text-[9px] sm:text-[10px] font-bold uppercase px-1 sm:px-1.5 py-0.5 bg-light-bg dark:bg-dark-bg border border-gray-200 dark:border-gray-700 rounded text-light-text-secondary dark:text-dark-text-secondary">
+                                                                            {t.category || 'General'}
+                                                                        </span>
+                                                                        {t.paymentMode && (
+                                                                            <span className="text-[9px] sm:text-[10px] font-semibold text-gray-400 hidden sm:inline">
+                                                                                • {t.paymentMode}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-2">
+                                                                <span className={`font-black text-xs sm:text-sm ${t.type === 'transfer' ? 'text-blue-500 dark:text-blue-400' : t.amount < 0 ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                                                                    {t.type === 'transfer' ? '' : t.amount > 0 ? '+' : ''}₹{Number(Math.abs(t.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                                 </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-2">
-                                                    <span className={`font-black text-xs sm:text-sm ${t.type === 'transfer' ? 'text-blue-500 dark:text-blue-400' : t.amount < 0 ? 'text-red-500 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                                                        {t.type === 'transfer' ? '' : t.amount > 0 ? '+' : ''}₹{Number(Math.abs(t.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                                                    </span>
-                                                </div>
-                                            </motion.div>
-                                        ))}
-                                    </AnimatePresence>
+                                                            </div>
+                                                        </motion.div>
+                                                    ))}
+                                                </AnimatePresence>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="neo-card p-12 text-center flex flex-col items-center">
-                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-300">
-                            <BsSearch size={32} />
-                        </div>
-                        <p className="font-black text-lg text-gray-400">No transactions found</p>
-                        <p className="text-gray-500 text-sm mt-1">Try adjusting your filters</p>
-                    </motion.div>
-                )
-            ) : (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                    <CalendarView
-                        transactions={filteredTransactions}
-                        onEdit={setSelectedTransaction}
-                    />
-                </motion.div>
-            )}
+                            ) : (
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="neo-card p-12 text-center flex flex-col items-center">
+                                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-300">
+                                        <BsSearch size={32} />
+                                    </div>
+                                    <p className="font-black text-lg text-gray-400">No transactions found</p>
+                                    <p className="text-gray-500 text-sm mt-1">Try adjusting your filters</p>
+                                </motion.div>
+                            )
+                        ) : (
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                                <CalendarView
+                                    transactions={filteredTransactions}
+                                    onEdit={setSelectedTransaction}
+                                />
+                            </motion.div>
+                        )}
 
-            {/* Detail Modal */}
-            <AnimatePresence>
-                {selectedTransaction && (
-                    <TransactionDetailModal
-                        transaction={selectedTransaction}
-                        onClose={() => setSelectedTransaction(null)}
-                        onEdit={handleEdit}
-                        onDelete={deleteTransaction}
-                    />
-                )}
-            </AnimatePresence>
+                        {/* Detail Modal */}
+                        <AnimatePresence>
+                            {selectedTransaction && (
+                                <TransactionDetailModal
+                                    transaction={selectedTransaction}
+                                    onClose={() => setSelectedTransaction(null)}
+                                    onEdit={handleEdit}
+                                    onDelete={deleteTransaction}
+                                />
+                            )}
+                        </AnimatePresence>
+                    </motion.div>
+                </AnimatePresence>
+            </div>
         </div>
     );
 };

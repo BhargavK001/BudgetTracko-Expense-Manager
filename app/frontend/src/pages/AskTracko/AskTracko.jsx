@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BsSendFill, BsRobot, BsPersonFill, BsLightningChargeFill } from 'react-icons/bs';
+import { BsSendFill, BsRobot, BsPersonFill, BsLightningChargeFill, BsArrowLeftCircleFill } from 'react-icons/bs';
 import { trackoPulseSocket } from '../../services/trackoPulseSocket';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const loadingPhrases = [
     "Calculating how much you spent on Momo's...",
@@ -14,6 +15,9 @@ const loadingPhrases = [
 
 const AskTracko = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
+
+    // --- Chat State ---
     const [messages, setMessages] = useState([
         {
             id: 'welcome',
@@ -29,14 +33,8 @@ const AskTracko = () => {
 
     // Initialize Socket Connection
     useEffect(() => {
-        // Auth is cookie-based (sent automatically via withCredentials: true)
         trackoPulseSocket.connect();
-
-        return () => {
-            // In React 18 StrictMode, this runs immediately in dev. 
-            // We keep the singleton alive across route changes for better UX.
-            // Component unmount does not need to brutally destroy the socket here.
-        };
+        return () => { };
     }, []);
 
     // Scroll to bottom when messages change
@@ -44,7 +42,7 @@ const AskTracko = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isTyping]);
 
-    // Cycle through funny loading phrases
+    // Cycle through funny loading phrases for chat
     useEffect(() => {
         if (isTyping) {
             const interval = setInterval(() => {
@@ -70,20 +68,15 @@ const AskTracko = () => {
         setIsTyping(true);
         setLoadingPhrase(loadingPhrases[Math.floor(Math.random() * loadingPhrases.length)]);
 
-        // Grab history (last 5 messages, excluding the one we just added to state)
-        // because setMessages is async, 'messages' here is the state BEFORE newUserMessage
         const chatHistory = messages.slice(-5).map(m => ({
             role: m.sender === 'user' ? 'user' : 'model',
             content: m.text
         }));
 
-        // Send via WebSocket
         trackoPulseSocket.askQuestion(
             newUserMessage.text,
             chatHistory,
-            (statusUpdate) => {
-                console.log(statusUpdate.message);
-            },
+            (statusUpdate) => console.log(statusUpdate.message),
             (response) => {
                 setMessages(prev => [...prev, {
                     id: Date.now().toString() + 'ai',
@@ -108,20 +101,27 @@ const AskTracko = () => {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-140px)] lg:h-[calc(100vh-40px)] w-full max-w-4xl mx-auto neo-shadow bg-light-card dark:bg-dark-card border-4 border-brand-black dark:border-white rounded-2xl overflow-hidden shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
+        <div className="flex flex-col h-[calc(100vh-160px)] md:h-[calc(100vh-100px)] lg:h-[calc(100vh-80px)] w-full max-w-5xl mx-auto neo-shadow bg-light-card dark:bg-dark-card border-3 md:border-4 border-brand-black dark:border-white rounded-xl md:rounded-2xl overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] md:dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
 
-            {/* Header */}
-            <div className="bg-brand-yellow px-6 py-4 border-b-4 border-brand-black dark:border-white flex items-center gap-4">
-                <div className="bg-white p-2 rounded-xl border-2 border-brand-black dark:border-white neo-shadow-sm">
-                    <BsLightningChargeFill className="text-brand-black text-2xl animate-pulse" />
+            {/* Header & Tabs */}
+            <div className="bg-brand-yellow px-4 md:px-6 py-3 md:py-4 border-b-3 md:border-b-4 border-brand-black dark:border-white shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 md:gap-4">
+                    <div className="bg-white p-1.5 md:p-2 rounded-lg md:rounded-xl border-2 border-brand-black dark:border-white neo-shadow-sm">
+                        <BsLightningChargeFill className="text-brand-black text-xl md:text-2xl animate-pulse" />
+                    </div>
+                    <div>
+                        <h1 className="text-lg md:text-2xl font-black text-brand-black uppercase tracking-widest leading-tight">Chat with Tracko</h1>
+                        <p className="text-brand-black font-bold text-[10px] md:text-sm opacity-80 leading-tight">AI Financial Coach</p>
+                    </div>
                 </div>
-                <div>
-                    <h1 className="text-2xl font-black text-brand-black uppercase tracking-widest">Tracko Pulse</h1>
-                    <p className="text-brand-black font-bold text-sm opacity-80">AI Financial Coach</p>
-                </div>
+
+                <button
+                    onClick={() => navigate('/tracko-pulse')}
+                    className="flex items-center gap-2 bg-white text-brand-black font-bold px-3 md:px-4 py-2 rounded-lg border-2 border-brand-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-transform text-xs md:text-sm"
+                >
+                    <BsArrowLeftCircleFill /> Back
+                </button>
             </div>
-
-            {/* Chat Area */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[#f4f4f0] dark:bg-[#1a1a1a] flex flex-col gap-6">
                 {messages.map((msg) => (
                     <motion.div
@@ -129,26 +129,26 @@ const AskTracko = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         transition={{ type: "spring", stiffness: 200, damping: 20 }}
                         key={msg.id}
-                        className={`flex gap-3 max-w-[85%] ${msg.sender === 'user' ? 'self-end flex-row-reverse' : 'self-start'}`}
+                        className={`flex gap-2 md:gap-3 max-w-[90%] md:max-w-[85%] ${msg.sender === 'user' ? 'self-end flex-row-reverse' : 'self-start'}`}
                     >
                         {/* Avatar */}
-                        <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center border-2 border-brand-black dark:border-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] ${msg.sender === 'user' ? 'bg-blue-400 text-white' : 'bg-brand-yellow text-brand-black'}`}>
-                            {msg.sender === 'user' ? <BsPersonFill size={20} /> : <BsRobot size={20} />}
+                        <div className={`shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center border-2 border-brand-black dark:border-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] ${msg.sender === 'user' ? 'bg-blue-400 text-white' : 'bg-brand-yellow text-brand-black'}`}>
+                            {msg.sender === 'user' ? <BsPersonFill className="text-base md:text-xl" /> : <BsRobot className="text-base md:text-xl" />}
                         </div>
 
                         {/* Message Bubble */}
-                        <div className={`relative px-5 py-3 rounded-2xl border-2 border-brand-black dark:border-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] 
-                            ${msg.sender === 'user'
+                        <div className={`relative px-4 py-2.5 md:px-5 md:py-3 rounded-xl md:rounded-2xl border-2 border-brand-black dark:border-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] md:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] md:dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] 
+                                    ${msg.sender === 'user'
                                 ? 'bg-white dark:bg-gray-800 text-brand-black dark:text-white rounded-tr-none'
                                 : msg.isError
                                     ? 'bg-red-400 text-brand-black rounded-tl-none font-bold'
                                     : 'bg-green-300 dark:bg-green-700 text-brand-black dark:text-white rounded-tl-none'
                             }`}
                         >
-                            <p className="whitespace-pre-wrap font-medium">{msg.text}</p>
+                            <p className="whitespace-pre-wrap font-medium text-sm md:text-base leading-relaxed">{msg.text}</p>
 
                             {/* Metadata */}
-                            <div className={`text-[10px] mt-2 font-bold opacity-60 flex gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`text-[9px] md:text-[10px] mt-1.5 md:mt-2 font-bold opacity-60 flex gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 {msg.provider && <span className="uppercase px-1 border border-current rounded">Powered by {msg.provider}</span>}
                             </div>
@@ -185,22 +185,22 @@ const AskTracko = () => {
             </div>
 
             {/* Input Area */}
-            <div className="bg-white dark:bg-dark-card p-4 border-t-4 border-brand-black dark:border-white">
+            <div className="bg-white dark:bg-dark-card p-3 md:p-4 border-t-3 md:border-t-4 border-brand-black dark:border-white shrink-0">
                 <form onSubmit={handleSendMessage} className="relative flex items-center">
                     <input
                         type="text"
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         placeholder="Ask Tracko if you can afford that..."
-                        className="w-full bg-[#f4f4f0] dark:bg-gray-800 text-brand-black dark:text-white border-2 border-brand-black dark:border-white rounded-xl py-4 pl-4 pr-16 font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] focus:outline-none focus:translate-y-[2px] focus:translate-x-[2px] focus:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:focus:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] transition-all"
+                        className="w-full bg-[#f4f4f0] dark:bg-gray-800 text-brand-black dark:text-white border-2 border-brand-black dark:border-white rounded-xl py-3 md:py-4 pl-3 md:pl-4 pr-12 md:pr-16 text-sm md:text-base font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] md:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)] md:dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] focus:outline-none focus:translate-y-[2px] focus:translate-x-[2px] focus:shadow-none transition-all"
                         disabled={isTyping}
                     />
                     <button
                         type="submit"
                         disabled={!inputValue.trim() || isTyping}
-                        className="absolute right-2 bg-brand-yellow text-brand-black p-3 rounded-lg border-2 border-brand-black dark:border-white hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="absolute right-1.5 md:right-2 bg-brand-yellow text-brand-black p-2 md:p-3 rounded-lg border-2 border-brand-black dark:border-white hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                        <BsSendFill size={18} />
+                        <BsSendFill size={18} className="w-4 h-4 md:w-5 md:h-5" />
                     </button>
                 </form>
             </div>

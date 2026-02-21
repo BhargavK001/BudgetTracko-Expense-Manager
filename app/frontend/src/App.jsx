@@ -9,12 +9,13 @@ import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Analytics from './pages/Analytics';
-import Budgets from './pages/Budgets';
 import RecurringBills from './pages/RecurringBills';
 import Accounts from './pages/Accounts';
 import Settings from './pages/Settings';
 import Billing from './pages/Billing';
 import AskTracko from './pages/AskTracko/AskTracko';
+import PulseHub from './pages/AskTracko/PulseHub';
+import PulseAnalysisDashboard from './pages/AskTracko/PulseAnalysisDashboard';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Contact from './pages/Contact';
@@ -124,9 +125,12 @@ const AnimatedRoutes = () => {
             <Route path="dashboard" element={<PageTransition><Dashboard /></PageTransition>} />
             <Route path="transactions" element={<PageTransition><Transactions /></PageTransition>} />
             <Route path="analytics" element={<PageTransition><Analytics /></PageTransition>} />
-            <Route path="budgets" element={<PageTransition><Budgets /></PageTransition>} />
             <Route path="accounts" element={<PageTransition><Accounts /></PageTransition>} />
-            <Route path="tracko-pulse" element={<PageTransition><AskTracko /></PageTransition>} />
+            <Route path="tracko-pulse">
+              <Route index element={<PageTransition><PulseHub /></PageTransition>} />
+              <Route path="chat" element={<PageTransition><AskTracko /></PageTransition>} />
+              <Route path="analysis" element={<PageTransition><PulseAnalysisDashboard /></PageTransition>} />
+            </Route>
             <Route path="settings" element={<PageTransition><Settings /></PageTransition>} />
             <Route path="billing" element={<PageTransition><Billing /></PageTransition>} />
           </Route>
@@ -149,6 +153,7 @@ function App() {
               <Toaster
                 position="bottom-right"
                 richColors
+                closeButton
                 toastOptions={{
                   style: {
                     fontFamily: 'inherit',

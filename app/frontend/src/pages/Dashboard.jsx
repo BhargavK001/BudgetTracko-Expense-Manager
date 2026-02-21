@@ -23,6 +23,7 @@ import SkeletonLoader from '../components/SkeletonLoader';
 import WelcomeModal from '../components/WelcomeModal';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import SEO from '../components/common/SEO';
+import api from '../services/api';
 
 /* ─── safe date parsing ─── */
 const safeParse = (d) => {
@@ -262,6 +263,7 @@ const Dashboard = () => {
     useEffect(() => {
         if (loading || hasNotifiedDaily) return;
 
+        // 1. Basic spend alerts
         const yesterdaySpend = transactions
             .filter(t => isYesterday(safeParse(t.date)) && (t.amount < 0 || t.type === 'expense'))
             .reduce((sum, t) => sum + Math.abs(t.amount), 0);
@@ -273,6 +275,7 @@ const Dashboard = () => {
             });
         }
 
+        // 2. Budget Alerts
         budgetData.forEach(b => {
             const percent = (b.spent / b.limit) * 100;
             if (percent >= 90) {
@@ -283,6 +286,7 @@ const Dashboard = () => {
             }
         });
 
+        // 3. Achievement Badges
         const totalSaved = parseFloat(income) - parseFloat(expense);
         if (totalSaved >= 1000 && !localStorage.getItem('badge_saver_1000')) {
             toast.success('Achievement Unlocked!', {
@@ -292,6 +296,35 @@ const Dashboard = () => {
             localStorage.setItem('badge_saver_1000', 'true');
         }
 
+        // 4. Tracko Pulse Smart Notification (Once per day)
+        const fetchPulseNotification = async () => {
+            try {
+                const todayStr = new Date().toDateString();
+                const lastNotified = localStorage.getItem('tracko_pulse_last_notified');
+
+                if (lastNotified !== todayStr) {
+                    const response = await api.get('/api/tracko-pulse/notifications');
+                    const { success, data } = response.data;
+
+                    if (success && data?.message) {
+                        // Map the backend type to sonner types, or use a custom robot icon
+                        if (data.type === 'warning') {
+                            toast.warning('Tracko Pulse', { description: data.message, duration: 8000, icon: '🤖' });
+                        } else if (data.type === 'praise') {
+                            toast.success('Tracko Pulse', { description: data.message, duration: 8000, icon: '🤖' });
+                        } else {
+                            toast('Tracko Pulse', { description: data.message, duration: 8000, icon: '🤖' });
+                        }
+                        // Mark as notified for today
+                        localStorage.setItem('tracko_pulse_last_notified', todayStr);
+                    }
+                }
+            } catch (error) {
+                console.error("Failed to fetch Tracko Pulse notification", error);
+            }
+        };
+
+        fetchPulseNotification();
         setHasNotifiedDaily(true);
     }, [loading, transactions, income, expense, hasNotifiedDaily, budgetData]);
 

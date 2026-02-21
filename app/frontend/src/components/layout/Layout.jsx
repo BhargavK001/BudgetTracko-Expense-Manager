@@ -23,7 +23,6 @@ const navItems = [
     { to: '/dashboard', icon: BsGrid1X2Fill, label: 'Dashboard' },
     { to: '/analytics', icon: BsGraphUp, label: 'Analytics' },
     { to: '/transactions', icon: BsCreditCardFill, label: 'Transactions' },
-    { to: '/budgets', icon: BsPiggyBank, label: 'Budgets' },
     { to: '/accounts', icon: BsWallet2, label: 'Accounts' },
     { to: '/tracko-pulse', icon: BsLightningChargeFill, label: 'Tracko Pulse' },
     { to: '/settings', icon: BsGearFill, label: 'Settings' },
