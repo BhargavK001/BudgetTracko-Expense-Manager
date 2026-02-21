@@ -7,7 +7,6 @@ import {
     BsCheckCircleFill, BsX, BsCalendarWeek, BsCalendar3, BsCalendar4
 } from 'react-icons/bs';
 import { toast } from 'sonner';
-import SEO from '../components/common/SEO';
 import CategoryManager from '../components/CategoryManager';
 
 const PERIOD_OPTIONS = [
@@ -99,16 +98,12 @@ const Budgets = () => {
     };
 
     return (
-        <div className="space-y-4 sm:space-y-6 pb-20">
-            <SEO title="Budgets | BudgetTracko" description="Set and manage your budget limits." />
-
+        <div className="space-y-4 sm:space-y-6">
             {/* Header */}
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
                 className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
-                    <h2 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">Budgets</h2>
                     <div className="flex items-center gap-2 mt-1">
-                        <p className="text-light-text-secondary dark:text-dark-text-secondary font-semibold text-xs sm:text-sm">Manage your spending limits</p>
                         <button onClick={() => setShowCategoryManager(true)}
                             className="text-[10px] font-bold text-brand-primary uppercase hover:underline">
                             Manage Categories
