@@ -4,9 +4,8 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState, useCallback } from 'react';
+import { useColorScheme, View } from 'react-native';
 import 'react-native-reanimated';
-
-import { useColorScheme } from 'react-native';
 import AnimatedSplash from '../components/AnimatedSplash';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TransactionProvider } from '@/context/TransactionContext';
@@ -17,7 +16,7 @@ export {
 } from 'expo-router';
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
+  // Ensure that reloading on `/ modal` keeps a back button present.
   initialRouteName: 'index',
 };
 
@@ -59,26 +58,47 @@ export default function RootLayout() {
   return <RootLayoutNav />;
 }
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+const CustomDarkTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: '#0A0A0A',
+    card: '#0A0A0A',
+    text: '#FFFFFF',
+    border: '#1A1A1A',
+    notification: '#facc15',
+  },
+};
 
+function RootLayoutNav() {
   return (
     <TransactionProvider>
       <SafeAreaProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <Stack initialRouteName="index">
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="welcome" options={{ headerShown: false }} />
-            <Stack.Screen name="features" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="help-support" options={{ headerShown: false }} />
-            <Stack.Screen name="share-app" options={{ headerShown: false }} />
-            <Stack.Screen name="premium" options={{ headerShown: false }} />
-            <Stack.Screen name="profile" options={{ headerShown: false }} />
-            <Stack.Screen name="privacy-security" options={{ headerShown: false }} />
-            <Stack.Screen name="settings" options={{ headerShown: false }} />
-          </Stack>
+        <ThemeProvider value={CustomDarkTheme}>
+          <View style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
+            <Stack
+              initialRouteName="index"
+              screenOptions={{
+                animation: 'slide_from_right',
+                gestureEnabled: true,
+                fullScreenGestureEnabled: true,
+                headerShown: false,
+                contentStyle: { backgroundColor: '#0A0A0A' },
+              }}
+            >
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="welcome" options={{ headerShown: false }} />
+              <Stack.Screen name="features" options={{ headerShown: false }} />
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="help-support" options={{ headerShown: false }} />
+              <Stack.Screen name="share-app" options={{ headerShown: false }} />
+              <Stack.Screen name="premium" options={{ headerShown: false }} />
+              <Stack.Screen name="profile" options={{ headerShown: false }} />
+              <Stack.Screen name="privacy-security" options={{ headerShown: false }} />
+              <Stack.Screen name="settings" options={{ headerShown: false }} />
+            </Stack>
+          </View>
         </ThemeProvider>
       </SafeAreaProvider>
     </TransactionProvider>

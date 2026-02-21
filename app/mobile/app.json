@@ -6,7 +6,8 @@
     "orientation": "portrait",
     "icon": "./assets/images/logo512.png",
     "scheme": "budgettracko",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0A0A",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/logo512.png",
@@ -14,7 +15,8 @@
       "backgroundColor": "#0A0A0A"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "backgroundColor": "#0A0A0A"
     },
     "android": {
       "adaptiveIcon": {
@@ -22,6 +24,7 @@
         "backgroundColor": "#0A0A0A"
       },
       "package": "com.budgettracko.app",
+      "backgroundColor": "#0A0A0A",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
