@@ -19,10 +19,13 @@ const MENU_ITEMS: MenuItem[] = [
     { icon: 'notifications-outline', label: 'Reminders', color: '#FF9800', route: '/settings/reminders' },
     { icon: 'download-outline', label: 'Export Data', color: '#4CAF50' },
     { icon: 'shield-checkmark-outline', label: 'Privacy & Security', color: '#7C4DFF', route: '/privacy-security' },
+    { icon: 'pie-chart-outline', label: 'Budgets', color: '#4CAF50', route: '/features/budgets' },
+    { icon: 'calendar-outline', label: 'Recurring Bills', color: '#E91E63', route: '/features/recurring-bills' },
     { icon: 'help-circle-outline', label: 'Help & Support', color: '#00BCD4', route: '/help-support' },
     { icon: 'star-outline', label: 'Rate Us', color: '#FFD700' },
     { icon: 'share-social-outline', label: 'Share App', color: '#E91E63', route: '/share-app' },
 ];
+
 
 export default function MoreScreen() {
     const insets = useSafeAreaInsets();

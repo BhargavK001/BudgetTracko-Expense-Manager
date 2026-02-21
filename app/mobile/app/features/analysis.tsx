@@ -7,6 +7,7 @@ import StatCard from '@/components/StatCard';
 import DonutChart from '@/components/DonutChart';
 import { useTransactions, Category, CATEGORY_COLORS, CATEGORY_ICONS } from '@/context/TransactionContext';
 import Svg, { Rect, G, Text as SvgText } from 'react-native-svg';
+import { useRouter } from 'expo-router';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
@@ -69,6 +70,7 @@ type TimeFilter = 'Week' | 'Month' | 'Year';
 
 export default function AnalysisScreen() {
     const insets = useSafeAreaInsets();
+    const router = useRouter();
     const { transactions } = useTransactions();
 
     const [selectedFilter, setSelectedFilter] = useState<TimeFilter>('Month');
@@ -196,7 +198,10 @@ export default function AnalysisScreen() {
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <View style={styles.stickyHeader}>
-                <Text style={styles.title}>Analysis</Text>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+                    <Ionicons name="arrow-back" size={20} color={DarkTheme.textPrimary} />
+                </TouchableOpacity>
+                <Text style={styles.title}>Monthly Analysis</Text>
                 <TouchableOpacity style={styles.exportButton}>
                     <Ionicons name="download-outline" size={20} color={DarkTheme.brandYellow} />
                 </TouchableOpacity>
@@ -345,8 +350,15 @@ const styles = StyleSheet.create({
         borderBottomColor: DarkTheme.neoBorder,
         zIndex: 10,
     },
+    backButton: {
+        width: 40,
+        height: 40,
+        borderRadius: BorderRadius.sm,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     title: {
-        fontSize: FontSize.xxl,
+        fontSize: FontSize.lg,
         fontWeight: '900',
         color: DarkTheme.textPrimary,
         textTransform: 'uppercase',

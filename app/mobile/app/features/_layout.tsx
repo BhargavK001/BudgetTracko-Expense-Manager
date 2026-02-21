@@ -13,6 +13,13 @@ export default function FeaturesLayout() {
             <Stack.Screen name="trends" />
             <Stack.Screen name="security" />
             <Stack.Screen name="offline" />
+            <Stack.Screen name="budgets" />
+            <Stack.Screen name="recurring-bills" />
+            <Stack.Screen name="ask-tracko" />
+            <Stack.Screen name="analysis" />
         </Stack>
+
+
+
     );
 }

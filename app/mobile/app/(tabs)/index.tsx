@@ -6,6 +6,7 @@ import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadow, NeoShadowSm } fr
 import StatCard from '@/components/StatCard';
 import TransactionItem from '@/components/TransactionItem';
 import { useTransactions, CATEGORY_ICONS, CATEGORY_COLORS } from '@/context/TransactionContext';
+import { FinancialHealthWidget, SpendingVelocityWidget, UpcomingBillsWidget } from '@/components/DashboardWidgets';
 
 function formatCurrency(n: number): string {
   return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
@@ -26,6 +27,7 @@ function getGreeting(): string {
   return 'Good Evening';
 }
 
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { transactions, getTotalIncome, getTotalExpense, getBalance } = useTransactions();
@@ -37,6 +39,20 @@ export default function HomeScreen() {
   const monthlyIncome = useMemo(() => getTotalIncome(currentMonth, currentYear), [getTotalIncome, currentMonth, currentYear]);
   const monthlyExpense = useMemo(() => getTotalExpense(currentMonth, currentYear), [getTotalExpense, currentMonth, currentYear]);
   const balance = useMemo(() => getBalance(), [getBalance]);
+
+  // Calculations for Widgets
+  const savingsRate = useMemo(() => {
+    if (monthlyIncome <= 0) return 0;
+    return Math.max(0, ((monthlyIncome - monthlyExpense) / monthlyIncome) * 100);
+  }, [monthlyIncome, monthlyExpense]);
+
+  const velocityData = useMemo(() => {
+    const dayOfMonth = now.getDate();
+    const projected = (monthlyExpense / dayOfMonth) * 30;
+    const target = 30000; // Mock target
+    const percent = target > 0 ? (projected / target) * 100 : 0;
+    return { projected, target, percent };
+  }, [monthlyExpense]);
 
   // Show up to 10 recent transactions
   const recentTxs = useMemo(() => transactions.slice(0, 10), [transactions]);
@@ -76,10 +92,20 @@ export default function HomeScreen() {
           <StatCard label="Income" amount={formatCurrency(monthlyIncome)} type="income" />
         </View>
 
+        {/* Advanced Widgets */}
+        <FinancialHealthWidget savingsRate={savingsRate} />
+        <SpendingVelocityWidget
+          percent={velocityData.percent}
+          projected={velocityData.projected}
+          target={velocityData.target}
+        />
+        <UpcomingBillsWidget />
+
         {/* Available Balance */}
         <View style={styles.balancePill}>
           <Text style={styles.balanceText}>Available Balance: {formatCurrency(balance)}</Text>
         </View>
+
 
         {/* Recent Transactions */}
         <View style={styles.sectionHeader}>
