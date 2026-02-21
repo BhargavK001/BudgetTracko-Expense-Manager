@@ -455,11 +455,11 @@ const LandingPage = () => {
 
             {/* ─── Marquee Section ─── */}
             <div className="bg-black text-brand-yellow py-3 sm:py-6 overflow-hidden border-y-2 sm:border-y-4 border-white transform rotate-1 scale-105">
-                <div className="whitespace-nowrap animate-marquee font-black text-sm sm:text-2xl tracking-widest uppercase flex">
-                    <span className="flex-shrink-0">
+                <div className="whitespace-nowrap animate-marquee font-black text-sm sm:text-2xl tracking-widest uppercase flex w-max max-w-none">
+                    <span className="flex-shrink-0 max-w-none">
                         SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM • SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM • SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM •&nbsp;
                     </span>
-                    <span className="flex-shrink-0">
+                    <span className="flex-shrink-0 max-w-none">
                         SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM • SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM • SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM •&nbsp;
                     </span>
                 </div>
@@ -665,11 +665,12 @@ const LandingPage = () => {
                                 { feat: 'Instant Analytics', old: false, new: true, icon: <BsBarChartLineFill className="text-blue-500" /> },
                                 { feat: 'Cloud Sync', old: false, new: true, icon: <BsCloudArrowUpFill className="text-sky-500" /> },
                                 { feat: 'Mobile Ready', old: false, new: true, icon: <FaMobileAlt className="text-gray-700 dark:text-gray-300" /> },
-                                { feat: 'Recurring', old: false, new: true, icon: <BsArrowRepeat className="text-indigo-500" /> },
+                                { feat: 'Recurring Info', old: false, new: true, icon: <BsArrowRepeat className="text-indigo-500" /> },
+                                { feat: 'AI Config Coach', old: false, new: true, icon: <BsQuestionCircle className="text-purple-500" /> },
                                 { feat: 'Bank Security', old: false, new: true, icon: <BsShieldCheck className="text-green-600" /> },
                                 { feat: 'No Ads / Free', old: false, new: true, icon: <FaStar className="text-amber-500" /> },
                             ].map((row, i) => (
-                                <div key={i} className={`grid grid-cols-5 sm:grid-cols-3 ${i !== 5 ? 'border-b-2 border-gray-200' : ''} hover:bg-gray-50 transition-colors`}>
+                                <div key={i} className={`grid grid-cols-5 sm:grid-cols-3 ${i !== 6 ? 'border-b-2 border-gray-200' : ''} hover:bg-gray-50 transition-colors`}>
                                     <div className="col-span-3 sm:col-span-1 p-3 sm:p-5 font-bold text-xs sm:text-base text-gray-700 flex items-center gap-2">
                                         <span className="sm:text-lg">{row.icon}</span>
                                         <span className="truncate">{row.feat}</span>
@@ -786,7 +787,7 @@ const LandingPage = () => {
 
             {/* ─── FAQ Section ─── */}
             <section className="py-12 sm:py-24 px-4 sm:px-6 bg-gray-50 border-b-4 border-black">
-                <div className="max-w-3xl mx-auto">
+                <div className="max-w-5xl lg:max-w-6xl mx-auto">
                     <h2 className="text-2xl sm:text-5xl font-black uppercase tracking-tighter mb-6 sm:mb-10 text-center text-black">FAQ</h2>
                     <div className="space-y-3 sm:space-y-4">
                         {[
