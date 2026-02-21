@@ -6,7 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState, useCallback } from 'react';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/components/useColorScheme';
+import { useColorScheme } from 'react-native';
 import AnimatedSplash from '../components/AnimatedSplash';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TransactionProvider } from '@/context/TransactionContext';
@@ -26,7 +26,6 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
   const [showAnimatedSplash, setShowAnimatedSplash] = useState(true);
@@ -76,7 +75,6 @@ function RootLayoutNav() {
             <Stack.Screen name="help-support" options={{ headerShown: false }} />
             <Stack.Screen name="share-app" options={{ headerShown: false }} />
             <Stack.Screen name="premium" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
           </Stack>
         </ThemeProvider>
       </SafeAreaProvider>

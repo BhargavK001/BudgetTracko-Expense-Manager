@@ -26,6 +26,10 @@ The project aims to provide a seamless experience across **Web** (for detailed a
 - **Transaction Management**:
   - Add/Edit/Delete Income, Expenses, and Transfers.
   - Categorization and tagging support.
+  - Recurring Entries (subscriptions, rent).
+- **Budgeting**: 
+  - Comprehensive budget setting and tracking limits per category.
+  - Category-based budget vs actual comparisons.
 - **Mobile App**: 
   - React Native (Expo) implementation for Android.
   - Key features: Dashboard, Add Transaction, Analytics.
@@ -36,10 +40,8 @@ The project aims to provide a seamless experience across **Web** (for detailed a
 - **Theme**: Dark and Light mode support across platforms.
 
 ### 🛠 In Progress / Pending Refinement
-- **Advanced Analytics**: Deep dive reports and custom date range filtering (partial implementation).
-- **Export/Import**: CSV export functionality (backend ready, UI integration ongoing).
-- **Budgeting**: Comprehensive budget setting and tracking per category.
-- **Notifications**: Push notifications for bill reminders and budget alerts.
+- **Export/Import**: Google Drive backup and restore integration.
+- **Notifications**: Push notifications for bill reminders and budget alerts (Libraries not yet installed).
 
 ---
 
@@ -144,7 +146,9 @@ npx expo start
 | **Multi-Platform** | Web & Android support with synced data. | ✅ Live |
 | **Financial Overview** | Dashboard with cards for Net Worth, Income, Expense. | ✅ Live |
 | **Smart Transactions** | Categorized entries with notes and attachments. | ✅ Live |
-| **Recurring Entries** | Setup automatic payments for rent/subscriptions. | 🚧 In Progress |
+| **Recurring Entries** | Setup automatic payments for rent/subscriptions. | ✅ Live |
+| **Budgeting System** | Manage and track category-specific budgets. | ✅ Live |
+| **Advanced Analytics** | Custom date ranges, health score gauge, and deep-dive charts. | ✅ Live |
 | **Visual Analytics** | Pie charts and trend lines for spending habits. | ✅ Live |
 | **Data Security** | Encrypted passwords and secure token-based auth. | ✅ Live |
 | **Theme System** | Toggle between professional Light and sleek Dark modes. | ✅ Live |
