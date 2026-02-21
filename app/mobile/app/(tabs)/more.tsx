@@ -14,11 +14,11 @@ type MenuItem = {
 };
 
 const MENU_ITEMS: MenuItem[] = [
-    { icon: 'person-outline', label: 'Profile', color: '#2196F3' },
-    { icon: 'settings-outline', label: 'Settings', color: '#9E9E9E' },
-    { icon: 'notifications-outline', label: 'Reminders', color: '#FF9800' },
+    { icon: 'person-outline', label: 'Profile', color: '#2196F3', route: '/profile' },
+    { icon: 'settings-outline', label: 'Settings', color: '#9E9E9E', route: '/settings' },
+    { icon: 'notifications-outline', label: 'Reminders', color: '#FF9800', route: '/settings/reminders' },
     { icon: 'download-outline', label: 'Export Data', color: '#4CAF50' },
-    { icon: 'shield-checkmark-outline', label: 'Privacy & Security', color: '#7C4DFF' },
+    { icon: 'shield-checkmark-outline', label: 'Privacy & Security', color: '#7C4DFF', route: '/privacy-security' },
     { icon: 'help-circle-outline', label: 'Help & Support', color: '#00BCD4', route: '/help-support' },
     { icon: 'star-outline', label: 'Rate Us', color: '#FFD700' },
     { icon: 'share-social-outline', label: 'Share App', color: '#E91E63', route: '/share-app' },

@@ -75,6 +75,9 @@ function RootLayoutNav() {
             <Stack.Screen name="help-support" options={{ headerShown: false }} />
             <Stack.Screen name="share-app" options={{ headerShown: false }} />
             <Stack.Screen name="premium" options={{ headerShown: false }} />
+            <Stack.Screen name="profile" options={{ headerShown: false }} />
+            <Stack.Screen name="privacy-security" options={{ headerShown: false }} />
+            <Stack.Screen name="settings" options={{ headerShown: false }} />
           </Stack>
         </ThemeProvider>
       </SafeAreaProvider>
