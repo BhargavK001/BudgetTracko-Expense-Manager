@@ -12,11 +12,13 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminLayout from './components/layout/AdminLayout';
 import PageLoader from './components/common/PageLoader';
 
-// Eagerly loaded critical pages
+// Eagerly loaded critical pages (Only LandingPage to avoid waterfall delays on first paint)
 import LandingPage from './pages/LandingPage';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import NotFound from './pages/NotFound';
+
+// Lazy loaded critical pages
+const Login = React.lazy(() => import('./pages/Login'));
+const Signup = React.lazy(() => import('./pages/Signup'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
 
 // Lazy loaded pages
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
