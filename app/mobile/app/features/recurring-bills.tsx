@@ -138,7 +138,7 @@ export default function RecurringBillsScreen() {
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Your Subscriptions</Text>
                     <TouchableOpacity style={styles.addInlineButton} onPress={() => handleOpenModal()}>
-                        <Ionicons name="add" size={20} color={DarkTheme.brandBlack} />
+                        <Ionicons name="add" size={20} color={'#FFFFFF'} />
                         <Text style={styles.addInlineText}>Add New</Text>
                     </TouchableOpacity>
                 </View>
@@ -191,7 +191,7 @@ export default function RecurringBillsScreen() {
 
                         {bill.autoPay && (
                             <View style={styles.autoPayBanner}>
-                                <Ionicons name="flash" size={12} color={DarkTheme.brandBlack} />
+                                <Ionicons name="flash" size={12} color={'#FFFFFF'} />
                                 <Text style={styles.autoPayText}>Auto-pay Enabled</Text>
                             </View>
                         )}
@@ -400,18 +400,18 @@ const styles = StyleSheet.create({
     addInlineButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: DarkTheme.brandYellow,
+        backgroundColor: DarkTheme.accent,
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: BorderRadius.sm,
         borderWidth: 1.5,
-        borderColor: DarkTheme.brandBlack,
+        borderColor: 'transparent',
         gap: 4,
     },
     addInlineText: {
         fontSize: 10,
         fontWeight: '900',
-        color: DarkTheme.brandBlack,
+        color: '#FFFFFF',
         textTransform: 'uppercase',
     },
     billCard: {
@@ -493,7 +493,7 @@ const styles = StyleSheet.create({
     autoPayBanner: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: DarkTheme.brandYellow,
+        backgroundColor: DarkTheme.accent,
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 4,
@@ -504,7 +504,7 @@ const styles = StyleSheet.create({
     autoPayText: {
         fontSize: 10,
         fontWeight: '900',
-        color: DarkTheme.brandBlack,
+        color: '#FFFFFF',
         textTransform: 'uppercase',
     },
     emptyState: {
@@ -621,18 +621,19 @@ const styles = StyleSheet.create({
         marginTop: 2,
     },
     saveButton: {
-        backgroundColor: DarkTheme.brandYellow,
+        backgroundColor: DarkTheme.accent,
         paddingVertical: Spacing.lg,
         borderRadius: BorderRadius.sm,
         alignItems: 'center',
         borderWidth: 2,
-        borderColor: DarkTheme.brandBlack,
+        borderColor: 'transparent',
         ...NeoShadowSm,
     },
     saveButtonText: {
         fontSize: FontSize.md,
         fontWeight: '900',
-        color: DarkTheme.brandBlack,
+        color: '#FFFFFF',
         textTransform: 'uppercase',
     },
 });
+

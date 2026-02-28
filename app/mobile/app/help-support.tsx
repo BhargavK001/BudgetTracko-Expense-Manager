@@ -62,7 +62,7 @@ export default function HelpSupportScreen() {
                         Reach out to us and we'll get back to you within 24 hours.
                     </Text>
                     <TouchableOpacity style={styles.contactBtn} onPress={handleEmail}>
-                        <Ionicons name="mail-outline" size={16} color={DarkTheme.brandBlack} />
+                        <Ionicons name="mail-outline" size={16} color={'#FFFFFF'} />
                         <Text style={styles.contactBtnText}>Email Support</Text>
                     </TouchableOpacity>
                 </View>
@@ -169,18 +169,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: Spacing.sm,
-        backgroundColor: DarkTheme.brandYellow,
+        backgroundColor: DarkTheme.accent,
         paddingHorizontal: Spacing.xl,
         paddingVertical: Spacing.md,
         borderRadius: BorderRadius.sm,
         borderWidth: 2,
-        borderColor: DarkTheme.brandBlack,
+        borderColor: 'transparent',
         ...NeoShadowSm,
     },
     contactBtnText: {
         fontSize: FontSize.sm,
         fontWeight: '800',
-        color: DarkTheme.brandBlack,
+        color: '#FFFFFF',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
@@ -246,3 +246,4 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
 });
+

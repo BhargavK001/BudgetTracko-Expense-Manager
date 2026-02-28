@@ -115,11 +115,11 @@ export default function AskTrackoScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={DarkTheme.brandBlack} />
+                    <Ionicons name="arrow-back" size={24} color={'#FFFFFF'} />
                 </TouchableOpacity>
                 <View style={styles.headerInfo}>
                     <View style={styles.trackoIcon}>
-                        <Ionicons name="flash" size={20} color={DarkTheme.brandBlack} />
+                        <Ionicons name="flash" size={20} color={'#FFFFFF'} />
                     </View>
                     <View>
                         <Text style={styles.headerTitle}>Ask Tracko</Text>
@@ -127,7 +127,7 @@ export default function AskTrackoScreen() {
                     </View>
                 </View>
                 <TouchableOpacity style={styles.optionsButton}>
-                    <Ionicons name="ellipsis-vertical" size={20} color={DarkTheme.brandBlack} />
+                    <Ionicons name="ellipsis-vertical" size={20} color={'#FFFFFF'} />
                 </TouchableOpacity>
             </View>
 
@@ -148,7 +148,7 @@ export default function AskTrackoScreen() {
                     >
                         {msg.sender === 'tracko' && (
                             <View style={[styles.avatar, styles.trackoAvatar]}>
-                                <Ionicons name="chatbubble-ellipses-outline" size={16} color={DarkTheme.brandBlack} />
+                                <Ionicons name="chatbubble-ellipses-outline" size={16} color={'#FFFFFF'} />
                             </View>
 
                         )}
@@ -180,12 +180,12 @@ export default function AskTrackoScreen() {
                 {isTyping && (
                     <Animated.View entering={FadeIn} style={styles.typingContainer}>
                         <View style={[styles.avatar, styles.trackoAvatar]}>
-                            <Ionicons name="chatbubble-ellipses-outline" size={16} color={DarkTheme.brandBlack} />
+                            <Ionicons name="chatbubble-ellipses-outline" size={16} color={'#FFFFFF'} />
                         </View>
 
                         <View style={styles.typingBubble}>
                             <View style={styles.typingContent}>
-                                <ActivityIndicator size="small" color={DarkTheme.brandBlack} />
+                                <ActivityIndicator size="small" color={'#FFFFFF'} />
                                 <Text style={styles.loadingPhrase}>{loadingPhrase}</Text>
                             </View>
                         </View>
@@ -216,7 +216,7 @@ export default function AskTrackoScreen() {
                             onPress={handleSendMessage}
                             disabled={!inputValue.trim() || isTyping}
                         >
-                            <Ionicons name="send" size={18} color={DarkTheme.brandBlack} />
+                            <Ionicons name="send" size={18} color={'#FFFFFF'} />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -235,9 +235,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: Spacing.lg,
         paddingVertical: Spacing.md,
-        backgroundColor: DarkTheme.brandYellow,
-        borderBottomWidth: 3,
-        borderBottomColor: DarkTheme.brandBlack,
+        backgroundColor: DarkTheme.accent,
+        borderBottomWidth: 1,
+        borderBottomColor: 'rgba(255,255,255,0.15)',
     },
     backButton: {
         padding: 5,
@@ -257,20 +257,20 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 2,
-        borderColor: DarkTheme.brandBlack,
+        borderColor: 'transparent',
         ...NeoShadowSm,
     },
     headerTitle: {
         fontSize: FontSize.md,
         fontWeight: '900',
-        color: DarkTheme.brandBlack,
+        color: '#FFFFFF',
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
     headerSubtitle: {
         fontSize: 10,
         fontWeight: '700',
-        color: DarkTheme.brandBlack,
+        color: '#FFFFFF',
         opacity: 0.7,
     },
     optionsButton: {
@@ -300,12 +300,12 @@ const styles = StyleSheet.create({
         height: 32,
         borderRadius: 16,
         borderWidth: 1.5,
-        borderColor: DarkTheme.brandBlack,
+        borderColor: 'transparent',
         justifyContent: 'center',
         alignItems: 'center',
     },
     trackoAvatar: {
-        backgroundColor: DarkTheme.brandYellow,
+        backgroundColor: DarkTheme.accent,
     },
     userAvatar: {
         backgroundColor: '#4A90E2',
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         borderRadius: 16,
         borderWidth: 2,
-        borderColor: DarkTheme.brandBlack,
+        borderColor: 'transparent',
         ...NeoShadowSm,
     },
     userBubble: {
@@ -333,10 +333,10 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     userText: {
-        color: DarkTheme.brandBlack,
+        color: '#FFFFFF',
     },
     trackoText: {
-        color: DarkTheme.brandBlack,
+        color: '#FFFFFF',
     },
     timestamp: {
         fontSize: 8,
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: DarkTheme.cardBg,
         borderWidth: 2,
-        borderColor: DarkTheme.brandBlack,
+        borderColor: 'transparent',
         borderRadius: BorderRadius.md,
         paddingHorizontal: 12,
         ...NeoShadowSm,
@@ -404,15 +404,16 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 8,
-        backgroundColor: DarkTheme.brandYellow,
+        backgroundColor: DarkTheme.accent,
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 8,
         borderWidth: 1.5,
-        borderColor: DarkTheme.brandBlack,
+        borderColor: 'transparent',
     },
     sendButtonDisabled: {
         backgroundColor: DarkTheme.textMuted,
         opacity: 0.5,
     },
 });
+

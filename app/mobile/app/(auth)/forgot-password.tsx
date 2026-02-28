@@ -38,8 +38,8 @@ export default function ForgotPassword() {
     };
 
     return (
-        <Container backgroundColor="#F0F0F0">
-            <StatusBar style="dark" />
+        <Container>
+            <StatusBar style="light" />
 
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <KeyboardAvoidingView
@@ -52,7 +52,7 @@ export default function ForgotPassword() {
                     >
                         <View style={styles.header}>
                             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                                <MaterialCommunityIcons name="arrow-left" size={24} color="#000000" />
+                                <MaterialCommunityIcons name="arrow-left" size={24} color="#F1F5F9" />
                             </TouchableOpacity>
 
                             <Animated.View entering={FadeInDown.delay(200).duration(800)}>
@@ -71,7 +71,7 @@ export default function ForgotPassword() {
                             <View style={styles.form}>
                                 {isSuccess ? (
                                     <View style={styles.successContainer}>
-                                        <MaterialCommunityIcons name="check-circle" size={64} color="#4CAF50" />
+                                        <MaterialCommunityIcons name="check-circle" size={64} color="#10B981" />
                                         <Text style={styles.successText}>Reset link sent!</Text>
                                         <Text style={styles.successSubtext}>Please check your email for instructions.</Text>
                                         <Button
@@ -126,7 +126,6 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
-        // Removed justifyContent: 'center'
         paddingVertical: 20,
         paddingBottom: 40,
     },
@@ -138,25 +137,25 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#0D1630',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 20,
-        borderWidth: 2,
-        borderColor: '#000000',
+        borderWidth: 1,
+        borderColor: '#1E2D4F',
     },
     title: {
-        fontSize: 48,
-        fontWeight: '900',
-        color: '#000000',
-        lineHeight: 48,
-        letterSpacing: -2,
+        fontSize: 36,
+        fontWeight: '800',
+        color: '#F1F5F9',
+        lineHeight: 40,
+        letterSpacing: -0.5,
     },
     subtitle: {
-        fontSize: 16,
-        color: '#666666',
+        fontSize: 15,
+        color: '#94A3B8',
         marginTop: 8,
-        fontWeight: '500',
+        fontWeight: '400',
     },
     form: {
         marginBottom: 32,
@@ -168,19 +167,18 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 14,
-        color: '#000000',
-        fontWeight: '500',
+        color: '#94A3B8',
+        fontWeight: '400',
     },
     footerLink: {
         fontSize: 14,
-        color: '#000000',
-        fontWeight: '900',
-        textDecorationLine: 'underline',
+        color: '#A5B4FC',
+        fontWeight: '700',
     },
     errorText: {
-        color: '#D32F2F',
+        color: '#F43F5E',
         fontSize: 12,
-        fontWeight: '700',
+        fontWeight: '600',
         marginTop: 8,
         textAlign: 'center',
     },
@@ -190,13 +188,13 @@ const styles = StyleSheet.create({
     },
     successText: {
         fontSize: 24,
-        fontWeight: '900',
-        color: '#000000',
+        fontWeight: '800',
+        color: '#F1F5F9',
         marginTop: 16,
     },
     successSubtext: {
         fontSize: 14,
-        color: '#666666',
+        color: '#94A3B8',
         textAlign: 'center',
         marginTop: 8,
     },

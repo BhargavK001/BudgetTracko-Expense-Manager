@@ -1,48 +1,64 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  StatusBar, useWindowDimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadow, NeoShadowSm } from '@/constants/Theme';
-import StatCard from '@/components/StatCard';
+import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadow } from '@/constants/Theme';
 import TransactionItem from '@/components/TransactionItem';
 import { useTransactions, CATEGORY_ICONS, CATEGORY_COLORS } from '@/context/TransactionContext';
 import { useAuth } from '@/context/AuthContext';
-import { FinancialHealthWidget, SpendingVelocityWidget, UpcomingBillsWidget } from '@/components/DashboardWidgets';
+import { SpendingVelocityWidget, UpcomingBillsWidget } from '@/components/DashboardWidgets';
 
 function formatCurrency(n: number): string {
-  return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  return '₹' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
-
 function formatDate(iso: string): string {
   const d = new Date(iso);
-  const day = d.getDate().toString().padStart(2, '0');
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const year = d.getFullYear().toString().slice(-2);
-  return `${day} ${months[d.getMonth()]} ${year}`;
+  return `${d.getDate()} ${months[d.getMonth()]}`;
 }
-
 function getGreeting(): string {
   const h = new Date().getHours();
   if (h < 12) return 'Good Morning';
   if (h < 17) return 'Good Afternoon';
   return 'Good Evening';
 }
+function getDateLabel(): string {
+  const d = new Date();
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
+}
 
+const RANGE_OPTIONS = ['Month', 'Year', 'All'] as const;
+type Range = typeof RANGE_OPTIONS[number];
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { transactions, getTotalIncome, getTotalExpense, getBalance } = useTransactions();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const [range, setRange] = useState<Range>('Month');
+  const [balanceHidden, setBalanceHidden] = useState(false);
 
-  const now = new Date();
+  const isCompact = width < 360;
+  const isTablet = width >= 768;
+  const horizontalPadding = isTablet ? Spacing.xxxl : isCompact ? Spacing.md : Spacing.lg;
+  const heroPadding = isTablet ? Spacing.xxxl : isCompact ? Spacing.lg : Spacing.xxl;
+  const heroBalanceSize = isTablet ? 42 : isCompact ? 30 : 36;
+  const bottomInsetPadding = insets.bottom + 112;
+
+  const now         = new Date();
   const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
+  const currentYear  = now.getFullYear();
 
-  const monthlyIncome = useMemo(() => getTotalIncome(currentMonth, currentYear), [getTotalIncome, currentMonth, currentYear]);
-  const monthlyExpense = useMemo(() => getTotalExpense(currentMonth, currentYear), [getTotalExpense, currentMonth, currentYear]);
-  const balance = useMemo(() => getBalance(), [getBalance]);
+  const monthlyIncome   = useMemo(() => getTotalIncome(currentMonth, currentYear),  [getTotalIncome,   currentMonth, currentYear]);
+  const monthlyExpense  = useMemo(() => getTotalExpense(currentMonth, currentYear), [getTotalExpense,  currentMonth, currentYear]);
+  const balance         = useMemo(() => getBalance(),                                [getBalance]);
 
-  // Calculations for Widgets
   const savingsRate = useMemo(() => {
     if (monthlyIncome <= 0) return 0;
     return Math.max(0, ((monthlyIncome - monthlyExpense) / monthlyIncome) * 100);
@@ -50,75 +66,191 @@ export default function HomeScreen() {
 
   const velocityData = useMemo(() => {
     const dayOfMonth = now.getDate();
-    const projected = (monthlyExpense / dayOfMonth) * 30;
-    const target = 30000; // Mock target
-    const percent = target > 0 ? (projected / target) * 100 : 0;
+    const projected  = (monthlyExpense / dayOfMonth) * 30;
+    const target     = 30000;
+    const percent    = target > 0 ? (projected / target) * 100 : 0;
     return { projected, target, percent };
   }, [monthlyExpense]);
 
-  // Show up to 10 recent transactions
-  const recentTxs = useMemo(() => transactions.slice(0, 10), [transactions]);
+  const recentTxs = useMemo(() => transactions.slice(0, 8), [transactions]);
+
+  const netChange = monthlyIncome - monthlyExpense;
+  const netPositive = netChange >= 0;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* ─── Sticky Header ─── */}
-      <View style={styles.stickyHeader}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.greetingSmall}>{getGreeting()},</Text>
-          <Text style={styles.greetingName}>{user?.displayName?.split(' ')[0] || 'BudgetTracko'}</Text>
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="light-content" />
+
+      {/* ─── Header ─── */}
+      <View style={[styles.header, { paddingHorizontal: horizontalPadding }]}>
+        <View>
+          <Text style={styles.dateLabel}>{getDateLabel()}</Text>
+          <Text style={styles.greeting}>
+            {getGreeting()},{' '}
+            <Text style={styles.greetingName}>{user?.displayName?.split(' ')[0] || 'Friend'} 👋</Text>
+          </Text>
         </View>
-        <View style={styles.headerRight}>
-          <View style={styles.avatarContainer}>
-            <Ionicons name="person" size={20} color={DarkTheme.brandYellow} />
-          </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.iconBtn}>
+            <Ionicons name="notifications-outline" size={20} color={DarkTheme.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.avatarBtn}>
+            <Ionicons name="person" size={18} color={DarkTheme.textAccent} />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* ─── Scrollable Content ─── */}
       <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            paddingHorizontal: horizontalPadding,
+            paddingBottom: bottomInsetPadding,
+          },
+        ]}
       >
-        {/* Month Selector */}
-        <View style={styles.monthSelector}>
-          <TouchableOpacity style={styles.monthDropdown}>
-            <Text style={styles.monthText}>This month</Text>
-            <Ionicons name="chevron-down" size={16} color={DarkTheme.textPrimary} />
-          </TouchableOpacity>
+        <View style={[styles.contentInner, isTablet && styles.contentInnerTablet]}>
+        {/* ─── Hero Balance Card ─── */}
+        <LinearGradient
+          colors={['#1E2D6B', '#0D1630', '#060D1F']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.heroCard, { padding: heroPadding }]}
+        >
+          {/* decorative blobs */}
+          <View style={styles.blobTL} />
+          <View style={styles.blobBR} />
+
+          <View style={styles.heroTop}>
+            <View>
+              <Text style={styles.heroLabel}>Total Balance</Text>
+              <Text style={styles.heroBalance}>
+                <Text style={{ fontSize: heroBalanceSize }}>
+                  {balanceHidden ? '₹ ••••••' : formatCurrency(balance)}
+                </Text>
+              </Text>
+              <View style={[styles.netBadge, netPositive ? styles.netBadgeGreen : styles.netBadgeRed]}>
+                <Ionicons
+                  name={netPositive ? 'trending-up' : 'trending-down'}
+                  size={12}
+                  color={netPositive ? DarkTheme.income : DarkTheme.spending}
+                />
+                <Text style={[styles.netBadgeText, { color: netPositive ? DarkTheme.income : DarkTheme.spending }]}>
+                  {netPositive ? '+' : '-'}{formatCurrency(Math.abs(netChange))} this month
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={() => setBalanceHidden(!balanceHidden)} style={styles.eyeBtn}>
+              <Ionicons
+                name={balanceHidden ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color={DarkTheme.textSecondary}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* ── Income / Expense row ── */}
+          <View style={[styles.heroStats, isCompact && styles.heroStatsCompact]}>
+            <View style={[styles.heroStatItem, isCompact && styles.heroStatItemCompact]}>
+              <View style={[styles.heroStatIcon, { backgroundColor: 'rgba(16,185,129,0.18)' }]}>
+                <Ionicons name="arrow-down" size={14} color={DarkTheme.income} />
+              </View>
+              <View>
+                <Text style={styles.heroStatLabel}>Income</Text>
+                <Text style={styles.heroStatValue}>{formatCurrency(monthlyIncome)}</Text>
+              </View>
+            </View>
+            {!isCompact && <View style={styles.heroStatDivider} />}
+            <View style={[styles.heroStatItem, isCompact && styles.heroStatItemCompact]}>
+              <View style={[styles.heroStatIcon, { backgroundColor: 'rgba(244,63,94,0.18)' }]}>
+                <Ionicons name="arrow-up" size={14} color={DarkTheme.spending} />
+              </View>
+              <View>
+                <Text style={styles.heroStatLabel}>Expense</Text>
+                <Text style={styles.heroStatValue}>{formatCurrency(monthlyExpense)}</Text>
+              </View>
+            </View>
+            {!isCompact && <View style={styles.heroStatDivider} />}
+            <View style={[styles.heroStatItem, isCompact && styles.heroStatItemCompact]}>
+              <View style={[styles.heroStatIcon, { backgroundColor: 'rgba(99,102,241,0.18)' }]}>
+                <Ionicons name="wallet" size={14} color={DarkTheme.accent} />
+              </View>
+              <View>
+                <Text style={styles.heroStatLabel}>Savings</Text>
+                <Text style={styles.heroStatValue}>{savingsRate.toFixed(0)}%</Text>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+
+        {/* ─── Date Range Selector ─── */}
+        <View style={styles.rangeRow}>
+          {RANGE_OPTIONS.map((r) => (
+            <TouchableOpacity
+              key={r}
+              style={[styles.rangeBtn, range === r && styles.rangeBtnActive]}
+              onPress={() => setRange(r)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.rangeBtnText, range === r && styles.rangeBtnTextActive]}>{r}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* Stat Cards */}
-        <View style={styles.statsRow}>
-          <StatCard label="Spending" amount={formatCurrency(monthlyExpense)} type="spending" />
-          <StatCard label="Income" amount={formatCurrency(monthlyIncome)} type="income" />
+        {/* ─── Quick Actions ─── */}
+        <View style={styles.quickActions}>
+          {[
+            { icon: 'arrow-up-circle-outline',   label: 'Send',     color: '#6366F1' },
+            { icon: 'arrow-down-circle-outline', label: 'Receive',  color: '#10B981' },
+            { icon: 'repeat-outline',            label: 'Transfer', color: '#F59E0B' },
+            { icon: 'scan-outline',              label: 'Scan',     color: '#EC4899' },
+          ].map((a) => (
+            <TouchableOpacity
+              key={a.label}
+              style={styles.quickActionItem}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.quickActionIcon,
+                  { backgroundColor: a.color + '22', width: isCompact ? 52 : 56, height: isCompact ? 52 : 56 },
+                ]}
+              >
+                <Ionicons name={a.icon as any} size={isCompact ? 20 : 22} color={a.color} />
+              </View>
+              <Text style={styles.quickActionLabel} numberOfLines={1}>
+                {a.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
-        {/* Advanced Widgets */}
-        <FinancialHealthWidget savingsRate={savingsRate} />
+        {/* ─── Spending Pace ─── */}
         <SpendingVelocityWidget
           percent={velocityData.percent}
           projected={velocityData.projected}
           target={velocityData.target}
         />
+
+        {/* ─── Upcoming Bills ─── */}
         <UpcomingBillsWidget />
 
-        {/* Available Balance */}
-        <View style={styles.balancePill}>
-          <Text style={styles.balanceText}>Available Balance: {formatCurrency(balance)}</Text>
-        </View>
-
-
-        {/* Recent Transactions */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent transactions</Text>
+        {/* ─── Recent Transactions ─── */}
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionTitle}>Recent Transactions</Text>
+          <TouchableOpacity>
+            <Text style={styles.sectionLink}>See all</Text>
+          </TouchableOpacity>
         </View>
 
         {recentTxs.length === 0 ? (
           <View style={styles.emptyState}>
-            <Ionicons name="receipt-outline" size={48} color={DarkTheme.textMuted} />
+            <View style={styles.emptyIcon}>
+              <Ionicons name="receipt-outline" size={32} color={DarkTheme.textMuted} />
+            </View>
             <Text style={styles.emptyTitle}>No transactions yet</Text>
-            <Text style={styles.emptyDesc}>Tap the + button to add your first transaction</Text>
+            <Text style={styles.emptyDesc}>Tap + to add your first transaction</Text>
           </View>
         ) : (
           recentTxs.map((tx) => (
@@ -126,7 +258,7 @@ export default function HomeScreen() {
               key={tx.id}
               icon={(CATEGORY_ICONS[tx.category] || 'ellipsis-horizontal-circle-outline') as any}
               iconColor={CATEGORY_COLORS[tx.category] || DarkTheme.accentSecondary}
-              iconBgColor={(CATEGORY_COLORS[tx.category] || '#795548') + '33'}
+              iconBgColor={(CATEGORY_COLORS[tx.category] || DarkTheme.accent) + '22'}
               title={tx.title}
               amount={tx.amount.toLocaleString('en-IN')}
               date={formatDate(tx.date)}
@@ -135,145 +267,299 @@ export default function HomeScreen() {
           ))
         )}
 
-        {/* Bottom spacer for tab bar */}
-        <View style={{ height: 100 }} />
+        </View>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
     backgroundColor: DarkTheme.bg,
   },
-  // ─── Sticky Header ───
-  stickyHeader: {
+  // ─── Header ───
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: DarkTheme.bg,
-    borderBottomWidth: 2,
-    borderBottomColor: DarkTheme.neoBorder,
-    zIndex: 10,
   },
-  headerLeft: {},
-  greetingSmall: {
+  dateLabel: {
     fontSize: FontSize.xs,
-    color: DarkTheme.textSecondary,
+    color: DarkTheme.textMuted,
+    fontWeight: '600',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    fontWeight: '700',
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  greeting: {
+    fontSize: FontSize.lg,
+    fontWeight: '600',
+    color: DarkTheme.textSecondary,
   },
   greetingName: {
-    fontSize: FontSize.xl,
-    fontWeight: '800',
     color: DarkTheme.textPrimary,
-    marginTop: 2,
+    fontWeight: '800',
   },
-  headerRight: {
+  headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  avatarContainer: {
+  iconBtn: {
     width: 40,
     height: 40,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.md,
     backgroundColor: DarkTheme.cardBg,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: DarkTheme.brandYellow,
-    ...NeoShadowSm,
+    borderWidth: 1,
+    borderColor: DarkTheme.border,
   },
-  // ─── Scroll Content ───
-  scrollView: {
-    flex: 1,
+  avatarBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.md,
+    backgroundColor: 'rgba(99,102,241,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(99,102,241,0.4)',
   },
   scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
+    paddingTop: 2,
   },
-  // Month Selector
-  monthSelector: {
+  contentInner: {
+    width: '100%',
+  },
+  contentInnerTablet: {
+    maxWidth: 760,
+    alignSelf: 'center',
+  },
+  // ─── Hero Card ───
+  heroCard: {
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xxl,
+    marginBottom: Spacing.lg,
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: DarkTheme.borderLight,
+    ...NeoShadow,
+  },
+  blobTL: {
+    position: 'absolute',
+    top: -40,
+    left: -40,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(99,102,241,0.12)',
+  },
+  blobBR: {
+    position: 'absolute',
+    bottom: -50,
+    right: -30,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(139,92,246,0.08)',
+  },
+  heroTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.xl,
-  },
-  monthDropdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    backgroundColor: DarkTheme.cardBg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1.5,
-    borderColor: DarkTheme.neoBorder,
-  },
-  monthText: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-    color: DarkTheme.textPrimary,
-  },
-  // Stats
-  statsRow: {
-    flexDirection: 'row',
-    marginBottom: Spacing.lg,
-  },
-  // Balance Pill
-  balancePill: {
-    alignSelf: 'center',
-    backgroundColor: DarkTheme.cardBg,
-    borderRadius: BorderRadius.sm,
-    borderWidth: 1.5,
-    borderColor: DarkTheme.neoBorder,
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.sm,
+    alignItems: 'flex-start',
     marginBottom: Spacing.xxl,
   },
-  balanceText: {
+  heroLabel: {
+    fontSize: FontSize.xs,
+    color: 'rgba(148,163,184,0.9)',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: Spacing.xs,
+  },
+  heroBalance: {
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+    marginBottom: Spacing.sm,
+  },
+  netBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+  },
+  netBadgeGreen: { backgroundColor: 'rgba(16,185,129,0.15)' },
+  netBadgeRed:   { backgroundColor: 'rgba(244,63,94,0.15)' },
+  netBadgeText: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+  },
+  eyeBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: BorderRadius.md,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  heroStatsCompact: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    gap: Spacing.sm,
+  },
+  heroStatItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  heroStatItemCompact: {
+    flex: 0,
+  },
+  heroStatIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroStatLabel: {
+    fontSize: FontSize.xs,
+    color: DarkTheme.textMuted,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  heroStatValue: {
     fontSize: FontSize.sm,
+    fontWeight: '800',
+    color: DarkTheme.textPrimary,
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginHorizontal: Spacing.sm,
+  },
+  // ─── Range Selector ───
+  rangeRow: {
+    flexDirection: 'row',
+    backgroundColor: DarkTheme.cardBg,
+    borderRadius: BorderRadius.md,
+    padding: 4,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: DarkTheme.border,
+  },
+  rangeBtn: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    borderRadius: BorderRadius.sm,
+  },
+  rangeBtnActive: {
+    backgroundColor: DarkTheme.accent,
+  },
+  rangeBtnText: {
+    fontSize: FontSize.xs,
+    fontWeight: '700',
+    color: DarkTheme.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  rangeBtnTextActive: {
+    color: '#FFFFFF',
+  },
+  // ─── Quick Actions ───
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.xl,
+  },
+  quickActionItem: {
+    width: '25%',
+    flexShrink: 1,
+    alignItems: 'center',
+    paddingHorizontal: 2,
+    gap: Spacing.xs,
+  },
+  quickActionIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 2,
+    borderWidth: 1,
+    borderColor: DarkTheme.border,
+  },
+  quickActionLabel: {
+    fontSize: FontSize.xs,
     color: DarkTheme.textSecondary,
     fontWeight: '600',
   },
-  // Section Header
-  sectionHeader: {
+  // ─── Section Header ───
+  sectionRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
+    marginTop: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: FontSize.xl,
+    fontSize: FontSize.lg,
     fontWeight: '800',
-    color: DarkTheme.brandYellow,
+    color: DarkTheme.textPrimary,
   },
-  // Empty State
+  sectionLink: {
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+    color: DarkTheme.textAccent,
+  },
+  // ─── Empty State ───
   emptyState: {
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.xxxl + 20,
+    paddingVertical: Spacing.xxxl + 12,
     backgroundColor: DarkTheme.cardBg,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1.5,
-    borderColor: DarkTheme.neoBorder,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: DarkTheme.border,
     gap: Spacing.sm,
+  },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: BorderRadius.full,
+    backgroundColor: DarkTheme.cardBgElevated,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
   },
   emptyTitle: {
     fontSize: FontSize.lg,
     fontWeight: '800',
     color: DarkTheme.textPrimary,
-    marginTop: Spacing.sm,
   },
   emptyDesc: {
     fontSize: FontSize.sm,
-    color: DarkTheme.textSecondary,
+    color: DarkTheme.textMuted,
     textAlign: 'center',
-    maxWidth: '70%',
   },
 });

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadow } from '@/constants/Theme';
+import { DarkTheme, Spacing, FontSize, BorderRadius } from '@/constants/Theme';
 import StatCard from '@/components/StatCard';
 import DonutChart from '@/components/DonutChart';
 import { useTransactions, Category, CATEGORY_COLORS, CATEGORY_ICONS } from '@/context/TransactionContext';
@@ -341,23 +341,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: Spacing.lg,
         paddingVertical: Spacing.md,
         backgroundColor: DarkTheme.bg,
-        borderBottomWidth: 2,
-        borderBottomColor: DarkTheme.neoBorder,
+        borderBottomWidth: 1,
+        borderBottomColor: DarkTheme.border,
         zIndex: 10,
     },
     title: {
         fontSize: FontSize.xxl,
-        fontWeight: '900',
+        fontWeight: '800',
         color: DarkTheme.textPrimary,
-        textTransform: 'uppercase',
     },
     exportButton: {
         width: 40,
         height: 40,
-        borderRadius: BorderRadius.sm,
-        backgroundColor: DarkTheme.cardBg,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
+        borderRadius: BorderRadius.md,
+        backgroundColor: 'rgba(99,102,241,0.1)',
+        borderWidth: 1,
+        borderColor: 'rgba(99,102,241,0.3)',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -371,41 +370,39 @@ const styles = StyleSheet.create({
     filterRow: {
         flexDirection: 'row',
         backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.sm,
+        borderRadius: BorderRadius.md,
         padding: 4,
         marginBottom: Spacing.xl,
-        borderWidth: 2,
-        borderColor: DarkTheme.neoBorder,
+        borderWidth: 1,
+        borderColor: DarkTheme.border,
     },
     filterChip: {
         flex: 1,
         paddingVertical: 10,
-        borderRadius: BorderRadius.sm - 2,
+        borderRadius: BorderRadius.sm,
         alignItems: 'center',
     },
     filterChipActive: {
-        backgroundColor: DarkTheme.brandYellow,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.brandBlack,
+        backgroundColor: DarkTheme.accent,
     },
     filterText: {
         fontSize: FontSize.xs,
         color: DarkTheme.textMuted,
         fontWeight: '700',
         textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     filterTextActive: {
-        color: DarkTheme.brandBlack,
-        fontWeight: '900',
+        color: '#FFFFFF',
+        fontWeight: '800',
     },
     summaryCard: {
         backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
+        borderRadius: BorderRadius.lg,
         padding: Spacing.xl,
         marginBottom: Spacing.xl,
-        borderWidth: 2,
-        borderColor: DarkTheme.neoBorder,
-        ...NeoShadow,
+        borderWidth: 1,
+        borderColor: DarkTheme.border,
     },
     summaryHeader: {
         flexDirection: 'row',
@@ -478,10 +475,10 @@ const styles = StyleSheet.create({
     },
     card: {
         backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
+        borderRadius: BorderRadius.lg,
         padding: Spacing.lg,
-        borderWidth: 2,
-        borderColor: DarkTheme.neoBorder,
+        borderWidth: 1,
+        borderColor: DarkTheme.border,
     },
     cardSubtitle: {
         fontSize: 10,
@@ -507,11 +504,9 @@ const styles = StyleSheet.create({
     categoryIcon: {
         width: 40,
         height: 40,
-        borderRadius: 10,
+        borderRadius: BorderRadius.sm,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: DarkTheme.neoBorder,
     },
     categoryName: {
         fontSize: FontSize.sm,
@@ -552,10 +547,10 @@ const styles = StyleSheet.create({
         flex: 1,
         minWidth: '45%',
         backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
+        borderRadius: BorderRadius.lg,
         padding: Spacing.lg,
-        borderWidth: 2,
-        borderColor: DarkTheme.neoBorder,
+        borderWidth: 1,
+        borderColor: DarkTheme.border,
     },
     insightLabel: {
         fontSize: 10,

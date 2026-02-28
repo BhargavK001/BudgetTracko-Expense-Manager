@@ -44,7 +44,7 @@ const FloatingIcon = ({ name, size, startX, startY, delay, duration }: any) => {
 
     return (
         <Animated.View style={[styles.floatingIcon, { left: startX, top: startY }, animatedStyle]}>
-            <MaterialCommunityIcons name={name} size={size} color="#000000" style={{ opacity: 0.05 }} />
+            <MaterialCommunityIcons name={name} size={size} color="#6366F1" style={{ opacity: 0.07 }} />
         </Animated.View>
     );
 };
@@ -71,8 +71,8 @@ export default function Welcome() {
     });
 
     return (
-        <Container backgroundColor="#FFD700">
-            <StatusBar style="dark" />
+        <Container>
+            <StatusBar style="light" />
 
             {/* Background Floating Icons */}
             <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -134,7 +134,6 @@ export default function Welcome() {
                             title="Login"
                             onPress={() => router.push('/(auth)/login')}
                             variant="outline"
-                            style={{ backgroundColor: 'transparent', borderColor: '#000000', borderWidth: 2 }}
                         />
                     </Animated.View>
                 </View>
@@ -148,77 +147,70 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        marginBottom: 24, // Added spacing below logo
+        marginBottom: 24,
     },
     brandText: {
-        fontSize: 24, // Slightly larger
+        fontSize: 24,
         fontWeight: '900',
-        color: '#1a1a1a',
+        color: '#F1F5F9',
     },
     brandAccent: {
-        backgroundColor: '#000000',
+        backgroundColor: '#6366F1',
         paddingHorizontal: 6,
         paddingVertical: 2,
+        borderRadius: 6,
         transform: [{ rotate: '-2deg' }],
-        borderWidth: 2,
-        borderColor: '#000000',
     },
     brandAccentText: {
-        fontSize: 24, // Slightly larger
+        fontSize: 24,
         fontWeight: '900',
         color: '#FFFFFF',
     },
     content: {
         flex: 1,
         justifyContent: 'center',
-        zIndex: 1, // Ensure content is above background icons
+        zIndex: 1,
     },
     header: {
         marginBottom: 24,
     },
     badgeContainer: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'rgba(99,102,241,0.15)',
         alignSelf: 'flex-start',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 100,
-        borderWidth: 2,
-        borderColor: '#000000',
+        borderWidth: 1,
+        borderColor: 'rgba(99,102,241,0.4)',
         marginBottom: 24,
-        shadowColor: '#000000',
-        shadowOffset: { width: 2, height: 2 },
-        shadowOpacity: 1,
-        shadowRadius: 0,
     },
     badgeText: {
         fontSize: 12,
-        fontWeight: '900',
+        fontWeight: '700',
+        color: '#A5B4FC',
     },
     title: {
         fontSize: 48,
         fontWeight: '900',
-        color: '#000000',
-        lineHeight: 48,
-        letterSpacing: -2,
+        color: '#F1F5F9',
+        lineHeight: 52,
+        letterSpacing: -1.5,
     },
     highlight: {
-        color: '#FFFFFF',
-        textShadowColor: '#000000',
-        textShadowOffset: { width: 2, height: 2 },
-        textShadowRadius: 0,
+        color: '#A5B4FC',
     },
     subtitle: {
-        fontSize: 18,
-        fontWeight: '500',
-        color: '#000000',
-        lineHeight: 26,
+        fontSize: 16,
+        fontWeight: '400',
+        color: '#94A3B8',
+        lineHeight: 24,
         marginBottom: 48,
     },
     spacer: {
         flex: 1,
     },
     footer: {
-        gap: 12,
+        gap: 8,
     },
     floatingIcon: {
         position: 'absolute',

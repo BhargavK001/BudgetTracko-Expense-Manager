@@ -199,7 +199,7 @@ export default function AnimatedSplash({ onComplete }: AnimatedSplashProps) {
                 {/* Logo Icon */}
                 <Animated.View style={[styles.logoContainer, logoStyle]}>
                     <View style={styles.logoInner}>
-                        <MaterialCommunityIcons name="wallet" size={48} color="#0A0A0A" />
+                        <MaterialCommunityIcons name="wallet" size={48} color="#FFFFFF" />
                     </View>
                 </Animated.View>
 
@@ -242,7 +242,7 @@ export default function AnimatedSplash({ onComplete }: AnimatedSplashProps) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#0A0A0A',
+        backgroundColor: '#060D1F',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     bgCircle: {
         position: 'absolute',
         borderWidth: 1,
-        borderColor: '#facc15',
+        borderColor: '#6366F1',
     },
     centerContent: {
         alignItems: 'center',
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
         height: 80,
         borderRadius: 40,
         borderWidth: 2,
-        borderColor: '#facc15',
+        borderColor: 'rgba(99,102,241,0.4)',
     },
     logoContainer: {
         marginBottom: 32,
@@ -274,16 +274,13 @@ const styles = StyleSheet.create({
     logoInner: {
         width: 88,
         height: 88,
-        borderRadius: 16,
-        backgroundColor: '#facc15',
+        borderRadius: 20,
+        backgroundColor: '#6366F1',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 3,
-        borderColor: '#1a1a1a',
-        // Neo-brutalist shadow
-        shadowColor: '#facc15',
+        shadowColor: '#6366F1',
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.3,
+        shadowOpacity: 0.5,
         shadowRadius: 20,
         elevation: 10,
     },
@@ -300,18 +297,16 @@ const styles = StyleSheet.create({
         letterSpacing: 2,
     },
     trackoBadge: {
-        backgroundColor: '#facc15',
+        backgroundColor: '#6366F1',
         paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 4,
+        borderRadius: 6,
         transform: [{ rotate: '-2deg' }],
-        borderWidth: 2,
-        borderColor: '#1a1a1a',
     },
     brandTracko: {
         fontSize: 34,
         fontWeight: '900',
-        color: '#0A0A0A',
+        color: '#FFFFFF',
         letterSpacing: 2,
     },
     lineContainer: {
@@ -321,14 +316,14 @@ const styles = StyleSheet.create({
     },
     decorativeLine: {
         height: 3,
-        backgroundColor: '#facc15',
+        backgroundColor: '#6366F1',
         borderRadius: 2,
-        opacity: 0.4,
+        opacity: 0.6,
     },
     tagline: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#9E9E9E',
+        color: '#94A3B8',
         letterSpacing: 3,
         textTransform: 'uppercase',
         marginBottom: 40,
@@ -341,7 +336,7 @@ const styles = StyleSheet.create({
         width: 8,
         height: 8,
         borderRadius: 4,
-        backgroundColor: '#facc15',
+        backgroundColor: '#6366F1',
     },
     bottomContent: {
         position: 'absolute',

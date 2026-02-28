@@ -7,7 +7,7 @@ export default function AuthLayout() {
             animation: 'slide_from_right',
             gestureEnabled: true,
             fullScreenGestureEnabled: true,
-            contentStyle: { backgroundColor: '#0A0A0A' },
+            contentStyle: { backgroundColor: '#060D1F' },
         }}>
             <Stack.Screen name="login" />
             <Stack.Screen name="signup" />

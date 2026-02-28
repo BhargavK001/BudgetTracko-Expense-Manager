@@ -396,9 +396,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     filterChipActive: {
-        backgroundColor: DarkTheme.brandYellow,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.brandBlack,
+        backgroundColor: DarkTheme.accent,
+        borderWidth: 1,
+        borderColor: DarkTheme.accent,
     },
     filterText: {
         fontSize: FontSize.xs,
@@ -407,17 +407,16 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     filterTextActive: {
-        color: DarkTheme.brandBlack,
-        fontWeight: '900',
+        color: '#FFFFFF',
+        fontWeight: '700',
     },
     summaryCard: {
         backgroundColor: DarkTheme.cardBg,
         borderRadius: BorderRadius.md,
         padding: Spacing.xl,
         marginBottom: Spacing.xl,
-        borderWidth: 2,
-        borderColor: DarkTheme.neoBorder,
-        ...NeoShadow,
+        borderWidth: 1,
+        borderColor: DarkTheme.border,
     },
     summaryHeader: {
         flexDirection: 'row',

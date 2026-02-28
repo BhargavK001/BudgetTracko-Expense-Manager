@@ -131,7 +131,7 @@ export default function BudgetsScreen() {
                             <Ionicons
                                 name={p.icon as any}
                                 size={16}
-                                color={activePeriod === p.key ? DarkTheme.brandBlack : DarkTheme.textSecondary}
+                                color={activePeriod === p.key ? '#FFFFFF' : DarkTheme.textSecondary}
                             />
                             <Text style={[
                                 styles.periodLabel,
@@ -365,9 +365,9 @@ const styles = StyleSheet.create({
         borderRadius: BorderRadius.sm,
     },
     periodButtonActive: {
-        backgroundColor: DarkTheme.brandYellow,
+        backgroundColor: DarkTheme.accent,
         borderWidth: 1.5,
-        borderColor: DarkTheme.brandBlack,
+        borderColor: 'transparent',
         ...NeoShadowSm,
     },
     periodLabel: {
@@ -377,16 +377,15 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase',
     },
     periodLabelActive: {
-        color: DarkTheme.brandBlack,
+        color: '#FFFFFF',
     },
     overviewCard: {
-        backgroundColor: DarkTheme.brandBlack,
+        backgroundColor: DarkTheme.cardBg,
         borderRadius: BorderRadius.md,
         padding: Spacing.lg,
         marginBottom: Spacing.xl,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
-        ...NeoShadowSm,
+        borderWidth: 1,
+        borderColor: DarkTheme.border,
     },
     overviewHeader: {
         flexDirection: 'row',
@@ -591,8 +590,8 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     categoryChipActive: {
-        backgroundColor: DarkTheme.brandYellow,
-        borderColor: DarkTheme.brandBlack,
+        backgroundColor: DarkTheme.accent,
+        borderColor: 'transparent',
     },
     categoryChipText: {
         fontSize: FontSize.xs,
@@ -600,7 +599,7 @@ const styles = StyleSheet.create({
         color: DarkTheme.textSecondary,
     },
     categoryChipTextActive: {
-        color: DarkTheme.brandBlack,
+        color: '#FFFFFF',
     },
     input: {
         backgroundColor: DarkTheme.cardBg,
@@ -613,19 +612,20 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     saveButton: {
-        backgroundColor: DarkTheme.brandYellow,
+        backgroundColor: DarkTheme.accent,
         borderRadius: BorderRadius.sm,
         paddingVertical: Spacing.lg,
         alignItems: 'center',
         marginTop: Spacing.md,
         borderWidth: 2,
-        borderColor: DarkTheme.brandBlack,
+        borderColor: 'transparent',
         ...NeoShadowSm,
     },
     saveButtonText: {
         fontSize: FontSize.md,
         fontWeight: '900',
-        color: DarkTheme.brandBlack,
+        color: '#FFFFFF',
         textTransform: 'uppercase',
     },
 });
+

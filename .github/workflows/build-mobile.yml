@@ -9,6 +9,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      BACKEND_URL: ${{ secrets.BACKEND_URL }}
+      EXPO_PUBLIC_BACKEND_URL: ${{ secrets.BACKEND_URL }}
 
     steps:
       - name: Checkout Code
@@ -51,6 +54,8 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          EXPO_PUBLIC_BACKEND_URL: ${{ secrets.BACKEND_URL }}
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease \

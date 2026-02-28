@@ -3,15 +3,18 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-// Use 10.0.2.2 for Android emulator to access localhost, otherwise use localhost
-const EXPLICIT_API_URL = process.env.EXPO_PUBLIC_API_URL?.trim();
+const RAW_BACKEND_URL =
+    process.env.EXPO_PUBLIC_BACKEND_URL?.trim() ||
+    process.env.BACKEND_URL?.trim() ||
+    process.env.EXPO_PUBLIC_API_URL?.trim();
+const FORCE_AWS_IN_DEV = process.env.EXPO_PUBLIC_FORCE_AWS_BACKEND === 'true';
 const PROD_URL = 'https://api.budgettracko.app';
 
 const normalizeBaseUrl = (url: string) => url.replace(/\/+$/, '');
 
 const resolveDevUrl = () => {
-    if (EXPLICIT_API_URL) {
-        return normalizeBaseUrl(EXPLICIT_API_URL);
+    if (RAW_BACKEND_URL) {
+        return normalizeBaseUrl(RAW_BACKEND_URL);
     }
 
     const constantsData = Constants as any;
@@ -34,7 +37,11 @@ const resolveDevUrl = () => {
     return Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000';
 };
 
-export const API_BASE_URL = __DEV__ ? resolveDevUrl() : PROD_URL;
+export const API_BASE_URL = normalizeBaseUrl(
+    __DEV__
+        ? (FORCE_AWS_IN_DEV ? PROD_URL : resolveDevUrl())
+        : (RAW_BACKEND_URL || PROD_URL)
+);
 
 const api = axios.create({
     baseURL: API_BASE_URL,

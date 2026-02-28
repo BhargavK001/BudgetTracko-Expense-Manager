@@ -71,8 +71,8 @@ export default function Login() {
     };
 
     return (
-        <Container backgroundColor="#FFD700">
-            <StatusBar style="dark" />
+        <Container>
+            <StatusBar style="light" />
 
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <KeyboardAvoidingView
@@ -185,25 +185,25 @@ const styles = StyleSheet.create({
         paddingVertical: 40,
     },
     header: {
-        marginBottom: 24,
-        marginTop: 30,
+        marginBottom: 32,
+        marginTop: 20,
     },
     title: {
-        fontSize: 40,
-        fontWeight: '900',
-        color: '#000000',
+        fontSize: 36,
+        fontWeight: '800',
+        color: '#F1F5F9',
         lineHeight: 40,
-        letterSpacing: -1,
+        letterSpacing: -0.5,
     },
     subtitle: {
-        fontSize: 16,
-        color: '#666666',
+        fontSize: 15,
+        color: '#94A3B8',
         marginTop: 8,
-        fontWeight: '500',
+        fontWeight: '400',
     },
     socialContainer: {
         flexDirection: 'row',
-        gap: 16,
+        gap: 12,
         marginBottom: 24,
     },
     socialButton: {
@@ -212,26 +212,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 14,
-        borderWidth: 2,
-        borderColor: '#000000',
-        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#1E2D4F',
+        borderRadius: 14,
         gap: 8,
-        shadowColor: '#000000',
-        shadowOffset: { width: 4, height: 4 },
-        shadowOpacity: 1,
-        shadowRadius: 0,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#0D1630',
     },
-    googleButton: {
-        // backgroundColor: '#FFFFFF', // Redundant as socialButton now sets it
-    },
+    googleButton: {},
     githubButton: {
-        backgroundColor: '#000000',
+        backgroundColor: '#0D1630',
     },
     socialButtonText: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#000000',
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#F1F5F9',
     },
     divider: {
         flexDirection: 'row',
@@ -240,29 +234,28 @@ const styles = StyleSheet.create({
     },
     line: {
         flex: 1,
-        height: 2,
-        backgroundColor: 'rgba(0,0,0,0.1)',
+        height: 1,
+        backgroundColor: '#1E2D4F',
     },
     dividerText: {
         marginHorizontal: 16,
         fontSize: 12,
-        fontWeight: '700',
-        color: 'rgba(0,0,0,0.5)',
-        letterSpacing: 1,
+        fontWeight: '600',
+        color: '#475569',
+        letterSpacing: 0.8,
     },
     form: {
         marginBottom: 12,
     },
     forgotPassword: {
         alignSelf: 'flex-end',
-        marginTop: -8,
+        marginTop: -4,
         marginBottom: 8,
     },
     forgotPasswordText: {
         fontSize: 14,
-        fontWeight: '700',
-        color: '#000000',
-        textDecorationLine: 'underline',
+        fontWeight: '600',
+        color: '#6366F1',
     },
     footer: {
         flexDirection: 'row',
@@ -271,19 +264,18 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 14,
-        color: '#000000',
-        fontWeight: '500',
+        color: '#94A3B8',
+        fontWeight: '400',
     },
     footerLink: {
         fontSize: 14,
-        color: '#000000',
-        fontWeight: '900',
-        textDecorationLine: 'underline',
+        color: '#A5B4FC',
+        fontWeight: '700',
     },
     errorText: {
-        color: '#D32F2F',
+        color: '#F43F5E',
         fontSize: 12,
-        fontWeight: '700',
+        fontWeight: '600',
         marginTop: 8,
         textAlign: 'center',
     },
