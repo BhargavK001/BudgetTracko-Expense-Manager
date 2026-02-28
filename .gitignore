@@ -36,3 +36,4 @@ coverage/
 # Agent/AI
 .agent/
 .gemini/
+app/frontend/report.json
