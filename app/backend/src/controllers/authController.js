@@ -69,7 +69,8 @@ exports.signup = async (req, res) => {
                 id: user._id,
                 displayName: user.displayName,
                 email: user.email
-            }
+            },
+            token
         });
     } catch (err) {
         console.error('Signup error:', err);
@@ -123,7 +124,8 @@ exports.login = async (req, res) => {
                 id: user._id,
                 displayName: user.displayName,
                 email: user.email
-            }
+            },
+            token
         });
     } catch (err) {
         console.error('Login error:', err);

@@ -9,9 +9,34 @@ import Animated, {
     FadeInDown,
 } from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Signup() {
     const router = useRouter();
+    const { signup } = useAuth();
+    const [name, setName] = React.useState('');
+    const [email, setEmail] = React.useState('');
+    const [password, setPassword] = React.useState('');
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState('');
+
+    const handleSignup = async () => {
+        if (!name || !email || !password) {
+            setError('Please fill in all fields');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+        try {
+            await signup(name, email, password);
+            router.replace('/(tabs)');
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <Container backgroundColor="#FFD700">
@@ -70,6 +95,8 @@ export default function Signup() {
                                     placeholder="John Doe"
                                     icon="account-outline"
                                     autoCapitalize="words"
+                                    value={name}
+                                    onChangeText={setName}
                                 />
                                 <Input
                                     label="Email Address"
@@ -77,18 +104,25 @@ export default function Signup() {
                                     icon="email-outline"
                                     keyboardType="email-address"
                                     autoCapitalize="none"
+                                    value={email}
+                                    onChangeText={setEmail}
                                 />
                                 <Input
                                     label="Password"
                                     placeholder="Create a password"
                                     icon="lock-outline"
                                     secureTextEntry
+                                    value={password}
+                                    onChangeText={setPassword}
                                 />
 
+                                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
                                 <Button
-                                    title="Sign Up"
-                                    onPress={() => router.push('/(tabs)')}
+                                    title={loading ? "Creating Account..." : "Sign Up"}
+                                    onPress={handleSignup}
                                     style={{ marginTop: 16 }}
+                                    disabled={loading}
                                 />
                             </View>
                         </Animated.View>
@@ -201,5 +235,12 @@ const styles = StyleSheet.create({
         color: '#000000',
         fontWeight: '900',
         textDecorationLine: 'underline',
+    },
+    errorText: {
+        color: '#D32F2F',
+        fontSize: 12,
+        fontWeight: '700',
+        marginTop: 8,
+        textAlign: 'center',
     },
 });

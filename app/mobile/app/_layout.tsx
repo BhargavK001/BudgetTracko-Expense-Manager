@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 import AnimatedSplash from '../components/AnimatedSplash';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TransactionProvider } from '@/context/TransactionContext';
+import { AuthProvider } from '@/context/AuthContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -72,35 +73,37 @@ const CustomDarkTheme = {
 
 function RootLayoutNav() {
   return (
-    <TransactionProvider>
-      <SafeAreaProvider>
-        <ThemeProvider value={CustomDarkTheme}>
-          <View style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
-            <Stack
-              initialRouteName="index"
-              screenOptions={{
-                animation: 'slide_from_right',
-                gestureEnabled: true,
-                fullScreenGestureEnabled: true,
-                headerShown: false,
-                contentStyle: { backgroundColor: '#0A0A0A' },
-              }}
-            >
-              <Stack.Screen name="index" options={{ headerShown: false }} />
-              <Stack.Screen name="welcome" options={{ headerShown: false }} />
-              <Stack.Screen name="features" options={{ headerShown: false }} />
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="help-support" options={{ headerShown: false }} />
-              <Stack.Screen name="share-app" options={{ headerShown: false }} />
-              <Stack.Screen name="premium" options={{ headerShown: false }} />
-              <Stack.Screen name="profile" options={{ headerShown: false }} />
-              <Stack.Screen name="privacy-security" options={{ headerShown: false }} />
-              <Stack.Screen name="settings" options={{ headerShown: false }} />
-            </Stack>
-          </View>
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </TransactionProvider>
+    <AuthProvider>
+      <TransactionProvider>
+        <SafeAreaProvider>
+          <ThemeProvider value={CustomDarkTheme}>
+            <View style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
+              <Stack
+                initialRouteName="index"
+                screenOptions={{
+                  animation: 'slide_from_right',
+                  gestureEnabled: true,
+                  fullScreenGestureEnabled: true,
+                  headerShown: false,
+                  contentStyle: { backgroundColor: '#0A0A0A' },
+                }}
+              >
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen name="welcome" options={{ headerShown: false }} />
+                <Stack.Screen name="features" options={{ headerShown: false }} />
+                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="help-support" options={{ headerShown: false }} />
+                <Stack.Screen name="share-app" options={{ headerShown: false }} />
+                <Stack.Screen name="premium" options={{ headerShown: false }} />
+                <Stack.Screen name="profile" options={{ headerShown: false }} />
+                <Stack.Screen name="privacy-security" options={{ headerShown: false }} />
+                <Stack.Screen name="settings" options={{ headerShown: false }} />
+              </Stack>
+            </View>
+          </ThemeProvider>
+        </SafeAreaProvider>
+      </TransactionProvider>
+    </AuthProvider>
   );
 }

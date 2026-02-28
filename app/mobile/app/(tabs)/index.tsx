@@ -6,6 +6,7 @@ import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadow, NeoShadowSm } fr
 import StatCard from '@/components/StatCard';
 import TransactionItem from '@/components/TransactionItem';
 import { useTransactions, CATEGORY_ICONS, CATEGORY_COLORS } from '@/context/TransactionContext';
+import { useAuth } from '@/context/AuthContext';
 import { FinancialHealthWidget, SpendingVelocityWidget, UpcomingBillsWidget } from '@/components/DashboardWidgets';
 
 function formatCurrency(n: number): string {
@@ -31,6 +32,7 @@ function getGreeting(): string {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { transactions, getTotalIncome, getTotalExpense, getBalance } = useTransactions();
+  const { user, loading: authLoading } = useAuth();
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -62,8 +64,8 @@ export default function HomeScreen() {
       {/* ─── Sticky Header ─── */}
       <View style={styles.stickyHeader}>
         <View style={styles.headerLeft}>
-          <Text style={styles.greetingSmall}>{getGreeting()}</Text>
-          <Text style={styles.greetingName}>BudgetTracko</Text>
+          <Text style={styles.greetingSmall}>{getGreeting()},</Text>
+          <Text style={styles.greetingName}>{user?.displayName?.split(' ')[0] || 'BudgetTracko'}</Text>
         </View>
         <View style={styles.headerRight}>
           <View style={styles.avatarContainer}>

@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadowSm } from '@/constants/Theme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@/context/AuthContext';
 
 type MenuItem = {
     icon: React.ComponentProps<typeof Ionicons>['name'];
@@ -30,6 +30,7 @@ const MENU_ITEMS: MenuItem[] = [
 export default function MoreScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { user, logout } = useAuth();
 
     const handleMenuPress = (item: MenuItem) => {
         if (item.route) {
@@ -48,8 +49,8 @@ export default function MoreScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await AsyncStorage.clear();
-                            router.replace('/welcome');
+                            await logout();
+                            router.replace('/(auth)/login');
                         } catch (e) {
                             console.error('Logout failed', e);
                         }
@@ -77,8 +78,8 @@ export default function MoreScreen() {
                         <Ionicons name="person" size={24} color={DarkTheme.brandYellow} />
                     </View>
                     <View style={styles.userInfo}>
-                        <Text style={styles.userName}>BudgetTracko User</Text>
-                        <Text style={styles.userEmail}>Local Mode</Text>
+                        <Text style={styles.userName}>{user?.displayName || 'BudgetTracko User'}</Text>
+                        <Text style={styles.userEmail}>{user?.email || 'Authenticated Mode'}</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={18} color={DarkTheme.chevron} />
                 </View>

@@ -140,8 +140,8 @@ app.use('/auth', (req, res, next) => {
 });
 
 // ─── CSRF Protection (Double-Submit Cookie Pattern) ───
-// Paths exempt from CSRF verification (e.g. external webhooks)
-const csrfExemptPaths = ['/api/payments/webhook'];
+// Paths exempt from CSRF verification (e.g. external webhooks, login)
+const csrfExemptPaths = ['/api/payments/webhook', '/auth/login', '/auth/signup', '/auth/forgotpassword', '/auth/resetpassword'];
 
 const csrfCookieOptions = () => {
     const isProd = process.env.NODE_ENV === 'production';
@@ -172,6 +172,11 @@ app.use((req, res, next) => {
 
     // Skip CSRF for exempt paths (e.g. payment webhooks that verify their own signature)
     if (csrfExemptPaths.some(p => req.path === p || req.originalUrl.endsWith(p))) {
+        return next();
+    }
+
+    // Bypass CSRF for requests with an Authorization header (API calls)
+    if (req.headers.authorization) {
         return next();
     }
 

@@ -10,6 +10,7 @@ interface ButtonProps {
     variant?: 'primary' | 'secondary' | 'outline';
     style?: StyleProp<ViewStyle>;
     textStyle?: StyleProp<TextStyle>;
+    disabled?: boolean;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -17,7 +18,8 @@ export const Button: React.FC<ButtonProps> = ({
     onPress,
     variant = 'primary',
     style,
-    textStyle
+    textStyle,
+    disabled = false
 }) => {
     const offset = useSharedValue(0);
 
@@ -70,12 +72,19 @@ export const Button: React.FC<ButtonProps> = ({
 
     return (
         <AnimatedPressable
-            style={[styles.button, getButtonStyle(), style, animatedStyle]}
-            onPress={onPress}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
+            style={[
+                styles.button,
+                getButtonStyle(),
+                style,
+                animatedStyle,
+                disabled && styles.disabledButton
+            ]}
+            onPress={disabled ? undefined : onPress}
+            onPressIn={disabled ? undefined : handlePressIn}
+            onPressOut={disabled ? undefined : handlePressOut}
+            disabled={disabled}
         >
-            <Text style={[styles.text, getTextStyle(), textStyle]}>{title}</Text>
+            <Text style={[styles.text, getTextStyle(), textStyle, disabled && styles.disabledText]}>{title}</Text>
         </AnimatedPressable>
     );
 };
@@ -119,5 +128,13 @@ const styles = StyleSheet.create({
     },
     outlineText: {
         color: '#000000',
+    },
+    disabledButton: {
+        backgroundColor: '#CCCCCC',
+        borderColor: '#666666',
+        shadowOffset: { width: 0, height: 0 },
+    },
+    disabledText: {
+        color: '#666666',
     },
 });
