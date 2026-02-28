@@ -221,7 +221,7 @@ const TransactionForm = ({ onClose, initialData }) => {
                         <select {...register('fromAccountId', { required: type === 'transfer' ? 'From account is required' : false })} className={inputClass}>
                             <option value="">Select</option>
                             {accounts.map(acc => (
-                                <option key={acc._id} value={acc._id}>{acc.name} (₹{acc.balance?.toLocaleString()})</option>
+                                <option key={acc._id} value={acc._id}>{acc.name} (₹{Number(acc.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</option>
                             ))}
                         </select>
                         {errors.fromAccountId && <p className="text-red-500 text-xs font-bold mt-1">{errors.fromAccountId.message}</p>}
@@ -231,7 +231,7 @@ const TransactionForm = ({ onClose, initialData }) => {
                         <select {...register('toAccountId', { required: type === 'transfer' ? 'To account is required' : false })} className={inputClass}>
                             <option value="">Select</option>
                             {accounts.map(acc => (
-                                <option key={acc._id} value={acc._id}>{acc.name} (₹{acc.balance?.toLocaleString()})</option>
+                                <option key={acc._id} value={acc._id}>{acc.name} (₹{Number(acc.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})</option>
                             ))}
                         </select>
                         {errors.toAccountId && <p className="text-red-500 text-xs font-bold mt-1">{errors.toAccountId.message}</p>}

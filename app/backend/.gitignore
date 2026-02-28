@@ -6,6 +6,7 @@ node_modules/
 .env.local
 .env.example
 .env.production
+.env.development
 
 # Logs
 *.log

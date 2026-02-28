@@ -17,7 +17,7 @@ type TabConfig = {
 
 const TABS: TabConfig[] = [
   { name: 'index', title: 'Home', icon: 'home-outline', iconFocused: 'home' },
-  { name: 'analysis', title: 'Analysis', icon: 'bar-chart-outline', iconFocused: 'bar-chart' },
+  { name: 'pulse', title: 'Pulse', icon: 'flash-outline', iconFocused: 'flash' },
   { name: 'accounts', title: 'Accounts', icon: 'business-outline', iconFocused: 'business' },
   { name: 'more', title: 'More', icon: 'ellipsis-horizontal', iconFocused: 'ellipsis-horizontal' },
 ];
@@ -95,7 +95,7 @@ export default function TabLayout() {
         }}
       >
         <Tabs.Screen name="index" />
-        <Tabs.Screen name="analysis" />
+        <Tabs.Screen name="pulse" />
         <Tabs.Screen name="accounts" />
         <Tabs.Screen name="more" />
       </Tabs>

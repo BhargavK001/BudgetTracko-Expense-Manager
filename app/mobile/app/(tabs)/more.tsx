@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadowSm } from '@/constants/Theme';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@/context/AuthContext';
 
 type MenuItem = {
     icon: React.ComponentProps<typeof Ionicons>['name'];
@@ -14,19 +14,23 @@ type MenuItem = {
 };
 
 const MENU_ITEMS: MenuItem[] = [
-    { icon: 'person-outline', label: 'Profile', color: '#2196F3' },
-    { icon: 'settings-outline', label: 'Settings', color: '#9E9E9E' },
-    { icon: 'notifications-outline', label: 'Reminders', color: '#FF9800' },
+    { icon: 'person-outline', label: 'Profile', color: '#2196F3', route: '/profile' },
+    { icon: 'settings-outline', label: 'Settings', color: '#9E9E9E', route: '/settings' },
+    { icon: 'notifications-outline', label: 'Reminders', color: '#FF9800', route: '/settings/reminders' },
     { icon: 'download-outline', label: 'Export Data', color: '#4CAF50' },
-    { icon: 'shield-checkmark-outline', label: 'Privacy & Security', color: '#7C4DFF' },
+    { icon: 'shield-checkmark-outline', label: 'Privacy & Security', color: '#7C4DFF', route: '/privacy-security' },
+    { icon: 'pie-chart-outline', label: 'Budgets', color: '#4CAF50', route: '/features/budgets' },
+    { icon: 'calendar-outline', label: 'Recurring Bills', color: '#E91E63', route: '/features/recurring-bills' },
     { icon: 'help-circle-outline', label: 'Help & Support', color: '#00BCD4', route: '/help-support' },
     { icon: 'star-outline', label: 'Rate Us', color: '#FFD700' },
     { icon: 'share-social-outline', label: 'Share App', color: '#E91E63', route: '/share-app' },
 ];
 
+
 export default function MoreScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { user, logout } = useAuth();
 
     const handleMenuPress = (item: MenuItem) => {
         if (item.route) {
@@ -45,8 +49,8 @@ export default function MoreScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            await AsyncStorage.clear();
-                            router.replace('/welcome');
+                            await logout();
+                            router.replace('/(auth)/login');
                         } catch (e) {
                             console.error('Logout failed', e);
                         }
@@ -74,8 +78,8 @@ export default function MoreScreen() {
                         <Ionicons name="person" size={24} color={DarkTheme.brandYellow} />
                     </View>
                     <View style={styles.userInfo}>
-                        <Text style={styles.userName}>BudgetTracko User</Text>
-                        <Text style={styles.userEmail}>Local Mode</Text>
+                        <Text style={styles.userName}>{user?.displayName || 'BudgetTracko User'}</Text>
+                        <Text style={styles.userEmail}>{user?.email || 'Authenticated Mode'}</Text>
                     </View>
                     <Ionicons name="chevron-forward" size={18} color={DarkTheme.chevron} />
                 </View>

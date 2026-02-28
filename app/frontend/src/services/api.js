@@ -111,4 +111,12 @@ export const contactApi = {
     send: (data) => api.post('/api/contact', data)
 };
 
+// ─── Recurring Bills ───
+export const recurringApi = {
+    getAll: () => api.get('/api/recurring'),
+    create: (data) => api.post('/api/recurring', data),
+    update: (id, data) => api.put(`/api/recurring/${id}`, data),
+    delete: (id) => api.delete(`/api/recurring/${id}`)
+};
+
 export default api;

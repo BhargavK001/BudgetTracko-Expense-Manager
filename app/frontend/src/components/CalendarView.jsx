@@ -158,14 +158,14 @@ const CalendarView = ({ transactions, onEdit }) => {
                                     {income > 0 && (
                                         <div className="w-full flex items-center justify-center py-0.5 rounded-[4px] bg-green-500/10 border border-green-500/20 shadow-[0_0_10px_rgba(34,197,94,0.1)]">
                                             <span className="text-[9px] sm:text-[10px] font-black tracking-tight text-green-400">
-                                                +{Math.round(income).toLocaleString()}
+                                                +{Number(income).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </div>
                                     )}
                                     {expense > 0 && (
                                         <div className="w-full flex items-center justify-center py-0.5 rounded-[4px] bg-red-500/10 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]">
                                             <span className="text-[9px] sm:text-[10px] font-black tracking-tight text-red-400">
-                                                -{Math.round(expense).toLocaleString()}
+                                                -{Number(expense).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </div>
                                     )}
@@ -206,7 +206,7 @@ const CalendarView = ({ transactions, onEdit }) => {
                                     </div>
                                 </div>
                                 <span className={`font-black text-sm ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>
-                                    {t.type === 'income' ? '+' : '-'}₹{Math.abs(t.amount).toLocaleString()}
+                                    {t.type === 'income' ? '+' : '-'}₹{Number(Math.abs(t.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </motion.div>
                         ))

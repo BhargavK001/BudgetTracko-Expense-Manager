@@ -146,7 +146,8 @@ const WalletSvg = ({ size = 48, className = '' }) => (
 
 const LandingPage = () => {
     const { theme } = useTheme();
-    const { user } = useAuth();
+    const { user, loginDemo } = useAuth();
+    const navigate = useNavigate();
     const heroRef = useRef(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [savingsAmount, setSavingsAmount] = useState(500);
@@ -159,24 +160,62 @@ const LandingPage = () => {
 
     const schema = {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "BudgetTracko",
-        "applicationCategory": "FinanceApplication",
-        "operatingSystem": "Web, Android, iOS",
-        "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "INR"
-        },
-        "description": "BudgetTracko is a free expense manager for students. Track expenses, set budgets, and achieve financial goals."
+        "@graph": [
+            {
+                "@type": "SoftwareApplication",
+                "name": "BudgetTracko",
+                "applicationCategory": "FinanceApplication",
+                "operatingSystem": "Web, Android, iOS",
+                "offers": {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "INR"
+                },
+                "aggregateRating": {
+                    "@type": "AggregateRating",
+                    "ratingValue": "4.9",
+                    "ratingCount": "10500"
+                },
+                "description": "BudgetTracko is the #1 free expense manager for college students in India. Track daily expenses in Rupees, set budgets, and split expenses."
+            },
+            {
+                "@type": "FAQPage",
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": "Is BudgetTracko really free?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Yes! Our core features are 100% free for students forever. No hidden charges."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Is my data safe?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Absolutely. We use bank-grade encryption and never sell your data to advertisers. Your financial privacy is our priority."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Can I use it offline?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Yes, the Android app works perfectly offline. Data syncs automatically when you're back online."
+                        }
+                    }
+                ]
+            }
+        ]
     };
 
     return (
         <div className="min-h-screen bg-brand-yellow font-sans text-brand-black flex flex-col selection:bg-black selection:text-brand-yellow dark:bg-brand-yellow dark:text-brand-black overflow-hidden">
             <SEO
-                title="BudgetTracko - Free Expense Manager for Students & Everyone"
-                description="Take control of your finances with BudgetTracko. The best free expense manager for students. Track expenses, set budgets, and achieve your financial goals."
-                keywords="expense manager for free, expense manager for students, budget tracko, free budget app, student finance app, expense tracker, money manager"
+                title="BudgetTracko - Free Expense Manager for Students in India"
+                description="Take control of your finances with BudgetTracko. The best free expense tracker app in India for students to track daily expenses in Rupees."
+                keywords="expense manager for students in india, daily expense tracker app india, split expenses app for students india, best expense tracker app india, offline expense tracker app india"
                 canonical="https://www.budgettracko.app/"
                 schema={schema}
             />
@@ -335,7 +374,7 @@ const LandingPage = () => {
                     custom={0.6}
                     className="text-sm sm:text-xl md:text-2xl font-medium max-w-2xl mb-6 sm:mb-12 leading-relaxed text-brand-black px-2 sm:px-4"
                 >
-                    Stop guessing where your money goes. Track, analyze, and optimize your spending with the world's simplest expense manager.
+                    <strong>BudgetTracko is the #1 free expense manager for college students in India.</strong> Stop guessing where your rupees go. Track daily expenses, analyze spending, and optimize your student budget seamlessly.
                 </motion.p>
 
                 {/* CTA Buttons */}
@@ -351,9 +390,12 @@ const LandingPage = () => {
                         </Link>
                     </motion.div>
                     <motion.div variants={staggerItem} custom={1.0}>
-                        <a href="#demo" className="inline-block w-full sm:w-auto text-center bg-white text-black text-base sm:text-xl font-bold px-6 sm:px-12 py-3.5 sm:py-5 rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all border-2 border-black box-border">
+                        <button onClick={() => {
+                            loginDemo();
+                            navigate('/dashboard');
+                        }} className="inline-block w-full sm:w-auto text-center bg-white text-black text-base sm:text-xl font-bold px-6 sm:px-12 py-3.5 sm:py-5 rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] sm:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] hover:-translate-y-1 transition-all border-2 border-black box-border cursor-pointer">
                             View Demo
-                        </a>
+                        </button>
                     </motion.div>
                 </motion.div>
 
@@ -451,11 +493,11 @@ const LandingPage = () => {
 
             {/* ─── Marquee Section ─── */}
             <div className="bg-black text-brand-yellow py-3 sm:py-6 overflow-hidden border-y-2 sm:border-y-4 border-white transform rotate-1 scale-105">
-                <div className="whitespace-nowrap animate-marquee font-black text-sm sm:text-2xl tracking-widest uppercase flex">
-                    <span className="flex-shrink-0">
+                <div className="whitespace-nowrap animate-marquee font-black text-sm sm:text-2xl tracking-widest uppercase flex w-max max-w-none">
+                    <span className="flex-shrink-0 max-w-none">
                         SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM • SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM • SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM •&nbsp;
                     </span>
-                    <span className="flex-shrink-0">
+                    <span className="flex-shrink-0 max-w-none">
                         SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM • SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM • SAVE MONEY • TRACK EXPENSES • BUILD WEALTH • FREEDOM •&nbsp;
                     </span>
                 </div>
@@ -661,11 +703,12 @@ const LandingPage = () => {
                                 { feat: 'Instant Analytics', old: false, new: true, icon: <BsBarChartLineFill className="text-blue-500" /> },
                                 { feat: 'Cloud Sync', old: false, new: true, icon: <BsCloudArrowUpFill className="text-sky-500" /> },
                                 { feat: 'Mobile Ready', old: false, new: true, icon: <FaMobileAlt className="text-gray-700 dark:text-gray-300" /> },
-                                { feat: 'Recurring', old: false, new: true, icon: <BsArrowRepeat className="text-indigo-500" /> },
+                                { feat: 'Recurring Info', old: false, new: true, icon: <BsArrowRepeat className="text-indigo-500" /> },
+                                { feat: 'AI Config Coach', old: false, new: true, icon: <BsQuestionCircle className="text-purple-500" /> },
                                 { feat: 'Bank Security', old: false, new: true, icon: <BsShieldCheck className="text-green-600" /> },
                                 { feat: 'No Ads / Free', old: false, new: true, icon: <FaStar className="text-amber-500" /> },
                             ].map((row, i) => (
-                                <div key={i} className={`grid grid-cols-5 sm:grid-cols-3 ${i !== 5 ? 'border-b-2 border-gray-200' : ''} hover:bg-gray-50 transition-colors`}>
+                                <div key={i} className={`grid grid-cols-5 sm:grid-cols-3 ${i !== 6 ? 'border-b-2 border-gray-200' : ''} hover:bg-gray-50 transition-colors`}>
                                     <div className="col-span-3 sm:col-span-1 p-3 sm:p-5 font-bold text-xs sm:text-base text-gray-700 flex items-center gap-2">
                                         <span className="sm:text-lg">{row.icon}</span>
                                         <span className="truncate">{row.feat}</span>
@@ -751,7 +794,7 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-8 sm:mb-16">
                         <h2 className="text-2xl sm:text-5xl font-black uppercase tracking-tighter mb-3 sm:mb-4 text-black">Student Love</h2>
-                        <p className="text-sm sm:text-lg font-bold text-gray-600">Join 10,000+ students taking control of their finances.</p>
+                        <p className="text-sm sm:text-lg font-bold text-gray-600">Join <strong>10,500+ students across India</strong> taking control of their finances with our trusted daily expense tracker.</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
                         {[
@@ -782,7 +825,7 @@ const LandingPage = () => {
 
             {/* ─── FAQ Section ─── */}
             <section className="py-12 sm:py-24 px-4 sm:px-6 bg-gray-50 border-b-4 border-black">
-                <div className="max-w-3xl mx-auto">
+                <div className="max-w-5xl lg:max-w-6xl mx-auto">
                     <h2 className="text-2xl sm:text-5xl font-black uppercase tracking-tighter mb-6 sm:mb-10 text-center text-black">FAQ</h2>
                     <div className="space-y-3 sm:space-y-4">
                         {[

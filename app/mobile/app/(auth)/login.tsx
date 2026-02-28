@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { Container } from '../../components/Container';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -10,11 +12,63 @@ import Animated, {
     FadeInUp,
 } from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '@/context/AuthContext';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
+WebBrowser.maybeCompleteAuthSession();
+
 export default function Login() {
     const router = useRouter();
+    const { login, completeSocialLogin } = useAuth();
+    const [email, setEmail] = React.useState('');
+    const [password, setPassword] = React.useState('');
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState('');
+
+    const handleLogin = async () => {
+        if (!email || !password) {
+            setError('Please fill in all fields');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+        try {
+            await login(email, password);
+            router.replace('/(tabs)');
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSocialLogin = async (provider: 'google' | 'github') => {
+        setLoading(true);
+        setError('');
+        try {
+            const baseUrl = __DEV__ ? (Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000') : 'https://api.budgettracko.app';
+            const authUrl = `${baseUrl}/auth/${provider}?state=mobile`;
+
+            const result = await WebBrowser.openAuthSessionAsync(authUrl, 'budgettracko://auth/callback');
+
+            if (result.type === 'success' && result.url) {
+                const { queryParams } = Linking.parse(result.url);
+                if (queryParams?.token && queryParams?.user) {
+                    const token = queryParams.token as string;
+                    const user = JSON.parse(queryParams.user as string);
+                    await completeSocialLogin(token, user);
+                    router.replace('/(tabs)');
+                }
+            }
+        } catch (err: any) {
+            setError(`Social login failed: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <Container backgroundColor="#FFD700">
@@ -40,14 +94,22 @@ export default function Login() {
                         {/* Social Login */}
                         <Animated.View entering={FadeInDown.delay(500)}>
                             <View style={styles.socialContainer}>
-                                <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
+                                <TouchableOpacity
+                                    style={[styles.socialButton, styles.googleButton]}
+                                    onPress={() => handleSocialLogin('google')}
+                                    disabled={loading}
+                                >
                                     <Image
                                         source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
                                         style={{ width: 24, height: 24 }}
                                     />
                                     <Text style={styles.socialButtonText}>Google</Text>
                                 </TouchableOpacity>
-                                <TouchableOpacity style={[styles.socialButton, styles.githubButton]}>
+                                <TouchableOpacity
+                                    style={[styles.socialButton, styles.githubButton]}
+                                    onPress={() => handleSocialLogin('github')}
+                                    disabled={loading}
+                                >
                                     <MaterialCommunityIcons name="github" size={24} color="#FFFFFF" />
                                     <Text style={[styles.socialButtonText, { color: '#FFFFFF' }]}>GitHub</Text>
                                 </TouchableOpacity>
@@ -71,22 +133,29 @@ export default function Login() {
                                     icon="email-outline"
                                     keyboardType="email-address"
                                     autoCapitalize="none"
+                                    value={email}
+                                    onChangeText={setEmail}
                                 />
                                 <Input
                                     label="Password"
                                     placeholder="Enter password"
                                     icon="lock-outline"
                                     secureTextEntry
+                                    value={password}
+                                    onChangeText={setPassword}
                                 />
+
+                                {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
                                 <TouchableOpacity style={styles.forgotPassword} onPress={() => router.push('/(auth)/forgot-password')}>
                                     <Text style={styles.forgotPasswordText}>Forgot?</Text>
                                 </TouchableOpacity>
 
                                 <Button
-                                    title="Sign In"
-                                    onPress={() => router.push('/(tabs)')}
+                                    title={loading ? "Signing In..." : "Sign In"}
+                                    onPress={handleLogin}
                                     style={{ marginTop: 24 }}
+                                    disabled={loading}
                                 />
                             </View>
                         </Animated.View>
@@ -210,5 +279,12 @@ const styles = StyleSheet.create({
         color: '#000000',
         fontWeight: '900',
         textDecorationLine: 'underline',
+    },
+    errorText: {
+        color: '#D32F2F',
+        fontSize: 12,
+        fontWeight: '700',
+        marginTop: 8,
+        textAlign: 'center',
     },
 });

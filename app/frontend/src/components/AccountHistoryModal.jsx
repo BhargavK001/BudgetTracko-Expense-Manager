@@ -58,7 +58,7 @@ const AccountHistoryModal = ({ account, onClose }) => {
                         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Account History</p>
                         <h3 className="text-xl font-black">{account.name}</h3>
                         <p className="text-sm font-bold text-gray-400 mt-0.5">
-                            Balance: <span className={`${account.balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>₹{account.balance?.toLocaleString()}</span>
+                            Balance: <span className={`${account.balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>₹{Number(account.balance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                         </p>
                     </div>
                     <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
@@ -83,8 +83,8 @@ const AccountHistoryModal = ({ account, onClose }) => {
                                     ? t.toAccountId?._id === account._id || t.toAccountId === account._id
                                     : t.type === 'income';
                                 const displayAmount = isTransfer
-                                    ? (isCredit ? `+₹${Math.abs(t.amount).toLocaleString()}` : `-₹${Math.abs(t.amount).toLocaleString()}`)
-                                    : `${t.amount > 0 ? '+' : ''}₹${Math.abs(t.amount).toLocaleString()}`;
+                                    ? (isCredit ? `+₹${Number(Math.abs(t.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : `-₹${Number(Math.abs(t.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+                                    : `${t.amount > 0 ? '+' : ''}₹${Number(Math.abs(t.amount)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                                 const amountColor = isCredit ? 'text-green-500' : 'text-red-500';
 
                                 return (
