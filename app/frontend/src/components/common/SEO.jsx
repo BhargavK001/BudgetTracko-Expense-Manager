@@ -38,11 +38,11 @@ const SEO = ({ title, description, name, type, keywords, canonical, image, url, 
 };
 
 SEO.defaultProps = {
-    title: 'BudgetTracko - Smart Expense Manager',
-    description: 'Manage your expenses and track your budget with BudgetTracko.',
+    title: 'BudgetTracko - Smart Expense Manager for Students in India',
+    description: 'Manage your daily expenses, track your budget, and save rupees with BudgetTracko - the best free expense manager for Indian students.',
     name: 'BudgetTracko',
     type: 'website',
-    keywords: 'budget, expense manager, finance, money tracker, budget tracker',
+    keywords: 'budget tracko, expense manager for students in india, daily expense tracker app india, rupee expense tracker, free budget app',
     canonical: 'https://www.budgettracko.app/',
     url: 'https://www.budgettracko.app/',
     image: 'https://www.budgettracko.app/og-image.png',

@@ -27,20 +27,22 @@ const About = () => {
         "@context": "https://schema.org",
         "@type": "AboutPage",
         "name": "About BudgetTracko",
-        "description": "BudgetTracko is a free expense manager designed for students in India.",
+        "description": "BudgetTracko is a free daily expense manager and budget tracker designed for college students in India.",
         "maintainer": {
             "@type": "Person",
             "name": "Bhargav Karande",
-            "email": "bhargavk056@gmail.com"
+            "email": "bhargavk056@gmail.com",
+            "jobTitle": "Creator & Developer",
+            "url": "https://github.com/BhargavK001"
         }
     };
 
     return (
         <div className="min-h-screen bg-brand-yellow font-sans text-brand-black selection:bg-black selection:text-brand-yellow overflow-hidden">
             <SEO
-                title="About BudgetTracko - Our Story & Mission"
-                description="Built by students, for students. Learn why BudgetTracko is the best free expense manager for Indian students."
-                keywords="about budget tracko, student developer, expense manager india, bhargav karande, our story"
+                title="About BudgetTracko - Our Story & Mission for Indian Students"
+                description="Built by students, for students. Learn why BudgetTracko is the #1 free daily expense tracker for over 10,500 students in India."
+                keywords="about budget tracko, student developer, expense manager india, bhargav karande, daily expense tracker app india, our story"
                 canonical="https://www.budgettracko.app/about"
                 schema={schema}
             />
@@ -111,7 +113,10 @@ const About = () => {
                             </p>
                             <p>
                                 Built by <strong>Bhargav Karande</strong>, BudgetTracko is designed for Indian users who want a
-                                no-nonsense, Rupee-first expense tracker that respects their time and data.
+                                no-nonsense, Rupee-first daily expense tracker that respects their time and data.
+                            </p>
+                            <p className="text-brand-yellow bg-black inline-block px-3 py-1 mt-2 transform -rotate-1 shadow-lg">
+                                Trusted by more than 10,500 students across India!
                             </p>
                         </div>
                     </motion.div>

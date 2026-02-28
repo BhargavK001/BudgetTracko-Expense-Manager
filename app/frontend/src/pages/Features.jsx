@@ -41,9 +41,9 @@ const Features = () => {
     return (
         <div className="min-h-screen bg-brand-yellow font-sans text-brand-black selection:bg-black selection:text-brand-yellow overflow-hidden">
             <SEO
-                title="Features - BudgetTracko Expense Manager"
-                description="Explore powerful features like multi-account tracking, budget alerts, dark mode, and cloud sync. Designed for students."
-                keywords="expense tracker features, multi-account budget app, recurring payments tracker, budget alerts app"
+                title="Features - BudgetTracko Expense Tracker India"
+                description="Explore powerful features like multi-account tracking, split expenses, budget alerts, offline mode, and cloud sync. Built for students in India."
+                keywords="expense tracker features, multi-account budget app, recurring payments tracker, split expenses app for students india, offline expense tracker app india"
                 canonical="https://www.budgettracko.app/features"
             />
             {/* Nav */}
@@ -87,7 +87,7 @@ const Features = () => {
                     custom={0.2}
                     className="text-sm sm:text-xl md:text-2xl font-bold max-w-2xl mx-auto leading-relaxed"
                 >
-                    Everything you need to take full control of your finances — built with simplicity and power in mind.
+                    Everything college students in India need to take full control of their daily finances — built with simplicity and power in mind.
                 </motion.p>
             </div>
 

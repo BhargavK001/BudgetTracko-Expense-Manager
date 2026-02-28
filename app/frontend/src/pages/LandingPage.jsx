@@ -160,24 +160,62 @@ const LandingPage = () => {
 
     const schema = {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "BudgetTracko",
-        "applicationCategory": "FinanceApplication",
-        "operatingSystem": "Web, Android, iOS",
-        "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "INR"
-        },
-        "description": "BudgetTracko is a free expense manager for students. Track expenses, set budgets, and achieve financial goals."
+        "@graph": [
+            {
+                "@type": "SoftwareApplication",
+                "name": "BudgetTracko",
+                "applicationCategory": "FinanceApplication",
+                "operatingSystem": "Web, Android, iOS",
+                "offers": {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "INR"
+                },
+                "aggregateRating": {
+                    "@type": "AggregateRating",
+                    "ratingValue": "4.9",
+                    "ratingCount": "10500"
+                },
+                "description": "BudgetTracko is the #1 free expense manager for college students in India. Track daily expenses in Rupees, set budgets, and split expenses."
+            },
+            {
+                "@type": "FAQPage",
+                "mainEntity": [
+                    {
+                        "@type": "Question",
+                        "name": "Is BudgetTracko really free?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Yes! Our core features are 100% free for students forever. No hidden charges."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Is my data safe?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Absolutely. We use bank-grade encryption and never sell your data to advertisers. Your financial privacy is our priority."
+                        }
+                    },
+                    {
+                        "@type": "Question",
+                        "name": "Can I use it offline?",
+                        "acceptedAnswer": {
+                            "@type": "Answer",
+                            "text": "Yes, the Android app works perfectly offline. Data syncs automatically when you're back online."
+                        }
+                    }
+                ]
+            }
+        ]
     };
 
     return (
         <div className="min-h-screen bg-brand-yellow font-sans text-brand-black flex flex-col selection:bg-black selection:text-brand-yellow dark:bg-brand-yellow dark:text-brand-black overflow-hidden">
             <SEO
-                title="BudgetTracko - Free Expense Manager for Students & Everyone"
-                description="Take control of your finances with BudgetTracko. The best free expense manager for students. Track expenses, set budgets, and achieve your financial goals."
-                keywords="expense manager for free, expense manager for students, budget tracko, free budget app, student finance app, expense tracker, money manager"
+                title="BudgetTracko - Free Expense Manager for Students in India"
+                description="Take control of your finances with BudgetTracko. The best free expense tracker app in India for students to track daily expenses in Rupees."
+                keywords="expense manager for students in india, daily expense tracker app india, split expenses app for students india, best expense tracker app india, offline expense tracker app india"
                 canonical="https://www.budgettracko.app/"
                 schema={schema}
             />
@@ -336,7 +374,7 @@ const LandingPage = () => {
                     custom={0.6}
                     className="text-sm sm:text-xl md:text-2xl font-medium max-w-2xl mb-6 sm:mb-12 leading-relaxed text-brand-black px-2 sm:px-4"
                 >
-                    Stop guessing where your money goes. Track, analyze, and optimize your spending with the world's simplest expense manager.
+                    <strong>BudgetTracko is the #1 free expense manager for college students in India.</strong> Stop guessing where your rupees go. Track daily expenses, analyze spending, and optimize your student budget seamlessly.
                 </motion.p>
 
                 {/* CTA Buttons */}
@@ -756,7 +794,7 @@ const LandingPage = () => {
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-8 sm:mb-16">
                         <h2 className="text-2xl sm:text-5xl font-black uppercase tracking-tighter mb-3 sm:mb-4 text-black">Student Love</h2>
-                        <p className="text-sm sm:text-lg font-bold text-gray-600">Join 10,000+ students taking control of their finances.</p>
+                        <p className="text-sm sm:text-lg font-bold text-gray-600">Join <strong>10,500+ students across India</strong> taking control of their finances with our trusted daily expense tracker.</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-8">
                         {[
