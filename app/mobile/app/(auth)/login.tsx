@@ -14,6 +14,7 @@ import Animated, {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { API_BASE_URL } from '@/services/api';
 
 const { width, height } = Dimensions.get('window');
 
@@ -49,8 +50,7 @@ export default function Login() {
         setLoading(true);
         setError('');
         try {
-            const baseUrl = __DEV__ ? (Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000') : 'https://api.budgettracko.app';
-            const authUrl = `${baseUrl}/auth/${provider}?state=mobile`;
+            const authUrl = `${API_BASE_URL}/auth/${provider}?state=mobile`;
 
             const result = await WebBrowser.openAuthSessionAsync(authUrl, 'budgettracko://auth/callback');
 
