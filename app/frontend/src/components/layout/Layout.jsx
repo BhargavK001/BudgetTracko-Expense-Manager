@@ -13,6 +13,8 @@ import {
     BsPiggyBank,
     BsWallet2,
     BsBoxArrowRight,
+    BsCalendarCheck,
+    BsLightningChargeFill
 } from 'react-icons/bs';
 import { toast } from 'sonner';
 import { adminApi } from '../../services/adminApi';
@@ -21,8 +23,8 @@ const navItems = [
     { to: '/dashboard', icon: BsGrid1X2Fill, label: 'Dashboard' },
     { to: '/analytics', icon: BsGraphUp, label: 'Analytics' },
     { to: '/transactions', icon: BsCreditCardFill, label: 'Transactions' },
-    { to: '/budgets', icon: BsPiggyBank, label: 'Budgets' },
     { to: '/accounts', icon: BsWallet2, label: 'Accounts' },
+    { to: '/tracko-pulse', icon: BsLightningChargeFill, label: 'Tracko Pulse' },
     { to: '/settings', icon: BsGearFill, label: 'Settings' },
 ];
 
@@ -235,9 +237,9 @@ const Layout = () => {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className={`px-4 py-3 text-center text-sm font-bold border-b-2 border-brand-black relative ${announcementType === 'info' ? 'bg-blue-100 text-blue-900 dark:bg-blue-900/30 dark:text-blue-300' :
-                                announcementType === 'warning' ? 'bg-yellow-100 text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-300' :
-                                    announcementType === 'success' ? 'bg-green-100 text-green-900 dark:bg-green-900/30 dark:text-green-300' :
-                                        'bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-300'
+                            announcementType === 'warning' ? 'bg-yellow-100 text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-300' :
+                                announcementType === 'success' ? 'bg-green-100 text-green-900 dark:bg-green-900/30 dark:text-green-300' :
+                                    'bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-300'
                             }`}
                     >
                         {announcement}

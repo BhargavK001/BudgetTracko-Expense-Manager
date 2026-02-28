@@ -9,13 +9,37 @@ import Animated, {
     FadeInDown,
 } from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ForgotPassword() {
     const router = useRouter();
+    const { forgotPassword } = useAuth();
+    const [email, setEmail] = React.useState('');
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState('');
+    const [isSuccess, setIsSuccess] = React.useState(false);
+
+    const handleReset = async () => {
+        if (!email) {
+            setError('Please enter your email');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+        try {
+            await forgotPassword(email);
+            setIsSuccess(true);
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
-        <Container backgroundColor="#F0F0F0">
-            <StatusBar style="dark" />
+        <Container>
+            <StatusBar style="light" />
 
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <KeyboardAvoidingView
@@ -28,7 +52,7 @@ export default function ForgotPassword() {
                     >
                         <View style={styles.header}>
                             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                                <MaterialCommunityIcons name="arrow-left" size={24} color="#000000" />
+                                <MaterialCommunityIcons name="arrow-left" size={24} color="#F1F5F9" />
                             </TouchableOpacity>
 
                             <Animated.View entering={FadeInDown.delay(200).duration(800)}>
@@ -43,22 +67,41 @@ export default function ForgotPassword() {
                         </View>
 
                         {/* Form */}
-                        {/* Form */}
                         <Animated.View entering={FadeInDown.delay(500)}>
                             <View style={styles.form}>
-                                <Input
-                                    label="Email Address"
-                                    placeholder="username@gmail.com"
-                                    icon="email-outline"
-                                    keyboardType="email-address"
-                                    autoCapitalize="none"
-                                />
+                                {isSuccess ? (
+                                    <View style={styles.successContainer}>
+                                        <MaterialCommunityIcons name="check-circle" size={64} color="#10B981" />
+                                        <Text style={styles.successText}>Reset link sent!</Text>
+                                        <Text style={styles.successSubtext}>Please check your email for instructions.</Text>
+                                        <Button
+                                            title="Back to Login"
+                                            onPress={() => router.push('/(auth)/login')}
+                                            style={{ marginTop: 24, width: '100%' }}
+                                        />
+                                    </View>
+                                ) : (
+                                    <>
+                                        <Input
+                                            label="Email Address"
+                                            placeholder="username@gmail.com"
+                                            icon="email-outline"
+                                            keyboardType="email-address"
+                                            autoCapitalize="none"
+                                            value={email}
+                                            onChangeText={setEmail}
+                                        />
 
-                                <Button
-                                    title="Send Reset Link"
-                                    onPress={() => router.back()} // Mock action
-                                    style={{ marginTop: 24 }}
-                                />
+                                        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+                                        <Button
+                                            title={loading ? "Sending..." : "Send Reset Link"}
+                                            onPress={handleReset}
+                                            style={{ marginTop: 24 }}
+                                            disabled={loading}
+                                        />
+                                    </>
+                                )}
                             </View>
                         </Animated.View>
 
@@ -83,7 +126,6 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         flexGrow: 1,
-        // Removed justifyContent: 'center'
         paddingVertical: 20,
         paddingBottom: 40,
     },
@@ -95,25 +137,25 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#0D1630',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 20,
-        borderWidth: 2,
-        borderColor: '#000000',
+        borderWidth: 1,
+        borderColor: '#1E2D4F',
     },
     title: {
-        fontSize: 48,
-        fontWeight: '900',
-        color: '#000000',
-        lineHeight: 48,
-        letterSpacing: -2,
+        fontSize: 36,
+        fontWeight: '800',
+        color: '#F1F5F9',
+        lineHeight: 40,
+        letterSpacing: -0.5,
     },
     subtitle: {
-        fontSize: 16,
-        color: '#666666',
+        fontSize: 15,
+        color: '#94A3B8',
         marginTop: 8,
-        fontWeight: '500',
+        fontWeight: '400',
     },
     form: {
         marginBottom: 32,
@@ -125,13 +167,35 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 14,
-        color: '#000000',
-        fontWeight: '500',
+        color: '#94A3B8',
+        fontWeight: '400',
     },
     footerLink: {
         fontSize: 14,
-        color: '#000000',
-        fontWeight: '900',
-        textDecorationLine: 'underline',
+        color: '#A5B4FC',
+        fontWeight: '700',
+    },
+    errorText: {
+        color: '#F43F5E',
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 8,
+        textAlign: 'center',
+    },
+    successContainer: {
+        alignItems: 'center',
+        paddingVertical: 20,
+    },
+    successText: {
+        fontSize: 24,
+        fontWeight: '800',
+        color: '#F1F5F9',
+        marginTop: 16,
+    },
+    successSubtext: {
+        fontSize: 14,
+        color: '#94A3B8',
+        textAlign: 'center',
+        marginTop: 8,
     },
 });

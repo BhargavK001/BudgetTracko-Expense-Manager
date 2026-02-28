@@ -111,8 +111,9 @@ Built for students & college life. Affordable plans that won't burn a hole in yo
     ```
 
 3.  **Configure Environment**
-    *   Rename `.env.example` to `.env` in both directories.
+  *   Rename `.env.example` to `.env` in `app/backend`, `app/frontend`, and `app/mobile`.
     *   Add your MongoDB URI and API keys (see [Backend Docs](./app/backend/README.md)).
+  *   In `app/mobile/.env`, set `EXPO_PUBLIC_API_URL` to your backend URL (use your local network IP for physical devices).
 
 4.  **Run Locally**
     ```bash

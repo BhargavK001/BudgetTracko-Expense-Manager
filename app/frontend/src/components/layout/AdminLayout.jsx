@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,16 +12,18 @@ import {
     BsActivity,
     BsShieldLockFill,
     BsTagFill,
+    BsList,
+    BsX,
 } from 'react-icons/bs';
 import { toast } from 'sonner';
 
 const navItems = [
-    { to: '/admin/dashboard', icon: BsGrid1X2Fill, label: 'Dashboard' },
-    { to: '/admin/transactions', icon: BsCreditCardFill, label: 'Transactions' },
-    { to: '/admin/users', icon: BsPeopleFill, label: 'Users' },
-    { to: '/admin/contacts', icon: BsEnvelopeFill, label: 'Contact Requests' },
-    { to: '/admin/promotions', icon: BsTagFill, label: 'Promotions' },
-    { to: '/admin/settings', icon: BsGearFill, label: 'Settings' },
+    { to: '/admin/dashboard', icon: BsGrid1X2Fill, label: 'Dashboard', mobileLabel: 'Home' },
+    { to: '/admin/transactions', icon: BsCreditCardFill, label: 'Transactions', mobileLabel: 'Txns' },
+    { to: '/admin/users', icon: BsPeopleFill, label: 'Users', mobileLabel: 'Users' },
+    { to: '/admin/contacts', icon: BsEnvelopeFill, label: 'Contact Requests', mobileLabel: 'Contact' },
+    { to: '/admin/promotions', icon: BsTagFill, label: 'Promotions', mobileLabel: 'Promo' },
+    { to: '/admin/settings', icon: BsGearFill, label: 'Settings', mobileLabel: 'Settings' },
 ];
 
 const SidebarItem = ({ to, icon: Icon, label, isActive }) => (
@@ -43,6 +46,12 @@ const AdminLayout = () => {
     const { user, logout, loading } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+    // Auto-close sidebar on route change
+    useEffect(() => {
+        setIsMobileSidebarOpen(false);
+    }, [location.pathname]);
 
     const handleLogout = async () => {
         await logout();
@@ -151,15 +160,34 @@ const AdminLayout = () => {
 
             {/* Mobile Top Bar */}
             <header className="lg:hidden fixed top-0 left-0 right-0 z-40 glass-panel border-b-2 border-brand-black dark:border-gray-800 px-3 sm:px-4 py-2.5 sm:py-3 flex justify-between items-center safe-area-top">
-                <Link to="/admin/dashboard">
-                    <motion.div className="text-lg font-black tracking-tighter flex items-center gap-1">
-                        <span className="text-brand-black dark:text-white transition-colors">ADMIN</span>
-                        <motion.span className="text-white bg-black dark:bg-white dark:text-black px-1 transform -rotate-2 border-2 border-black dark:border-white transition-colors">
-                            PANEL
-                        </motion.span>
-                    </motion.div>
-                </Link>
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <motion.button
+                        whileTap={{ scale: 0.85 }}
+                        onClick={() => setIsMobileSidebarOpen(true)}
+                        className="p-1.5 sm:p-2 rounded-lg bg-light-card dark:bg-dark-card border-2 border-brand-black neo-shadow-sm text-brand-black dark:text-white"
+                        title="Open Menu"
+                    >
+                        <BsList size={22} />
+                    </motion.button>
+                    <Link to="/admin/dashboard">
+                        <motion.div className="text-base sm:text-lg font-black tracking-tighter flex items-center gap-1">
+                            <span className="text-brand-black dark:text-white transition-colors">ADMIN</span>
+                            <motion.span className="text-white bg-black dark:bg-white dark:text-black px-1 transform -rotate-2 border-2 border-black dark:border-white transition-colors">
+                                PANEL
+                            </motion.span>
+                        </motion.div>
+                    </Link>
+                </div>
                 <div className="flex items-center gap-2">
+                    <Link to="/admin/settings">
+                        <motion.button
+                            whileTap={{ scale: 0.85 }}
+                            className="p-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-brand-black dark:text-white border-2 border-brand-black neo-shadow-sm"
+                            title="Settings"
+                        >
+                            <BsGearFill size={14} />
+                        </motion.button>
+                    </Link>
                     <motion.button
                         whileTap={{ scale: 0.85 }}
                         onClick={handleLogout}
@@ -171,8 +199,95 @@ const AdminLayout = () => {
                 </div>
             </header>
 
+            {/* Mobile Slide-out Sidebar */}
+            <AnimatePresence>
+                {isMobileSidebarOpen && (
+                    <>
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsMobileSidebarOpen(false)}
+                            className="lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+                        />
+                        {/* Sidebar Panel */}
+                        <motion.aside
+                            initial={{ x: '-100%' }}
+                            animate={{ x: 0 }}
+                            exit={{ x: '-100%' }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                            className="lg:hidden fixed left-0 top-0 bottom-0 w-[260px] max-w-[80vw] bg-light-card dark:bg-dark-card border-r-2 border-brand-black dark:border-gray-800 z-50 p-5 flex flex-col shadow-2xl safe-area-top safe-area-bottom"
+                        >
+                            {/* Header */}
+                            <div className="flex items-start justify-between mb-8 pl-1 pt-2">
+                                <Link to="/admin/dashboard" onClick={() => setIsMobileSidebarOpen(false)}>
+                                    <div className="text-xl font-black tracking-tighter flex flex-col mt-1">
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-brand-black dark:text-white leading-none">BUDGET</span>
+                                            <span className="text-white bg-black dark:bg-white dark:text-black px-1 transform -rotate-1 border-2 border-black dark:border-white leading-none">
+                                                TRACKO
+                                            </span>
+                                        </div>
+                                        <div className="mt-2 flex items-center gap-1.5">
+                                            <BsShieldLockFill size={10} className="text-brand-yellow" />
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary leading-none">
+                                                Admin Panel
+                                            </span>
+                                        </div>
+                                    </div>
+                                </Link>
+                                <button
+                                    onClick={() => setIsMobileSidebarOpen(false)}
+                                    className="p-2 rounded-lg bg-light-card dark:bg-dark-card text-brand-black dark:text-white border-2 border-brand-black neo-shadow-sm flex-shrink-0"
+                                >
+                                    <BsX size={22} />
+                                </button>
+                            </div>
+
+                            {/* Nav */}
+                            <nav className="flex-1 space-y-1.5 overflow-y-auto">
+                                {navItems.map(item => (
+                                    <SidebarItem
+                                        key={item.to}
+                                        {...item}
+                                        isActive={location.pathname === item.to}
+                                    />
+                                ))}
+                                <SidebarItem
+                                    to="/system-status"
+                                    icon={BsActivity}
+                                    label="System Status"
+                                    isActive={location.pathname === '/system-status'}
+                                />
+                            </nav>
+
+                            {/* Footer */}
+                            <div className="mt-auto pt-5 border-t-2 border-gray-200 dark:border-gray-800">
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1 flex items-center gap-3 px-3 py-3 bg-brand-yellow border-2 border-brand-black rounded-xl neo-shadow-sm">
+                                        <div className="w-8 h-8 rounded-full border-2 border-brand-black bg-black text-brand-yellow flex items-center justify-center font-black text-sm">
+                                            {user?.displayName?.charAt(0) || 'A'}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-black truncate text-brand-black">{user?.displayName || 'Admin'}</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="p-3 bg-red-500 text-white border-2 border-brand-black rounded-xl neo-shadow-sm"
+                                    >
+                                        <BsBoxArrowRight size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.aside>
+                    </>
+                )}
+            </AnimatePresence>
+
             {/* Main Content */}
-            <main className="lg:pl-64 pt-[60px] sm:pt-[68px] lg:pt-0 min-h-screen pb-20 lg:pb-8">
+            <main className="lg:pl-64 pt-16 sm:pt-20 lg:pt-0 min-h-screen pb-6 lg:pb-8">
                 <div className="max-w-6xl mx-auto px-3 py-4 sm:p-6 lg:p-8">
                     <AnimatePresence mode="wait">
                         <motion.div
@@ -187,31 +302,6 @@ const AdminLayout = () => {
                     </AnimatePresence>
                 </div>
             </main>
-
-            {/* Mobile Bottom Navigation */}
-            <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-light-card dark:bg-dark-card border-t-2 border-brand-black dark:border-gray-700 z-50 px-1 sm:px-2 py-1 flex justify-around items-center safe-area-bottom">
-                {navItems.slice(0, 5).map(item => (
-                    <Link key={item.to} to={item.to} className="flex-1 min-w-0">
-                        <motion.div
-                            whileTap={{ scale: 0.9 }}
-                            className="flex flex-col items-center justify-center py-1.5"
-                        >
-                            <motion.div
-                                animate={location.pathname === item.to ? { y: -2, scale: 1.1 } : { y: 0, scale: 1 }}
-                                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                                className={`p-2 rounded-xl transition-colors duration-200 ${location.pathname === item.to
-                                    ? 'bg-brand-yellow text-brand-black border-2 border-brand-black neo-shadow-sm'
-                                    : 'text-light-text-secondary dark:text-dark-text-secondary'
-                                    }`}
-                            >
-                                <item.icon size={16} />
-                            </motion.div>
-                            <span className={`text-[9px] font-bold mt-0.5 uppercase tracking-wider truncate max-w-full ${location.pathname === item.to ? 'text-brand-black dark:text-brand-yellow' : 'text-light-text-secondary dark:text-dark-text-secondary'
-                                }`}>{item.label}</span>
-                        </motion.div>
-                    </Link>
-                ))}
-            </nav>
         </div>
     );
 };

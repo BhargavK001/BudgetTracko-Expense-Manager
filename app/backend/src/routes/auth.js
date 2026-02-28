@@ -7,6 +7,8 @@ const authController = require('../controllers/authController');
 // Local Auth
 router.post('/signup', authController.signup);
 router.post('/login', authController.login);
+router.post('/forgotpassword', authController.forgotPassword);
+router.put('/resetpassword/:resettoken', authController.resetPassword);
 
 // Google Auth
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
@@ -17,6 +19,17 @@ router.get(
     (req, res) => {
         const token = generateToken(req.user);
         res.cookie('token', token, getCookieOptions());
+
+        // Handle mobile redirection
+        if (req.query.state === 'mobile' || req.cookies?.platform === 'mobile') {
+            const userData = encodeURIComponent(JSON.stringify({
+                id: req.user._id,
+                displayName: req.user.displayName,
+                email: req.user.email
+            }));
+            return res.redirect(`budgettracko://auth/callback?token=${token}&user=${userData}`);
+        }
+
         res.redirect(`${process.env.FRONTEND_URL}/auth/callback`);
     }
 );
@@ -30,6 +43,17 @@ router.get(
     (req, res) => {
         const token = generateToken(req.user);
         res.cookie('token', token, getCookieOptions());
+
+        // Handle mobile redirection
+        if (req.query.state === 'mobile' || req.cookies?.platform === 'mobile') {
+            const userData = encodeURIComponent(JSON.stringify({
+                id: req.user._id,
+                displayName: req.user.displayName,
+                email: req.user.email
+            }));
+            return res.redirect(`budgettracko://auth/callback?token=${token}&user=${userData}`);
+        }
+
         res.redirect(`${process.env.FRONTEND_URL}/auth/callback`);
     }
 );

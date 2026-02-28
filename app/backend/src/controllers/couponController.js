@@ -225,6 +225,11 @@ exports.validateCoupon = async (req, res) => {
             coupon: {
                 code: coupon.code,
                 type: coupon.type,
+                value: coupon.value,
+                nominalPrice: coupon.nominalPrice,
+                nominalDurationMonths: coupon.nominalDurationMonths,
+                trialDays: coupon.trialDays,
+                applicablePlans: coupon.applicablePlans,
                 description: coupon.description || discountInfo.description
             },
             discountInfo,

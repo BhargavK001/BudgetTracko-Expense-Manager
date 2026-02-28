@@ -11,11 +11,11 @@ interface ContainerProps {
 export const Container: React.FC<ContainerProps> = ({
     children,
     style,
-    backgroundColor = '#FFD700' // Default to Brand Yellow
+    backgroundColor = '#060D1F'
 }) => {
     return (
         <SafeAreaView style={[styles.safeArea, { backgroundColor }]} edges={['top', 'left', 'right', 'bottom']}>
-            <StatusBar barStyle="dark-content" backgroundColor={backgroundColor} />
+            <StatusBar barStyle="light-content" backgroundColor={backgroundColor} />
             <View style={[styles.container, style]}>
                 {children}
             </View>

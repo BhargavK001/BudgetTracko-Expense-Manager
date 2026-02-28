@@ -3,101 +3,130 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DarkTheme, Spacing, FontSize, BorderRadius } from '@/constants/Theme';
 
+const ACCOUNT_ICONS: Record<string, { icon: React.ComponentProps<typeof Ionicons>['name']; color: string }> = {
+  'Cash':         { icon: 'cash-outline',     color: '#10B981' },
+  'Bank Account': { icon: 'business-outline', color: '#6366F1' },
+  'Slice':        { icon: 'card-outline',     color: '#F59E0B' },
+};
+
 type AccountCardProps = {
-    name: string;
-    balance?: string;
-    masked?: boolean;
-    onPress?: () => void;
+  name: string;
+  balance?: string;
+  masked?: boolean;
+  onPress?: () => void;
 };
 
 export default function AccountCard({ name, balance, masked = true, onPress }: AccountCardProps) {
-    return (
-        <TouchableOpacity
-            style={styles.card}
-            onPress={onPress}
-            activeOpacity={0.7}
-        >
-            <Text style={styles.name}>{name}</Text>
-            <View style={styles.rightSection}>
-                <Text style={styles.balance}>{masked ? '•••••' : balance}</Text>
-                <Ionicons name="chevron-forward" size={18} color={DarkTheme.chevron} />
-            </View>
-        </TouchableOpacity>
-    );
+  const meta  = ACCOUNT_ICONS[name] ?? { icon: 'wallet-outline' as const, color: DarkTheme.accent };
+
+  return (
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
+      <View style={[styles.iconWrap, { backgroundColor: meta.color + '22' }]}>
+        <Ionicons name={meta.icon} size={20} color={meta.color} />
+      </View>
+      <View style={styles.info}>
+        <Text style={styles.name}>{name}</Text>
+        <Text style={styles.type}>Account</Text>
+      </View>
+      <View style={styles.right}>
+        <Text style={styles.balance}>{masked ? '₹ ••••••' : balance}</Text>
+        <Ionicons name="chevron-forward" size={16} color={DarkTheme.chevron} />
+      </View>
+    </TouchableOpacity>
+  );
 }
 
 type BalanceOverviewCardProps = {
-    label: string;
-    amount?: string;
-    masked?: boolean;
+  label: string;
+  amount?: string;
+  masked?: boolean;
+  accentColor?: string;
 };
 
-export function BalanceOverviewCard({ label, amount, masked = true }: BalanceOverviewCardProps) {
-    return (
-        <View style={styles.overviewCard}>
-            <View style={styles.overviewLabelRow}>
-                <Text style={styles.overviewLabel}>{label}</Text>
-                <Ionicons name="information-circle-outline" size={14} color={DarkTheme.textMuted} />
-            </View>
-            <Text style={styles.overviewAmount}>{masked ? '•••••' : amount}</Text>
-        </View>
-    );
+export function BalanceOverviewCard({ label, amount, masked = true, accentColor = DarkTheme.accent }: BalanceOverviewCardProps) {
+  return (
+    <View style={[styles.overviewCard, { borderColor: accentColor + '30' }]}>
+      <View style={[styles.overviewDot, { backgroundColor: accentColor + '28' }]}>
+        <Ionicons name="wallet-outline" size={14} color={accentColor} />
+      </View>
+      <Text style={styles.overviewLabel}>{label}</Text>
+      <Text style={[styles.overviewAmount, { color: masked ? DarkTheme.textMuted : DarkTheme.textPrimary }]}>
+        {masked ? '₹ ••••••' : amount}
+      </Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    card: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
-        padding: Spacing.lg,
-        paddingVertical: Spacing.xl,
-        marginBottom: Spacing.sm,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
-    },
-    name: {
-        fontSize: FontSize.lg,
-        fontWeight: '700',
-        color: DarkTheme.textPrimary,
-    },
-    rightSection: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.sm,
-    },
-    balance: {
-        fontSize: FontSize.md,
-        color: DarkTheme.textSecondary,
-        letterSpacing: 2,
-    },
-    // Overview card styles
-    overviewCard: {
-        flex: 1,
-        backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
-        padding: Spacing.lg,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
-    },
-    overviewLabelRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.xs,
-        marginBottom: Spacing.sm,
-    },
-    overviewLabel: {
-        fontSize: FontSize.xs,
-        color: DarkTheme.textSecondary,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    overviewAmount: {
-        fontSize: FontSize.lg,
-        fontWeight: '800',
-        color: DarkTheme.textPrimary,
-        letterSpacing: 2,
-    },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: DarkTheme.cardBg,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: DarkTheme.border,
+  },
+  iconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  info: { flex: 1 },
+  name: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: DarkTheme.textPrimary,
+    marginBottom: 2,
+  },
+  type: {
+    fontSize: FontSize.xs,
+    color: DarkTheme.textMuted,
+    fontWeight: '600',
+  },
+  right: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  balance: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: DarkTheme.textSecondary,
+    letterSpacing: 1,
+  },
+  // Overview
+  overviewCard: {
+    flex: 1,
+    backgroundColor: DarkTheme.cardBg,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: DarkTheme.border,
+  },
+  overviewDot: {
+    width: 34,
+    height: 34,
+    borderRadius: BorderRadius.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  overviewLabel: {
+    fontSize: FontSize.xs,
+    color: DarkTheme.textMuted,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: Spacing.xs,
+  },
+  overviewAmount: {
+    fontSize: FontSize.xl,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
 });

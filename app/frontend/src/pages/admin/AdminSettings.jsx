@@ -19,6 +19,22 @@ const AdminSettings = () => {
     const [saving, setSaving] = useState(false);
     const [savingMaintenance, setSavingMaintenance] = useState(false);
     const [savingAnnouncement, setSavingAnnouncement] = useState(false);
+
+    // AI Keys State
+    const [geminiKey, setGeminiKey] = useState('');
+    const [savedGeminiKey, setSavedGeminiKey] = useState('');
+    const [savingGemini, setSavingGemini] = useState(false);
+
+    const [groqKey, setGroqKey] = useState('');
+    const [savedGroqKey, setSavedGroqKey] = useState('');
+    const [savingGroq, setSavingGroq] = useState(false);
+
+    const [openRouterKey, setOpenRouterKey] = useState('');
+    const [savedOpenRouterKey, setSavedOpenRouterKey] = useState('');
+    const [savingOpenRouter, setSavingOpenRouter] = useState(false);
+
+    const [showKeys, setShowKeys] = useState(false);
+
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [confirmModalConfig, setConfirmModalConfig] = useState({
         title: '',
@@ -41,8 +57,23 @@ const AdminSettings = () => {
                 if (configMap.maintenance_message) setMaintenanceMessage(configMap.maintenance_message);
                 if (configMap.announcement) setAnnouncement(configMap.announcement);
                 if (configMap.announcement_type) setAnnouncementType(configMap.announcement_type);
+
+                // AI Keys Initialization
+                if (configMap.gemini_api_key) {
+                    setGeminiKey(configMap.gemini_api_key);
+                    setSavedGeminiKey(configMap.gemini_api_key);
+                }
+                if (configMap.groq_api_key) {
+                    setGroqKey(configMap.groq_api_key);
+                    setSavedGroqKey(configMap.groq_api_key);
+                }
+                if (configMap.openrouter_api_key) {
+                    setOpenRouterKey(configMap.openrouter_api_key);
+                    setSavedOpenRouterKey(configMap.openrouter_api_key);
+                }
             } catch (error) {
                 console.error('Failed to load config:', error);
+                toast.error('Failed to load settings');
             } finally {
                 setLoading(false);
             }
@@ -106,6 +137,19 @@ const AdminSettings = () => {
             toast.error('Failed to update announcement');
         } finally {
             setSavingAnnouncement(false);
+        }
+    };
+
+    const handleSaveKey = async (provider, value, setSavingState, setSavedState) => {
+        setSavingState(true);
+        try {
+            await adminApi.updateConfig(`${provider}_api_key`, value.trim());
+            setSavedState(value.trim());
+            toast.success(`${provider.toUpperCase()} Key updated successfully`);
+        } catch (error) {
+            toast.error(`Failed to update ${provider} Key`);
+        } finally {
+            setSavingState(false);
         }
     };
 
@@ -309,6 +353,136 @@ const AdminSettings = () => {
                             </>
                         )}
                     </motion.button>
+                </div>
+            </motion.div>
+
+            {/* AI Provider Configuration */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.12 }}
+                className="neo-card p-4 sm:p-6"
+            >
+                <div className="flex items-start justify-between mb-4 sm:mb-6">
+                    <div className="flex items-start sm:items-center gap-2.5 sm:gap-3">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500 text-white rounded-lg sm:rounded-xl border-2 border-brand-black flex items-center justify-center flex-shrink-0">
+                            <span className="text-base sm:text-xl font-black">🤖</span>
+                        </div>
+                        <div>
+                            <h3 className="text-sm sm:text-base font-black uppercase tracking-tighter">AI Provider Configuration</h3>
+                            <p className="text-[10px] sm:text-xs text-light-text-secondary dark:text-dark-text-secondary font-semibold">
+                                Manage API keys for Tracko Pulse. Leaves fallback to `.env` if empty.
+                            </p>
+                        </div>
+                    </div>
+                    {/* Toggle Visibility */}
+                    <button
+                        onClick={() => setShowKeys(!showKeys)}
+                        className="text-[10px] sm:text-xs font-bold text-gray-500 hover:text-brand-primary uppercase tracking-widest border border-gray-300 dark:border-gray-700 rounded-lg px-2 sm:px-3 py-1 transition-colors"
+                    >
+                        {showKeys ? 'Hide Keys' : 'Show Keys'}
+                    </button>
+                </div>
+
+                <div className="space-y-4 sm:space-y-5">
+                    {/* Gemini Key */}
+                    <div className="space-y-1.5">
+                        <label className="text-[9px] sm:text-[10px] font-black w-full uppercase tracking-widest text-[#1da1f2] dark:text-[#1da1f2] flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <span>Gemini API Key</span>
+                                {savedGeminiKey ? (
+                                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 tracking-normal border border-green-200 dark:border-green-800">USING MONGO DB</span>
+                                ) : (
+                                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 tracking-normal border border-blue-200 dark:border-blue-800">USING .ENV FALLBACK</span>
+                                )}
+                            </div>
+                            <span className="text-gray-400 font-bold lowercase tracking-normal mt-0.5">Primary / Default</span>
+                        </label>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                            <input
+                                type={showKeys ? "text" : "password"}
+                                value={geminiKey}
+                                onChange={(e) => setGeminiKey(e.target.value)}
+                                placeholder="AIzaSy..."
+                                className="neo-input flex-1 font-mono text-xs sm:text-sm"
+                            />
+                            <motion.button
+                                whileHover={(geminiKey !== savedGeminiKey) ? { scale: 1.03, y: -2 } : {}}
+                                whileTap={(geminiKey !== savedGeminiKey) ? { scale: 0.97 } : {}}
+                                onClick={() => handleSaveKey('gemini', geminiKey, setSavingGemini, setSavedGeminiKey)}
+                                disabled={savingGemini || geminiKey === savedGeminiKey}
+                                className="neo-btn disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap text-xs sm:text-sm py-2 sm:py-2.5 bg-[#f4f4f0] dark:bg-[#2a2a2a] border-gray-300 dark:border-gray-600 hover:bg-[#1da1f2] hover:text-white"
+                            >
+                                {savingGemini ? 'Saving...' : 'Save Gemini'}
+                            </motion.button>
+                        </div>
+                    </div>
+
+                    {/* Groq Key */}
+                    <div className="space-y-1.5">
+                        <label className="text-[9px] sm:text-[10px] font-black w-full uppercase tracking-widest text-orange-500 dark:text-orange-400 flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <span>Groq API Key</span>
+                                {savedGroqKey ? (
+                                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 tracking-normal border border-green-200 dark:border-green-800">USING MONGO DB</span>
+                                ) : (
+                                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 tracking-normal border border-blue-200 dark:border-blue-800">USING .ENV FALLBACK</span>
+                                )}
+                            </div>
+                            <span className="text-gray-400 font-bold lowercase tracking-normal mt-0.5">Fallback 1 / Fast Llama</span>
+                        </label>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                            <input
+                                type={showKeys ? "text" : "password"}
+                                value={groqKey}
+                                onChange={(e) => setGroqKey(e.target.value)}
+                                placeholder="gsk_..."
+                                className="neo-input flex-1 font-mono text-xs sm:text-sm"
+                            />
+                            <motion.button
+                                whileHover={(groqKey !== savedGroqKey) ? { scale: 1.03, y: -2 } : {}}
+                                whileTap={(groqKey !== savedGroqKey) ? { scale: 0.97 } : {}}
+                                onClick={() => handleSaveKey('groq', groqKey, setSavingGroq, setSavedGroqKey)}
+                                disabled={savingGroq || groqKey === savedGroqKey}
+                                className="neo-btn disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap text-xs sm:text-sm py-2 sm:py-2.5 bg-[#f4f4f0] dark:bg-[#2a2a2a] border-gray-300 dark:border-gray-600 hover:bg-orange-500 hover:text-white"
+                            >
+                                {savingGroq ? 'Saving...' : 'Save Groq'}
+                            </motion.button>
+                        </div>
+                    </div>
+
+                    {/* OpenRouter Key */}
+                    <div className="space-y-1.5">
+                        <label className="text-[9px] sm:text-[10px] font-black w-full uppercase tracking-widest text-[#1a1a1a] dark:text-white flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <span>OpenRouter API Key</span>
+                                {savedOpenRouterKey ? (
+                                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 tracking-normal border border-green-200 dark:border-green-800">USING MONGO DB</span>
+                                ) : (
+                                    <span className="text-[8px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 tracking-normal border border-blue-200 dark:border-blue-800">USING .ENV FALLBACK</span>
+                                )}
+                            </div>
+                            <span className="text-gray-400 font-bold lowercase tracking-normal mt-0.5">Fallback 2 / Free Models</span>
+                        </label>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                            <input
+                                type={showKeys ? "text" : "password"}
+                                value={openRouterKey}
+                                onChange={(e) => setOpenRouterKey(e.target.value)}
+                                placeholder="sk-or-v1-..."
+                                className="neo-input flex-1 font-mono text-xs sm:text-sm"
+                            />
+                            <motion.button
+                                whileHover={(openRouterKey !== savedOpenRouterKey) ? { scale: 1.03, y: -2 } : {}}
+                                whileTap={(openRouterKey !== savedOpenRouterKey) ? { scale: 0.97 } : {}}
+                                onClick={() => handleSaveKey('openrouter', openRouterKey, setSavingOpenRouter, setSavedOpenRouterKey)}
+                                disabled={savingOpenRouter || openRouterKey === savedOpenRouterKey}
+                                className="neo-btn disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap text-xs sm:text-sm py-2 sm:py-2.5 bg-[#f4f4f0] dark:bg-[#2a2a2a] border-gray-300 dark:border-gray-600 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black"
+                            >
+                                {savingOpenRouter ? 'Saving...' : 'Save OpenRouter'}
+                            </motion.button>
+                        </div>
+                    </div>
                 </div>
             </motion.div>
 

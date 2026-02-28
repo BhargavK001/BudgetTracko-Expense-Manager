@@ -9,13 +9,38 @@ import Animated, {
     FadeInDown,
 } from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Signup() {
     const router = useRouter();
+    const { signup } = useAuth();
+    const [name, setName] = React.useState('');
+    const [email, setEmail] = React.useState('');
+    const [password, setPassword] = React.useState('');
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState('');
+
+    const handleSignup = async () => {
+        if (!name || !email || !password) {
+            setError('Please fill in all fields');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+        try {
+            await signup(name, email, password);
+            router.replace('/(tabs)');
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
-        <Container backgroundColor="#FFD700">
-            <StatusBar style="dark" />
+        <Container>
+            <StatusBar style="light" />
 
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                 <KeyboardAvoidingView
@@ -70,6 +95,8 @@ export default function Signup() {
                                     placeholder="John Doe"
                                     icon="account-outline"
                                     autoCapitalize="words"
+                                    value={name}
+                                    onChangeText={setName}
                                 />
                                 <Input
                                     label="Email Address"
@@ -77,18 +104,25 @@ export default function Signup() {
                                     icon="email-outline"
                                     keyboardType="email-address"
                                     autoCapitalize="none"
+                                    value={email}
+                                    onChangeText={setEmail}
                                 />
                                 <Input
                                     label="Password"
                                     placeholder="Create a password"
                                     icon="lock-outline"
                                     secureTextEntry
+                                    value={password}
+                                    onChangeText={setPassword}
                                 />
 
+                                {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
                                 <Button
-                                    title="Sign Up"
-                                    onPress={() => router.push('/(tabs)')}
+                                    title={loading ? "Creating Account..." : "Sign Up"}
+                                    onPress={handleSignup}
                                     style={{ marginTop: 16 }}
+                                    disabled={loading}
                                 />
                             </View>
                         </Animated.View>
@@ -114,30 +148,30 @@ const styles = StyleSheet.create({
     },
     content: {
         flex: 1,
-        justifyContent: 'center', // Centered vertically
-        paddingVertical: 24, // Balanced padding
+        justifyContent: 'center',
+        paddingVertical: 24,
     },
     header: {
-        marginBottom: 20, // Tightened
-        marginTop: 30, // Increased top margin
+        marginBottom: 24,
+        marginTop: 20,
     },
     title: {
-        fontSize: 40, // Reduced from 48
-        fontWeight: '900',
-        color: '#000000',
-        lineHeight: 40, // Reduced from 48
-        letterSpacing: -1,
+        fontSize: 36,
+        fontWeight: '800',
+        color: '#F1F5F9',
+        lineHeight: 40,
+        letterSpacing: -0.5,
     },
     subtitle: {
-        fontSize: 16,
-        color: '#666666',
+        fontSize: 15,
+        color: '#94A3B8',
         marginTop: 8,
-        fontWeight: '500',
+        fontWeight: '400',
     },
     socialContainer: {
         flexDirection: 'row',
-        gap: 16,
-        marginBottom: 16, // Tightened
+        gap: 12,
+        marginBottom: 16,
     },
     socialButton: {
         flex: 1,
@@ -145,26 +179,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 14,
-        borderWidth: 2,
-        borderColor: '#000000',
-        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#1E2D4F',
+        borderRadius: 14,
         gap: 8,
-        shadowColor: '#000000',
-        shadowOffset: { width: 4, height: 4 },
-        shadowOpacity: 1,
-        shadowRadius: 0,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#0D1630',
     },
-    googleButton: {
-        // backgroundColor: '#FFFFFF', // Redundant as socialButton now sets it
-    },
+    googleButton: {},
     githubButton: {
-        backgroundColor: '#000000',
+        backgroundColor: '#0D1630',
     },
     socialButtonText: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#000000',
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#F1F5F9',
     },
     divider: {
         flexDirection: 'row',
@@ -174,17 +202,17 @@ const styles = StyleSheet.create({
     line: {
         flex: 1,
         height: 1,
-        backgroundColor: '#E0E0E0',
+        backgroundColor: '#1E2D4F',
     },
     dividerText: {
-        fontSize: 14,
+        fontSize: 12,
         fontWeight: '600',
-        color: '#666666',
+        color: '#475569',
         paddingHorizontal: 16,
+        letterSpacing: 0.6,
     },
-    // ...
     form: {
-        marginBottom: 12, // Reduced to bring footer closer
+        marginBottom: 12,
     },
     footer: {
         flexDirection: 'row',
@@ -193,13 +221,19 @@ const styles = StyleSheet.create({
     },
     footerText: {
         fontSize: 14,
-        color: '#000000',
-        fontWeight: '500',
+        color: '#94A3B8',
+        fontWeight: '400',
     },
     footerLink: {
         fontSize: 14,
-        color: '#000000',
-        fontWeight: '900',
-        textDecorationLine: 'underline',
+        color: '#A5B4FC',
+        fontWeight: '700',
+    },
+    errorText: {
+        color: '#F43F5E',
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 8,
+        textAlign: 'center',
     },
 });

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { authApi } from '../services/api';
 import { HiOutlineMail, HiOutlineArrowLeft } from 'react-icons/hi';
 import { BsShieldLockFill, BsArrowLeftShort, BsEnvelopeFill, BsCheckCircleFill } from 'react-icons/bs';
 
@@ -29,8 +30,20 @@ const ForgotPassword = () => {
     const [emailSent, setEmailSent] = useState(false);
     const [email, setEmail] = useState('');
     const [focusedField, setFocusedField] = useState(null);
+    const [timer, setTimer] = useState(0);
 
-    const handleSubmit = (e) => {
+    // Timer effect
+    useEffect(() => {
+        let interval;
+        if (timer > 0) {
+            interval = setInterval(() => {
+                setTimer((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [timer]);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!email) {
             toast.error('Please enter your email address');
@@ -38,18 +51,34 @@ const ForgotPassword = () => {
         }
         setLoading(true);
         toast.loading('Sending reset link...', { id: 'forgot' });
-        setTimeout(() => {
-            setLoading(false);
+
+        try {
+            await authApi.forgotPassword({ email });
             setEmailSent(true);
+            setTimer(30); // Start 30s timer
             toast.success('Reset link sent! Check your inbox.', { id: 'forgot' });
-        }, 1500);
+        } catch (error) {
+            console.error('Forgot password error:', error);
+            const message = error.response?.data?.message || 'Failed to send reset link';
+            toast.error(message, { id: 'forgot' });
+        } finally {
+            setLoading(false);
+        }
     };
 
-    const handleResend = () => {
+    const handleResend = async () => {
+        if (timer > 0) return;
+
         toast.loading('Resending reset link...', { id: 'resend' });
-        setTimeout(() => {
+        try {
+            await authApi.forgotPassword({ email });
+            setTimer(30); // Start 30s timer
             toast.success('Reset link sent again!', { id: 'resend' });
-        }, 1000);
+        } catch (error) {
+            console.error('Resend error:', error);
+            const message = error.response?.data?.message || 'Failed to resend link';
+            toast.error(message, { id: 'resend' });
+        }
     };
 
     return (
@@ -288,11 +317,15 @@ const ForgotPassword = () => {
                                     >
                                         <motion.button
                                             onClick={handleResend}
-                                            whileHover={{ scale: 1.02, y: -2 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            className="w-full py-3 font-black text-sm text-brand-black bg-brand-yellow border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-wider"
+                                            disabled={timer > 0}
+                                            whileHover={timer === 0 ? { scale: 1.02, y: -2 } : {}}
+                                            whileTap={timer === 0 ? { scale: 0.98 } : {}}
+                                            className={`w-full py-3 font-black text-sm border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all uppercase tracking-wider ${timer > 0
+                                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                                                : 'text-brand-black bg-brand-yellow hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]'
+                                                }`}
                                         >
-                                            Resend Email
+                                            {timer > 0 ? `Resend Available in ${timer}s` : 'Resend Email'}
                                         </motion.button>
 
                                         <Link to="/login" className="block">

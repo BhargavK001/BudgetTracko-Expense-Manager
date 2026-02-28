@@ -51,7 +51,7 @@ export default function ShareAppScreen() {
 
                 {/* Share Button */}
                 <TouchableOpacity style={styles.shareBtn} onPress={handleShare} activeOpacity={0.8}>
-                    <Ionicons name="share-outline" size={20} color={DarkTheme.brandBlack} />
+                    <Ionicons name="share-outline" size={20} color={'#FFFFFF'} />
                     <Text style={styles.shareBtnText}>Share with Friends</Text>
                 </TouchableOpacity>
 
@@ -159,18 +159,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: Spacing.sm,
-        backgroundColor: DarkTheme.brandYellow,
+        backgroundColor: DarkTheme.accent,
         paddingVertical: Spacing.lg,
         borderRadius: BorderRadius.sm,
         borderWidth: 2.5,
-        borderColor: DarkTheme.brandBlack,
+        borderColor: 'transparent',
         marginBottom: Spacing.lg,
         ...NeoShadowSm,
     },
     shareBtnText: {
         fontSize: FontSize.md,
         fontWeight: '900',
-        color: DarkTheme.brandBlack,
+        color: '#FFFFFF',
         textTransform: 'uppercase',
         letterSpacing: 1,
     },
@@ -225,3 +225,4 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
 });
+

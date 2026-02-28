@@ -182,10 +182,9 @@ const Pricing = () => {
 
             const options = {
                 key: subData.key,
-                subscription_id: subData.subscription_id, // Use subscription_id
+                subscription_id: subData.subscription_id,
                 name: "BudgetTracko",
                 description: `Monthly Subscription for ${cleanPlanName}`,
-                // No amount needed for subscription flow on client side init
                 handler: async function (response) {
                     try {
                         console.log("Razorpay Response:", response);
@@ -215,14 +214,7 @@ const Pricing = () => {
                 }
             };
 
-            // Handle initial charge if present (e.g. nominal coupon)
-            if (subData.initial_order_id) {
-                options.order_id = subData.initial_order_id;
-                // Since it's an order, we might need amount / currency if not standard subscription flow
-                // But Razorpay handles hybrid if subscription_id + order_id passed?
-                // Actually usually you pay the order first then sub starts.
-                // But let's trust Razorpay Standard options.
-            }
+            // Note: Upfront charges are now handled via Subscription Add-ons, so no need for separate order_id logic here.
 
             console.log("Razorpay Options:", options);
 
@@ -408,8 +400,55 @@ const Pricing = () => {
                             )}
                             <h3 className={`text-lg sm:text-2xl font-black uppercase mb-1.5 sm:mb-2 ${plan.highlight ? 'text-brand-yellow' : ''}`}>{plan.name}</h3>
                             <div className="mb-4 sm:mb-6">
-                                <span className="text-3xl sm:text-5xl font-black">{plan.price}</span>
-                                <span className={`text-base sm:text-lg font-bold ml-1 ${plan.highlight ? 'text-gray-400' : 'text-gray-500'}`}>{plan.period}</span>
+                                {(() => {
+                                    const isApplicable = couponInfo && couponInfo.coupon && couponInfo.coupon.applicablePlans && couponInfo.coupon.applicablePlans.includes(plan.id);
+                                    if (isApplicable) {
+                                        let finalPrice = 0;
+                                        let description = '';
+                                        const originalPriceNum = parseInt(plan.price.replace('₹', ''));
+
+                                        if (couponInfo.coupon.type === 'percentage') {
+                                            finalPrice = Math.max(0, originalPriceNum - (originalPriceNum * couponInfo.coupon.value / 100));
+                                            description = `${couponInfo.coupon.value}% off`;
+                                        } else if (couponInfo.coupon.type === 'fixed') {
+                                            finalPrice = Math.max(0, originalPriceNum - couponInfo.coupon.value);
+                                            description = `₹${couponInfo.coupon.value} off`;
+                                        } else if (couponInfo.coupon.type === 'nominal') {
+                                            finalPrice = couponInfo.coupon.nominalPrice;
+                                            description = `Nominal Price`;
+                                        } else if (couponInfo.coupon.type === 'trial') {
+                                            finalPrice = 0;
+                                            description = `${couponInfo.coupon.trialDays} Days Free`;
+                                        }
+
+                                        // Format nicely (remove decimals if whole number)
+                                        const formattedPrice = finalPrice % 1 === 0 ? finalPrice : finalPrice.toFixed(2);
+
+                                        return (
+                                            <div className="flex flex-col items-start">
+                                                <span className="text-gray-400 line-through text-lg font-bold">{plan.price}</span>
+                                                <div className="flex items-baseline">
+                                                    <span className="text-3xl sm:text-5xl font-black text-green-500">
+                                                        ₹{formattedPrice}
+                                                    </span>
+                                                    <span className={`text-base sm:text-lg font-bold ml-1 ${plan.highlight ? 'text-gray-400' : 'text-gray-500'}`}>
+                                                        {couponInfo.coupon.type === 'nominal' ? `for ${couponInfo.coupon.nominalDurationMonths} mo` : '/month'}
+                                                    </span>
+                                                </div>
+                                                <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded mt-1">
+                                                    {description} Applied
+                                                </span>
+                                            </div>
+                                        );
+                                    } else {
+                                        return (
+                                            <>
+                                                <span className="text-3xl sm:text-5xl font-black">{plan.price}</span>
+                                                <span className={`text-base sm:text-lg font-bold ml-1 ${plan.highlight ? 'text-gray-400' : 'text-gray-500'}`}>{plan.period}</span>
+                                            </>
+                                        );
+                                    }
+                                })()}
                             </div>
                             <ul className="space-y-2 sm:space-y-3 mb-6 sm:mb-8 flex-1">
                                 {plan.features.map((feat, i) => (
@@ -450,7 +489,7 @@ const Pricing = () => {
 
             {/* FAQ Section */}
             <section className="py-16 sm:py-24 px-4 sm:px-6 bg-white border-t-4 border-black">
-                <div className="max-w-3xl mx-auto">
+                <div className="max-w-5xl lg:max-w-6xl mx-auto">
                     <motion.h2
                         variants={fadeUp}
                         initial="hidden"

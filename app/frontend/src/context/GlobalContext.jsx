@@ -1,7 +1,8 @@
 import { createContext, useReducer, useEffect, useContext } from 'react';
-import { transactionApi, accountApi, categoryApi, budgetApi } from '../services/api';
+import { transactionApi, accountApi, categoryApi, budgetApi, recurringApi } from '../services/api';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { demoData } from '../data/demoData';
 
 // Initial State
 const initialState = {
@@ -11,6 +12,7 @@ const initialState = {
     budgets: [],
     loading: true,
     error: null,
+    recurringBills: [],
 };
 
 // Create Context
@@ -20,7 +22,7 @@ export const GlobalContext = createContext(initialState);
 const AppReducer = (state, action) => {
     switch (action.type) {
         case 'SET_LOADING':
-            return { ...state, loading: true };
+            return { ...state, loading: action.payload !== undefined ? action.payload : true };
         case 'GET_TRANSACTIONS':
             return { ...state, loading: false, transactions: action.payload };
         case 'ADD_TRANSACTION':
@@ -75,6 +77,20 @@ const AppReducer = (state, action) => {
             };
         case 'DELETE_BUDGET':
             return { ...state, budgets: state.budgets.filter(b => b._id !== action.payload) };
+        // ─── Recurring Bills ───
+        case 'GET_RECURRING_BILLS':
+            return { ...state, recurringBills: action.payload };
+        case 'ADD_RECURRING_BILL':
+            return { ...state, recurringBills: [...state.recurringBills, action.payload] };
+        case 'UPDATE_RECURRING_BILL':
+            return {
+                ...state,
+                recurringBills: state.recurringBills.map(b =>
+                    b._id === action.payload._id ? action.payload : b
+                ),
+            };
+        case 'DELETE_RECURRING_BILL':
+            return { ...state, recurringBills: state.recurringBills.filter(b => b._id !== action.payload) };
         case 'ERROR':
             return { ...state, error: action.payload, loading: false };
         default:
@@ -89,6 +105,11 @@ export const GlobalProvider = ({ children }) => {
 
     // ─── Transaction Actions ───
     async function getTransactions() {
+        if (user?.isDemo) {
+            dispatch({ type: 'GET_TRANSACTIONS', payload: demoData.transactions });
+            dispatch({ type: 'SET_LOADING', payload: false });
+            return;
+        }
         try {
             dispatch({ type: 'SET_LOADING' });
             const res = await transactionApi.getAll();
@@ -100,6 +121,35 @@ export const GlobalProvider = ({ children }) => {
     }
 
     async function addTransaction(formData) {
+        if (user?.isDemo) {
+            const data = formData instanceof FormData ? Object.fromEntries(formData) : formData;
+
+            // Populate accounts for UI
+            let populatedData = { ...data };
+            if (data.accountId) {
+                const account = state.accounts.find(a => a._id === data.accountId);
+                if (account) populatedData.accountId = account;
+            }
+            if (data.type === 'transfer') {
+                if (data.fromAccountId) {
+                    const fromAcc = state.accounts.find(a => a._id === data.fromAccountId);
+                    if (fromAcc) populatedData.fromAccountId = fromAcc;
+                }
+                if (data.toAccountId) {
+                    const toAcc = state.accounts.find(a => a._id === data.toAccountId);
+                    if (toAcc) populatedData.toAccountId = toAcc;
+                }
+            }
+
+            const newTx = {
+                ...populatedData,
+                _id: Math.random().toString(36).substr(2, 9),
+                date: data.date || new Date().toISOString()
+            };
+            dispatch({ type: 'ADD_TRANSACTION', payload: newTx });
+            toast.success('Transaction added (Demo)');
+            return newTx;
+        }
         try {
             const res = await transactionApi.create(formData);
             dispatch({ type: 'ADD_TRANSACTION', payload: res.data.data });
@@ -115,6 +165,11 @@ export const GlobalProvider = ({ children }) => {
     }
 
     async function deleteTransaction(id) {
+        if (user?.isDemo) {
+            dispatch({ type: 'DELETE_TRANSACTION', payload: id });
+            toast.success('Transaction deleted (Demo)');
+            return;
+        }
         try {
             await transactionApi.delete(id);
             dispatch({ type: 'DELETE_TRANSACTION', payload: id });
@@ -128,6 +183,30 @@ export const GlobalProvider = ({ children }) => {
     }
 
     async function updateTransaction(id, formData) {
+        if (user?.isDemo) {
+            const data = formData instanceof FormData ? Object.fromEntries(formData) : formData;
+            // Populate accounts for UI
+            let populatedData = { ...data };
+            if (data.accountId) {
+                const account = state.accounts.find(a => a._id === data.accountId);
+                if (account) populatedData.accountId = account;
+            }
+            if (data.type === 'transfer') {
+                if (data.fromAccountId) {
+                    const fromAcc = state.accounts.find(a => a._id === data.fromAccountId);
+                    if (fromAcc) populatedData.fromAccountId = fromAcc;
+                }
+                if (data.toAccountId) {
+                    const toAcc = state.accounts.find(a => a._id === data.toAccountId);
+                    if (toAcc) populatedData.toAccountId = toAcc;
+                }
+            }
+
+            const updatedTx = { ...populatedData, _id: id };
+            dispatch({ type: 'UPDATE_TRANSACTION', payload: updatedTx });
+            toast.success('Transaction updated (Demo)');
+            return updatedTx;
+        }
         try {
             const res = await transactionApi.update(id, formData);
             dispatch({ type: 'UPDATE_TRANSACTION', payload: res.data.data });
@@ -143,6 +222,10 @@ export const GlobalProvider = ({ children }) => {
 
     // ─── Account Actions ───
     async function getAccounts() {
+        if (user?.isDemo) {
+            dispatch({ type: 'GET_ACCOUNTS', payload: demoData.accounts });
+            return;
+        }
         try {
             const res = await accountApi.getAll();
             dispatch({ type: 'GET_ACCOUNTS', payload: res.data.data });
@@ -152,6 +235,12 @@ export const GlobalProvider = ({ children }) => {
     }
 
     async function addAccount(data) {
+        if (user?.isDemo) {
+            const newAcc = { ...data, _id: Math.random().toString(36).substr(2, 9) };
+            dispatch({ type: 'ADD_ACCOUNT', payload: newAcc });
+            toast.success('Account created (Demo)');
+            return newAcc;
+        }
         try {
             const res = await accountApi.create(data);
             dispatch({ type: 'ADD_ACCOUNT', payload: res.data.data });
@@ -163,6 +252,12 @@ export const GlobalProvider = ({ children }) => {
     }
 
     async function updateAccount(id, data) {
+        if (user?.isDemo) {
+            const updatedAcc = { ...data, _id: id };
+            dispatch({ type: 'UPDATE_ACCOUNT', payload: updatedAcc });
+            toast.success('Account updated (Demo)');
+            return updatedAcc;
+        }
         try {
             const res = await accountApi.update(id, data);
             dispatch({ type: 'UPDATE_ACCOUNT', payload: res.data.data });
@@ -174,6 +269,11 @@ export const GlobalProvider = ({ children }) => {
     }
 
     async function deleteAccount(id) {
+        if (user?.isDemo) {
+            dispatch({ type: 'DELETE_ACCOUNT', payload: id });
+            toast.success('Account deleted (Demo)');
+            return;
+        }
         try {
             await accountApi.delete(id);
             dispatch({ type: 'DELETE_ACCOUNT', payload: id });
@@ -195,6 +295,10 @@ export const GlobalProvider = ({ children }) => {
 
     // ─── Category Actions ───
     async function getCategories() {
+        if (user?.isDemo) {
+            dispatch({ type: 'GET_CATEGORIES', payload: demoData.categories });
+            return;
+        }
         try {
             const res = await categoryApi.getAll();
             dispatch({ type: 'GET_CATEGORIES', payload: res.data });
@@ -204,6 +308,12 @@ export const GlobalProvider = ({ children }) => {
     }
 
     async function addCategory(data) {
+        if (user?.isDemo) {
+            const newCat = { ...data, _id: Math.random().toString(36).substr(2, 9) };
+            dispatch({ type: 'ADD_CATEGORY', payload: newCat });
+            toast.success('Category created (Demo)');
+            return newCat;
+        }
         try {
             const res = await categoryApi.create(data);
             dispatch({ type: 'ADD_CATEGORY', payload: res.data });
@@ -216,6 +326,12 @@ export const GlobalProvider = ({ children }) => {
     }
 
     async function updateCategory(id, data) {
+        if (user?.isDemo) {
+            const updatedCat = { ...data, _id: id };
+            dispatch({ type: 'UPDATE_CATEGORY', payload: updatedCat });
+            toast.success('Category updated (Demo)');
+            return updatedCat;
+        }
         try {
             const res = await categoryApi.update(id, data);
             dispatch({ type: 'UPDATE_CATEGORY', payload: res.data });
@@ -228,6 +344,11 @@ export const GlobalProvider = ({ children }) => {
     }
 
     async function deleteCategory(id) {
+        if (user?.isDemo) {
+            dispatch({ type: 'DELETE_CATEGORY', payload: id });
+            toast.success('Category deleted (Demo)');
+            return;
+        }
         try {
             await categoryApi.delete(id);
             dispatch({ type: 'DELETE_CATEGORY', payload: id });
@@ -239,6 +360,10 @@ export const GlobalProvider = ({ children }) => {
 
     // ─── Budget Actions ───
     async function getBudgets() {
+        if (user?.isDemo) {
+            dispatch({ type: 'GET_BUDGETS', payload: demoData.budgets });
+            return;
+        }
         try {
             const res = await budgetApi.getAll();
             dispatch({ type: 'GET_BUDGETS', payload: res.data });
@@ -248,6 +373,12 @@ export const GlobalProvider = ({ children }) => {
     }
 
     async function addBudget(data) {
+        if (user?.isDemo) {
+            const newBud = { ...data, _id: Math.random().toString(36).substr(2, 9) };
+            dispatch({ type: 'ADD_BUDGET', payload: newBud });
+            toast.success('Budget created (Demo)');
+            return newBud;
+        }
         try {
             const res = await budgetApi.create(data);
             dispatch({ type: 'ADD_BUDGET', payload: res.data });
@@ -260,6 +391,12 @@ export const GlobalProvider = ({ children }) => {
     }
 
     async function updateBudget(id, data) {
+        if (user?.isDemo) {
+            const updatedBud = { ...data, _id: id };
+            dispatch({ type: 'UPDATE_BUDGET', payload: updatedBud });
+            toast.success('Budget updated (Demo)');
+            return updatedBud;
+        }
         try {
             const res = await budgetApi.update(id, data);
             dispatch({ type: 'UPDATE_BUDGET', payload: res.data });
@@ -272,6 +409,11 @@ export const GlobalProvider = ({ children }) => {
     }
 
     async function deleteBudget(id) {
+        if (user?.isDemo) {
+            dispatch({ type: 'DELETE_BUDGET', payload: id });
+            toast.success('Budget deleted (Demo)');
+            return;
+        }
         try {
             await budgetApi.delete(id);
             dispatch({ type: 'DELETE_BUDGET', payload: id });
@@ -281,9 +423,80 @@ export const GlobalProvider = ({ children }) => {
         }
     }
 
+    // ─── Recurring Bill Actions ───
+    async function getRecurringBills() {
+        if (user?.isDemo) {
+            dispatch({ type: 'GET_RECURRING_BILLS', payload: demoData.recurringBills || [] });
+            return;
+        }
+        try {
+            const res = await recurringApi.getAll();
+            dispatch({ type: 'GET_RECURRING_BILLS', payload: res.data.data });
+        } catch (err) {
+            // Silently fail UI will show empty list
+        }
+    }
+
+    async function addRecurringBill(data) {
+        if (user?.isDemo) {
+            const newBill = { ...data, _id: Math.random().toString(36).substr(2, 9) };
+            dispatch({ type: 'ADD_RECURRING_BILL', payload: newBill });
+            toast.success('Bill created (Demo)');
+            return newBill;
+        }
+        try {
+            const res = await recurringApi.create(data);
+            dispatch({ type: 'ADD_RECURRING_BILL', payload: res.data.data });
+            toast.success('Bill added');
+            return res.data.data;
+        } catch (err) {
+            toast.error(err.response?.data?.error?.[0] || 'Failed to add bill');
+        }
+    }
+
+    async function updateRecurringBill(id, data) {
+        if (user?.isDemo) {
+            const updatedBill = { ...data, _id: id };
+            dispatch({ type: 'UPDATE_RECURRING_BILL', payload: updatedBill });
+            toast.success('Bill updated (Demo)');
+            return updatedBill;
+        }
+        try {
+            const res = await recurringApi.update(id, data);
+            dispatch({ type: 'UPDATE_RECURRING_BILL', payload: res.data.data });
+            toast.success('Bill updated');
+            return res.data.data;
+        } catch (err) {
+            toast.error(err.response?.data?.error?.[0] || 'Failed to update bill');
+        }
+    }
+
+    async function deleteRecurringBill(id) {
+        if (user?.isDemo) {
+            dispatch({ type: 'DELETE_RECURRING_BILL', payload: id });
+            toast.success('Bill deleted (Demo)');
+            return;
+        }
+        try {
+            await recurringApi.delete(id);
+            dispatch({ type: 'DELETE_RECURRING_BILL', payload: id });
+            toast.success('Bill deleted');
+        } catch (err) {
+            toast.error('Failed to delete bill');
+        }
+    }
+
+    // Load data when user is authenticated
     // Load data when user is authenticated
     useEffect(() => {
-        if (user) {
+        if (user?.isDemo) {
+            dispatch({ type: 'GET_TRANSACTIONS', payload: demoData.transactions });
+            dispatch({ type: 'GET_ACCOUNTS', payload: demoData.accounts });
+            dispatch({ type: 'GET_CATEGORIES', payload: demoData.categories });
+            dispatch({ type: 'GET_BUDGETS', payload: demoData.budgets });
+            dispatch({ type: 'GET_RECURRING_BILLS', payload: demoData.recurringBills || [] });
+            dispatch({ type: 'SET_LOADING', payload: false });
+        } else if (user) {
             getTransactions();
             getAccounts();
             getCategories();
@@ -321,7 +534,12 @@ export const GlobalProvider = ({ children }) => {
                 getBudgets,
                 addBudget,
                 updateBudget,
-                deleteBudget
+                deleteBudget,
+                recurringBills: state.recurringBills,
+                getRecurringBills,
+                addRecurringBill,
+                updateRecurringBill,
+                deleteRecurringBill
             }}
         >
             {children}

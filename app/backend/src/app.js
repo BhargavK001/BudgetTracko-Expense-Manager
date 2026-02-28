@@ -44,7 +44,7 @@ app.use(helmet({
             scriptSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],  // needed for inline styles
             imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com', 'https://*.googleusercontent.com', 'https://avatars.githubusercontent.com'],
-            connectSrc: ["'self'", process.env.FRONTEND_URL],
+            connectSrc: ["'self'", process.env.FRONTEND_URL, "ws:", "wss:"],
             fontSrc: ["'self'"],
             objectSrc: ["'none'"],
             frameSrc: ["'none'"],
@@ -140,8 +140,8 @@ app.use('/auth', (req, res, next) => {
 });
 
 // ─── CSRF Protection (Double-Submit Cookie Pattern) ───
-// Paths exempt from CSRF verification (e.g. external webhooks)
-const csrfExemptPaths = ['/api/payments/webhook'];
+// Paths exempt from CSRF verification (e.g. external webhooks, login)
+const csrfExemptPaths = ['/api/payments/webhook', '/auth/login', '/auth/signup', '/auth/forgotpassword', '/auth/resetpassword'];
 
 const csrfCookieOptions = () => {
     const isProd = process.env.NODE_ENV === 'production';
@@ -172,6 +172,11 @@ app.use((req, res, next) => {
 
     // Skip CSRF for exempt paths (e.g. payment webhooks that verify their own signature)
     if (csrfExemptPaths.some(p => req.path === p || req.originalUrl.endsWith(p))) {
+        return next();
+    }
+
+    // Bypass CSRF for requests with an Authorization header (API calls)
+    if (req.headers.authorization) {
         return next();
     }
 
@@ -214,6 +219,10 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/budgets', budgetRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/recurring', require('./routes/recurring'));
+app.use('/api/tracko-pulse', require('./tracko-pulse/api/routes/ask-tracko'));
+app.use('/api/tracko-pulse', require('./tracko-pulse/api/routes/pulse-analysis'));
+app.use('/api/tracko-pulse/notifications', require('./tracko-pulse/api/routes/smart-notifications'));
 
 app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' })); // Simple health check
 // CSRF Token Endpoint - Explicitly fetch token

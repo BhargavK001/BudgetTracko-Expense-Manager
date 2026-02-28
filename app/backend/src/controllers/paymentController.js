@@ -35,10 +35,13 @@ exports.createSubscription = async (req, res) => {
         }
 
         let planId;
+        let originalPrice = 0;
         if (plan === 'pro') {
             planId = process.env.RAZORPAY_PLAN_ID_PRO;
+            originalPrice = 49;
         } else if (plan === 'squad') {
             planId = process.env.RAZORPAY_PLAN_ID_SQUAD;
+            originalPrice = 99;
         } else {
             return res.status(400).json({ message: 'Invalid plan selected' });
         }
@@ -63,7 +66,7 @@ exports.createSubscription = async (req, res) => {
             if (!appliedCoupon.applicablePlans.includes(plan)) {
                 return res.status(400).json({ message: `This coupon is not applicable to the ${plan} plan` });
             }
-            // Check usage limit (non-atomic check, strict check happens at verification)
+            // Check usage limit 
             if (appliedCoupon.usageLimit > 0 && appliedCoupon.usedCount >= appliedCoupon.usageLimit) {
                 return res.status(400).json({ message: 'This coupon has reached its usage limit' });
             }
@@ -77,7 +80,7 @@ exports.createSubscription = async (req, res) => {
         const subscriptionOptions = {
             plan_id: planId,
             customer_notify: 1,
-            total_count: 120, // 10 years of monthly payments
+            total_count: 120, // 10 years
             quantity: 1,
             notes: {
                 userId: req.user.id,
@@ -85,73 +88,87 @@ exports.createSubscription = async (req, res) => {
             }
         };
 
-        // Apply coupon effects to subscription
+        let initialChargeAmount = originalPrice;
+        let shouldDelaySubscription = false;
+        let delayMonths = 0;
+
+        // Apply coupon effects
         if (appliedCoupon) {
             subscriptionOptions.notes.couponCode = appliedCoupon.code;
 
             if (appliedCoupon.type === 'trial') {
-                // Free trial: Razorpay supports trial periods via start_at
-                // Set start_at to X days from now (trial period)
+                // Free trial
+                shouldDelaySubscription = true;
+                delayMonths = 0; // Handled by days
                 const trialEnd = new Date();
                 trialEnd.setDate(trialEnd.getDate() + appliedCoupon.trialDays);
                 subscriptionOptions.start_at = Math.floor(trialEnd.getTime() / 1000);
+                initialChargeAmount = 0;
             } else if (appliedCoupon.type === 'nominal') {
-                // Nominal price: Pay X now, start subscription later
-                const nominalEnd = new Date();
-                nominalEnd.setMonth(nominalEnd.getMonth() + appliedCoupon.nominalDurationMonths);
-                subscriptionOptions.start_at = Math.floor(nominalEnd.getTime() / 1000);
-
-                // Create immediate order for the nominal amount
-                try {
-                    const nominalOrder = await razorpay.orders.create({
-                        amount: appliedCoupon.nominalPrice * 100, // in paise
-                        currency: 'INR',
-                        receipt: `nominal_${req.user.id}_${Date.now()}`,
-                        notes: {
-                            userId: req.user.id,
-                            couponCode: appliedCoupon.code,
-                            reason: 'nominal_subscription_entry'
-                        }
-                    });
-
-                    // Attach order ID to subscription for reference
-                    subscriptionOptions.notes.initial_order_id = nominalOrder.id;
-
-                    // Store for response/db
-                    req.nominalOrderId = nominalOrder.id;
-                } catch (err) {
-                    console.error('Error creating nominal order:', err);
-                    return res.status(500).json({ message: 'Failed to create initial charge for nominal coupon' });
-                }
+                // Nominal price
+                shouldDelaySubscription = true;
+                delayMonths = appliedCoupon.nominalDurationMonths || 1;
+                initialChargeAmount = appliedCoupon.nominalPrice;
+            } else if (appliedCoupon.type === 'percentage') {
+                // Percentage discount for first month (implied structure)
+                // If it's a recurring discount, Razorpay requires a different Plan or Add-on, which is complex.
+                // We assume coupons apply to the FIRST invoice only for simplicity in this flow, 
+                // OR we accept that we only support "First Month X% Off".
+                shouldDelaySubscription = true;
+                delayMonths = 1;
+                const discount = (originalPrice * appliedCoupon.value) / 100;
+                initialChargeAmount = Math.max(0, originalPrice - discount);
+            } else if (appliedCoupon.type === 'fixed') {
+                // Fixed amount off first month
+                shouldDelaySubscription = true;
+                delayMonths = 1;
+                initialChargeAmount = Math.max(0, originalPrice - appliedCoupon.value);
             }
+        }
+
+        // Handle Immediate Charge (Upfront Order) if needed
+        // If there is ANY deviation from the standard plan price for the first payment, 
+        // we create an Order for that amount and start the Sub later.
+        // Handle Immediate Charge via Add-ons
+        // If there is ANY deviation from the standard plan price for the first payment, 
+        // we use an ADDON to charge that amount immediately, and delay the subscription start.
+        if (shouldDelaySubscription && initialChargeAmount > 0) {
+            // Delay subscription start
+            if (!subscriptionOptions.start_at) { // If not already set by trial
+                const startData = new Date();
+                startData.setMonth(startData.getMonth() + delayMonths);
+                // Add a small buffer (e.g. 5 mins) or just next month
+                subscriptionOptions.start_at = Math.floor(startData.getTime() / 1000);
+            }
+
+            // Add the immediate charge as an add-on
+            subscriptionOptions.addons = [
+                {
+                    item: {
+                        name: 'Initial Subscription Charge',
+                        amount: Math.round(initialChargeAmount * 100), // in paise
+                        currency: 'INR',
+                        description: appliedCoupon ? `Coupon ${appliedCoupon.code} applied` : 'Initial Charge'
+                    }
+                }
+            ];
+        } else if (shouldDelaySubscription && initialChargeAmount === 0 && !subscriptionOptions.start_at) {
+            // 100% off first month (effectively a 1 month trial)
+            const startData = new Date();
+            startData.setMonth(startData.getMonth() + delayMonths);
+            subscriptionOptions.start_at = Math.floor(startData.getTime() / 1000);
         }
 
         // Create Subscription
         const subscription = await razorpay.subscriptions.create(subscriptionOptions);
 
-        // Determine amount based on plan
-        const planPrices = { pro: 49, squad: 99 };
-        let amount = planPrices[plan];
-
-        // Adjust recorded amount based on coupon
-        if (appliedCoupon) {
-            if (appliedCoupon.type === 'percentage') {
-                amount = Math.max(0, amount - (amount * appliedCoupon.value / 100));
-            } else if (appliedCoupon.type === 'fixed') {
-                amount = Math.max(0, amount - appliedCoupon.value);
-            } else if (appliedCoupon.type === 'trial') {
-                amount = 0; // No charge during trial
-            } else if (appliedCoupon.type === 'nominal') {
-                amount = appliedCoupon.nominalPrice; // Initial nominal charge
-            }
-        }
-
-        // Create a pending payment/subscription record
+        // Record Payment Intent (Subscription)
         const payment = new Payment({
             userId: req.user.id,
             subscriptionId: subscription.id,
-            orderId: req.nominalOrderId, // Store nominal order ID if exists
-            amount: amount,
+            orderId: null, // No separate order ID for subscriptions with addons
+            paymentId: null, // Will be filled on success
+            amount: initialChargeAmount, // The amount user pays NOW
             currency: 'INR',
             status: 'created',
             plan: plan
@@ -159,15 +176,13 @@ exports.createSubscription = async (req, res) => {
 
         await payment.save();
 
-        /* Coupon usage already handled atomically at start */
-
         res.json({
             success: true,
             subscription_id: subscription.id,
             key: process.env.RAZORPAY_KEY_ID,
             plan_id: planId,
             couponApplied: appliedCoupon ? appliedCoupon.code : null,
-            initial_order_id: req.nominalOrderId // Return order ID to client for charge
+            amount: initialChargeAmount // Frontend might use this for display
         });
     } catch (error) {
         if (process.env.NODE_ENV !== 'production') console.error('Error creating subscription:', error);
@@ -178,28 +193,51 @@ exports.createSubscription = async (req, res) => {
 // Verify Subscription Payment
 exports.verifyPayment = async (req, res) => {
     try {
-        const { razorpay_payment_id, razorpay_subscription_id, razorpay_signature } = req.body;
+        const { razorpay_payment_id, razorpay_subscription_id, razorpay_order_id, razorpay_signature } = req.body;
 
-        if (!razorpay_payment_id || !razorpay_subscription_id || !razorpay_signature) {
+        if (!razorpay_payment_id || !razorpay_signature || (!razorpay_subscription_id && !razorpay_order_id)) {
             return res.status(400).json({ message: 'Missing payment details' });
         }
 
-        // Verify Signature
-        // content = razorpay_payment_id + '|' + razorpay_subscription_id
-        const body = razorpay_payment_id + '|' + razorpay_subscription_id;
-        const expectedSignature = crypto
-            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-            .update(body.toString())
-            .digest('hex');
+        let isValid = false;
+        let paymentRecord = null;
+        let paymentBody = '';
 
-        if (expectedSignature === razorpay_signature) {
+        if (razorpay_subscription_id) {
+            // Subscription Flow Verification
+            // content = razorpay_payment_id + '|' + razorpay_subscription_id
+            paymentBody = razorpay_payment_id + '|' + razorpay_subscription_id;
+            const expectedSignature = crypto
+                .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+                .update(paymentBody.toString())
+                .digest('hex');
+
+            if (expectedSignature === razorpay_signature) {
+                isValid = true;
+                paymentRecord = await Payment.findOne({ subscriptionId: razorpay_subscription_id });
+            }
+        } else if (razorpay_order_id) {
+            // Order Flow Verification (Upfront)
+            // content = razorpay_order_id + '|' + razorpay_payment_id
+            paymentBody = razorpay_order_id + '|' + razorpay_payment_id;
+            const expectedSignature = crypto
+                .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET) // Order signature uses Key Secret
+                .update(paymentBody.toString())
+                .digest('hex');
+
+            if (expectedSignature === razorpay_signature) {
+                isValid = true;
+                paymentRecord = await Payment.findOne({ orderId: razorpay_order_id });
+            }
+        }
+
+        if (isValid) {
             // Update Payment Record
-            const payment = await Payment.findOne({ subscriptionId: razorpay_subscription_id });
-            if (payment) {
-                payment.paymentId = razorpay_payment_id;
-                payment.signature = razorpay_signature;
-                payment.status = 'captured';
-                await payment.save();
+            if (paymentRecord) {
+                paymentRecord.paymentId = razorpay_payment_id;
+                paymentRecord.signature = razorpay_signature;
+                paymentRecord.status = 'captured';
+                await paymentRecord.save();
             }
 
             // Update User Subscription
@@ -208,22 +246,28 @@ exports.verifyPayment = async (req, res) => {
                 return res.status(404).json({ message: 'User not found' });
             }
 
-            // Consume coupon atomically if one was applied
-            // We need to fetch the subscription from Razorpay or trust the local state? 
-            // Better to rely on what we stored or fetch subscription.
-            // For now, let's assume we can get it from the payment or user metadata if we stored it.
-            // Actually, we didn't store coupon code in Payment model. We should have.
-            // But we can fetch the subscription from Razorpay to check notes.
+            // Logic to consume coupon if linked to this payment/order
             try {
+                // Try to find coupon from notes in payment or subscription
+                // Since we have the paymentRecord, we know the codes.
+                // But we didn't save coupon in Payment.
+                // We can infer from the subscription or the order notes.
+                let couponCode = null;
                 const razorpay = getRazorpayInstance();
-                const subscription = await razorpay.subscriptions.fetch(razorpay_subscription_id);
-                const couponCode = subscription.notes && subscription.notes.couponCode;
+
+                if (razorpay_order_id) {
+                    const order = await razorpay.orders.fetch(razorpay_order_id);
+                    couponCode = order.notes && order.notes.couponCode;
+                } else if (razorpay_subscription_id) {
+                    const subscription = await razorpay.subscriptions.fetch(razorpay_subscription_id);
+                    couponCode = subscription.notes && subscription.notes.couponCode;
+                }
 
                 if (couponCode) {
                     await Coupon.findOneAndUpdate(
                         {
                             code: couponCode,
-                            usedBy: { $ne: user._id } // Idempotency check
+                            usedBy: { $ne: user._id }
                         },
                         {
                             $inc: { usedCount: 1 },
@@ -233,17 +277,19 @@ exports.verifyPayment = async (req, res) => {
                 }
             } catch (err) {
                 console.error('Error consuming coupon during verification:', err);
-                // Non-blocking error, but should be logged
             }
 
-            user.subscription.plan = payment ? payment.plan : (req.body.plan || 'pro'); // Fallback if payment record missing
+            user.subscription.plan = paymentRecord ? paymentRecord.plan : (req.body.plan || 'pro');
             user.subscription.status = 'active';
-            user.subscription.razorpaySubscriptionId = razorpay_subscription_id;
-            // We fetch authentication details to get customer ID if needed, but usually redundant here
+            // If paying via Order (one-time), we link the Future Sub ID but it might not be active at Razorpay yet.
+            // But we give access.
+            if (razorpay_subscription_id) {
+                user.subscription.razorpaySubscriptionId = razorpay_subscription_id;
+            } else if (paymentRecord && paymentRecord.subscriptionId) {
+                user.subscription.razorpaySubscriptionId = paymentRecord.subscriptionId;
+            }
 
-            // Set expiry to 30 days from now approximately, though webhook will handle real updates
             user.subscription.expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
             await user.save();
 
             res.json({ success: true, message: 'Subscription activated successfully' });
@@ -259,7 +305,10 @@ exports.verifyPayment = async (req, res) => {
 // Get Payment History
 exports.getPaymentHistory = async (req, res) => {
     try {
-        const payments = await Payment.find({ userId: req.user.id }).sort({ createdAt: -1 });
+        const payments = await Payment.find({
+            userId: req.user.id,
+            status: 'captured' // Only show completed payments
+        }).sort({ createdAt: -1 });
         res.json({ success: true, payments });
     } catch (error) {
         if (process.env.NODE_ENV !== 'production') console.error('Error fetching payment history:', error);
