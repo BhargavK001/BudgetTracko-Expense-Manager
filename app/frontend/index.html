@@ -8,10 +8,48 @@
     <link rel="apple-touch-icon" href="/logo192.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-    <title>BudgetTracko - Smart Expense Manager</title>
+    
+    <!-- SEO Meta Tags -->
+    <title>BudgetTracko - Smart Expense Manager for Students in India</title>
+    <meta name="description" content="Take control of your finances with BudgetTracko. The best free expense manager for students in India. Track expenses in Rupees, set budgets, and achieve financial goals." />
+    <meta name="keywords" content="expense manager for students in India, budget tracko, free budget app India, rupee expense tracker, student finance app" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.budgettracko.app/" />
+    <meta property="og:title" content="BudgetTracko - Smart Expense Manager for Students in India" />
+    <meta property="og:description" content="Take control of your finances with BudgetTracko. The best free expense manager for students in India." />
+    <meta property="og:image" content="https://www.budgettracko.app/logo512.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://www.budgettracko.app/" />
+    <meta property="twitter:title" content="BudgetTracko - Smart Expense Manager for Students in India" />
+    <meta property="twitter:description" content="Take control of your finances with BudgetTracko. The best free expense manager for students in India." />
+    <meta property="twitter:image" content="https://www.budgettracko.app/logo512.png" />
+
+    <!-- JSON-LD Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "BudgetTracko",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web, Android",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "INR"
+      },
+      "description": "BudgetTracko is a free expense manager for students in India. Track expenses, set budgets, and achieve financial goals."
+    }
+    </script>
+    
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   </head>
   <body>
+    <!-- Fallback H1 for SEO Crawlers before JS loads -->
+    <h1 style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;">BudgetTracko - Expense Manager for Students in India</h1>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
