@@ -8,18 +8,13 @@ import {
     TextInput,
     Modal,
     Switch,
+    StatusBar,
+    Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, FadeOut, Layout } from 'react-native-reanimated';
-import {
-    DarkTheme,
-    Spacing,
-    FontSize,
-    BorderRadius,
-    NeoShadowSm,
-} from '@/constants/Theme';
+import Animated, { FadeIn, FadeInDown, Layout } from 'react-native-reanimated';
 
 const PRESETS = [
     { name: 'Rent', category: 'Housing', amount: 15000 },
@@ -112,98 +107,112 @@ export default function RecurringBillsScreen() {
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
+            <StatusBar barStyle="dark-content" />
+
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={DarkTheme.textPrimary} />
+            <Animated.View entering={FadeIn.delay(50).duration(300)} style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
+                    <Ionicons name="arrow-back" size={20} color="#111" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Recurring Bills</Text>
-                <View style={{ width: 34 }} />
-            </View>
+                <View style={{ width: 40 }} />
+            </Animated.View>
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
                 {/* Stats Summary */}
-                <View style={styles.statsContainer}>
+                <Animated.View entering={FadeInDown.delay(100).duration(400).springify()} style={styles.statsContainer}>
                     <View style={styles.statsIcon}>
-                        <Ionicons name="calendar-clear-outline" size={24} color={DarkTheme.brandYellow} />
+                        <Ionicons name="calendar-clear-outline" size={24} color="#F59E0B" />
                     </View>
-                    <View>
+                    <View style={{ flex: 1 }}>
                         <Text style={styles.statsLabel}>Total Monthly Estimate</Text>
                         <Text style={styles.statsValue}>₹{totalMonthly.toLocaleString(undefined, { minimumFractionDigits: 0 })}</Text>
                     </View>
-                </View>
+                </Animated.View>
 
                 {/* List Header */}
-                <View style={styles.sectionHeader}>
+                <Animated.View entering={FadeInDown.delay(150).duration(400)} style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Your Subscriptions</Text>
-                    <TouchableOpacity style={styles.addInlineButton} onPress={() => handleOpenModal()}>
-                        <Ionicons name="add" size={20} color={'#FFFFFF'} />
+                    <TouchableOpacity style={styles.addInlineButton} onPress={() => handleOpenModal()} activeOpacity={0.8}>
+                        <Ionicons name="add" size={16} color="#FFFFFF" />
                         <Text style={styles.addInlineText}>Add New</Text>
                     </TouchableOpacity>
-                </View>
+                </Animated.View>
 
                 {/* Bills List */}
-                {sortedBills.map((bill, index) => (
-                    <Animated.View
-                        key={bill.id}
-                        entering={FadeInDown.delay(index * 50)}
-                        layout={Layout.springify()}
-                        style={styles.billCard}
-                    >
-                        <View style={styles.billHeader}>
-                            <View>
-                                <Text style={styles.billName}>{bill.name}</Text>
-                                <View style={styles.categoryBadge}>
-                                    <Text style={styles.categoryText}>{bill.category}</Text>
+                <View style={styles.grid}>
+                    {sortedBills.map((bill, index) => (
+                        <Animated.View
+                            key={bill.id}
+                            layout={Layout.springify()}
+                        >
+                            <Animated.View
+                                entering={FadeInDown.delay(200 + index * 50).duration(400).springify()}
+                                style={styles.billCard}
+                            >
+                                <View style={styles.billHeader}>
+                                    <View style={{ flex: 1 }}>
+                                        <View style={styles.billTitleRow}>
+                                            <Text style={styles.billName}>{bill.name}</Text>
+                                            {bill.autoPay && (
+                                                <View style={styles.autoPayIcon}>
+                                                    <Ionicons name="flash" size={12} color="#F59E0B" />
+                                                </View>
+                                            )}
+                                        </View>
+                                        <View style={styles.categoryBadge}>
+                                            <Text style={styles.categoryText}>{bill.category}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.actionButtons}>
+                                        <TouchableOpacity onPress={() => handleOpenModal(bill)} style={styles.iconButton} activeOpacity={0.7}>
+                                            <Ionicons name="pencil-outline" size={16} color="#8E8E93" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity onPress={() => handleDelete(bill.id)} style={[styles.iconButton, { marginLeft: 8, backgroundColor: 'rgba(244,63,94,0.05)' }]} activeOpacity={0.7}>
+                                            <Ionicons name="trash-outline" size={16} color="#F43F5E" />
+                                        </TouchableOpacity>
+                                    </View>
                                 </View>
-                            </View>
-                            <View style={styles.actionButtons}>
-                                <TouchableOpacity onPress={() => handleOpenModal(bill)} style={styles.iconButton}>
-                                    <Ionicons name="pencil-outline" size={16} color={DarkTheme.textSecondary} />
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => handleDelete(bill.id)} style={[styles.iconButton, { marginLeft: 10 }]}>
-                                    <Ionicons name="trash-outline" size={16} color={DarkTheme.spending} />
-                                </TouchableOpacity>
-                            </View>
-                        </View>
 
-                        <View style={styles.billDetails}>
-                            <View style={styles.detailItem}>
-                                <View style={[styles.detailIcon, { backgroundColor: DarkTheme.income + '22' }]}>
-                                    <Ionicons name="cash-outline" size={16} color={DarkTheme.income} />
+                                <View style={styles.billDetails}>
+                                    <View style={styles.detailItem}>
+                                        <View style={[styles.detailIcon, { backgroundColor: 'rgba(45,202,114,0.1)' }]}>
+                                            <Ionicons name="cash-outline" size={16} color="#2DCA72" />
+                                        </View>
+                                        <View>
+                                            <Text style={styles.detailValue}>₹{bill.amount.toLocaleString()}</Text>
+                                            <Text style={styles.detailLabel}>{bill.frequency === 'monthly' ? 'Monthly' : 'Yearly'}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.detailItem}>
+                                        <View style={[styles.detailIcon, { backgroundColor: 'rgba(56,189,248,0.1)' }]}>
+                                            <Ionicons name="calendar-outline" size={16} color="#38BDF8" />
+                                        </View>
+                                        <View>
+                                            <Text style={styles.detailValue}>Day {bill.dueDate}</Text>
+                                            <Text style={styles.detailLabel}>Due Date</Text>
+                                        </View>
+                                    </View>
                                 </View>
-                                <View>
-                                    <Text style={styles.detailValue}>₹{bill.amount.toLocaleString()}</Text>
-                                    <Text style={styles.detailLabel}>{bill.frequency === 'monthly' ? 'Monthly' : 'Yearly'}</Text>
-                                </View>
-                            </View>
-                            <View style={styles.detailItem}>
-                                <View style={[styles.detailIcon, { backgroundColor: '#2196F322' }]}>
-                                    <Ionicons name="calendar-outline" size={16} color="#2196F3" />
-                                </View>
-                                <View>
-                                    <Text style={styles.detailValue}>Day {bill.dueDate}</Text>
-                                    <Text style={styles.detailLabel}>Due Date</Text>
-                                </View>
-                            </View>
-                        </View>
+                            </Animated.View>
+                        </Animated.View>
+                    ))}
 
-                        {bill.autoPay && (
-                            <View style={styles.autoPayBanner}>
-                                <Ionicons name="flash" size={12} color={'#FFFFFF'} />
-                                <Text style={styles.autoPayText}>Auto-pay Enabled</Text>
-                            </View>
-                        )}
+                    <Animated.View entering={FadeInDown.delay(200 + sortedBills.length * 50).duration(400).springify()}>
+                        <TouchableOpacity style={styles.emptyCard} onPress={() => handleOpenModal()} activeOpacity={0.7}>
+                            <Ionicons name="add-circle-outline" size={32} color="#C7C7CC" />
+                            <Text style={styles.emptyCardText}>Add New Bill / Subscription</Text>
+                        </TouchableOpacity>
                     </Animated.View>
-                ))}
+                </View>
 
                 {sortedBills.length === 0 && (
-                    <View style={styles.emptyState}>
-                        <Ionicons name="receipt-outline" size={64} color={DarkTheme.textMuted} />
+                    <Animated.View entering={FadeIn.delay(300)} style={styles.emptyState}>
+                        <Ionicons name="receipt-outline" size={64} color="#E5E5EA" />
                         <Text style={styles.emptyTitle}>No recurring bills</Text>
                         <Text style={styles.emptyDesc}>Add your rent, subscriptions or utilities here to track them easily.</Text>
-                    </View>
+                    </Animated.View>
                 )}
 
                 <View style={{ height: 100 }} />
@@ -221,7 +230,7 @@ export default function RecurringBillsScreen() {
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>{editingBill ? 'Edit Bill' : 'New Bill'}</Text>
                             <TouchableOpacity onPress={() => setIsModalOpen(false)}>
-                                <Ionicons name="close" size={24} color={DarkTheme.textPrimary} />
+                                <Ionicons name="close-circle" size={28} color="#C7C7CC" />
                             </TouchableOpacity>
                         </View>
 
@@ -241,6 +250,7 @@ export default function RecurringBillsScreen() {
                                                     category: p.category,
                                                     amount: p.amount.toString()
                                                 })}
+                                                activeOpacity={0.8}
                                             >
                                                 <Text style={styles.presetChipText}>{p.name}</Text>
                                             </TouchableOpacity>
@@ -254,19 +264,19 @@ export default function RecurringBillsScreen() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="e.g. Netflix"
-                                    placeholderTextColor={DarkTheme.textMuted}
+                                    placeholderTextColor="#C7C7CC"
                                     value={formData.name}
                                     onChangeText={(val) => setFormData({ ...formData, name: val })}
                                 />
                             </View>
 
                             <View style={styles.row}>
-                                <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+                                <View style={[styles.formGroup, { flex: 1, marginRight: 12 }]}>
                                     <Text style={styles.label}>Amount (₹)</Text>
                                     <TextInput
                                         style={styles.input}
                                         placeholder="0"
-                                        placeholderTextColor={DarkTheme.textMuted}
+                                        placeholderTextColor="#C7C7CC"
                                         keyboardType="numeric"
                                         value={formData.amount}
                                         onChangeText={(val) => setFormData({ ...formData, amount: val })}
@@ -277,7 +287,7 @@ export default function RecurringBillsScreen() {
                                     <TextInput
                                         style={styles.input}
                                         placeholder="1"
-                                        placeholderTextColor={DarkTheme.textMuted}
+                                        placeholderTextColor="#C7C7CC"
                                         keyboardType="numeric"
                                         maxLength={2}
                                         value={formData.dueDate}
@@ -291,26 +301,27 @@ export default function RecurringBillsScreen() {
                                 <TextInput
                                     style={styles.input}
                                     placeholder="Category"
-                                    placeholderTextColor={DarkTheme.textMuted}
+                                    placeholderTextColor="#C7C7CC"
                                     value={formData.category}
                                     onChangeText={(val) => setFormData({ ...formData, category: val })}
                                 />
                             </View>
 
                             <View style={styles.switchGroup}>
-                                <View>
+                                <View style={{ flex: 1 }}>
                                     <Text style={styles.switchLabel}>Auto-Pay</Text>
                                     <Text style={styles.switchSubLabel}>Mark if this is automatically deducted</Text>
                                 </View>
                                 <Switch
                                     value={formData.autoPay}
                                     onValueChange={(val) => setFormData({ ...formData, autoPay: val })}
-                                    trackColor={{ false: '#333', true: DarkTheme.brandYellow + '88' }}
-                                    thumbColor={formData.autoPay ? DarkTheme.brandYellow : '#666'}
+                                    trackColor={{ false: '#E5E5EA', true: '#6366F1' }}
+                                    thumbColor="#fff"
+                                    ios_backgroundColor="#E5E5EA"
                                 />
                             </View>
 
-                            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                            <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.8}>
                                 <Text style={styles.saveButtonText}>{editingBill ? 'Update Bill' : 'Save Bill'}</Text>
                             </TouchableOpacity>
 
@@ -326,127 +337,147 @@ export default function RecurringBillsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: DarkTheme.bg,
+        backgroundColor: '#fff',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
-        borderBottomWidth: 2,
-        borderBottomColor: DarkTheme.neoBorder,
+        paddingHorizontal: 24,
+        paddingVertical: 14,
     },
     backButton: {
-        padding: 5,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F5F5F5',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     headerTitle: {
-        fontSize: FontSize.lg,
+        fontSize: 18,
         fontWeight: '800',
-        color: DarkTheme.textPrimary,
-        textTransform: 'uppercase',
+        color: '#111',
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        padding: Spacing.lg,
+        padding: 24,
     },
     statsContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
-        padding: Spacing.lg,
-        marginBottom: Spacing.xl,
-        borderWidth: 2,
-        borderColor: DarkTheme.brandYellow + '44',
-        gap: Spacing.md,
+        backgroundColor: '#fff',
+        borderRadius: 24,
+        padding: 20,
+        marginBottom: 32,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 10,
+        elevation: 2,
+        gap: 16,
     },
     statsIcon: {
         width: 48,
         height: 48,
-        borderRadius: BorderRadius.sm,
-        backgroundColor: DarkTheme.brandYellow + '22',
+        borderRadius: 16,
+        backgroundColor: 'rgba(245,158,11,0.1)',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: DarkTheme.brandYellow + '44',
+        borderColor: 'rgba(245,158,11,0.2)',
     },
     statsLabel: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: DarkTheme.textSecondary,
+        fontSize: 11,
+        fontWeight: '800',
+        color: '#8E8E93',
         textTransform: 'uppercase',
         letterSpacing: 1,
         marginBottom: 2,
     },
     statsValue: {
-        fontSize: FontSize.xl,
+        fontSize: 24,
         fontWeight: '900',
-        color: DarkTheme.textPrimary,
+        color: '#111',
     },
     sectionHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: Spacing.lg,
+        marginBottom: 16,
     },
     sectionTitle: {
-        fontSize: FontSize.lg,
+        fontSize: 16,
         fontWeight: '800',
-        color: DarkTheme.textPrimary,
+        color: '#111',
     },
     addInlineButton: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: DarkTheme.accent,
+        backgroundColor: '#6366F1',
         paddingHorizontal: 12,
         paddingVertical: 6,
-        borderRadius: BorderRadius.sm,
-        borderWidth: 1.5,
-        borderColor: 'transparent',
+        borderRadius: 12,
         gap: 4,
     },
     addInlineText: {
-        fontSize: 10,
-        fontWeight: '900',
+        fontSize: 11,
+        fontWeight: '800',
         color: '#FFFFFF',
         textTransform: 'uppercase',
     },
+    grid: {
+        gap: 16,
+    },
     billCard: {
-        backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
-        padding: Spacing.lg,
-        marginBottom: Spacing.md,
-        borderWidth: 2,
-        borderColor: DarkTheme.neoBorder,
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: '#F2F2F7',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.03,
+        shadowRadius: 6,
+        elevation: 1,
     },
     billHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: Spacing.lg,
+        marginBottom: 16,
+    },
+    billTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 4,
+        gap: 6,
     },
     billName: {
-        fontSize: FontSize.lg,
+        fontSize: 16,
         fontWeight: '800',
-        color: DarkTheme.textPrimary,
-        marginBottom: 4,
+        color: '#111',
+    },
+    autoPayIcon: {
+        backgroundColor: 'rgba(245,158,11,0.1)',
+        padding: 4,
+        borderRadius: 8,
     },
     categoryBadge: {
-        backgroundColor: DarkTheme.bg,
+        backgroundColor: '#F5F5F5',
         paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 4,
+        paddingVertical: 4,
+        borderRadius: 6,
         alignSelf: 'flex-start',
-        borderWidth: 1,
-        borderColor: DarkTheme.neoBorder,
     },
     categoryText: {
         fontSize: 10,
         fontWeight: '700',
-        color: DarkTheme.textSecondary,
+        color: '#8E8E93',
         textTransform: 'uppercase',
     },
     actionButtons: {
@@ -454,58 +485,55 @@ const styles = StyleSheet.create({
     },
     iconButton: {
         padding: 8,
-        backgroundColor: DarkTheme.bg,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: DarkTheme.neoBorder,
+        backgroundColor: '#F5F5F5',
+        borderRadius: 10,
     },
     billDetails: {
         flexDirection: 'row',
         borderTopWidth: 1,
-        borderTopColor: DarkTheme.separator,
-        paddingTop: Spacing.md,
-        gap: Spacing.xl,
+        borderTopColor: '#F2F2F7',
+        paddingTop: 16,
+        gap: 24,
     },
     detailItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
+        gap: 12,
     },
     detailIcon: {
         width: 32,
         height: 32,
-        borderRadius: 16,
+        borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
     },
     detailValue: {
-        fontSize: FontSize.md,
+        fontSize: 15,
         fontWeight: '800',
-        color: DarkTheme.textPrimary,
+        color: '#111',
         lineHeight: 18,
     },
     detailLabel: {
         fontSize: 10,
         fontWeight: '600',
-        color: DarkTheme.textMuted,
+        color: '#8E8E93',
         textTransform: 'uppercase',
     },
-    autoPayBanner: {
-        flexDirection: 'row',
+    emptyCard: {
+        height: 110,
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: '#E2E8F0',
+        borderStyle: 'dashed',
+        backgroundColor: '#FAFAFA',
         alignItems: 'center',
-        backgroundColor: DarkTheme.accent,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 4,
-        marginTop: Spacing.md,
-        gap: 4,
-        alignSelf: 'flex-start',
+        justifyContent: 'center',
+        gap: 8,
     },
-    autoPayText: {
-        fontSize: 10,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        textTransform: 'uppercase',
+    emptyCardText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#8E8E93',
     },
     emptyState: {
         alignItems: 'center',
@@ -514,86 +542,82 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     emptyTitle: {
-        fontSize: FontSize.xl,
+        fontSize: 20,
         fontWeight: '800',
-        color: DarkTheme.textPrimary,
+        color: '#111',
     },
     emptyDesc: {
-        fontSize: FontSize.sm,
-        color: DarkTheme.textSecondary,
+        fontSize: 14,
+        color: '#8E8E93',
         textAlign: 'center',
         maxWidth: '80%',
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.8)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: DarkTheme.bg,
-        borderTopLeftRadius: BorderRadius.lg,
-        borderTopRightRadius: BorderRadius.lg,
-        maxHeight: '85%',
-        borderTopWidth: 3,
-        borderTopColor: DarkTheme.brandYellow,
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        maxHeight: '90%',
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: Spacing.xl,
+        padding: 24,
         borderBottomWidth: 1,
-        borderBottomColor: DarkTheme.separator,
+        borderBottomColor: '#F2F2F7',
     },
     modalTitle: {
-        fontSize: FontSize.xl,
+        fontSize: 18,
         fontWeight: '900',
-        color: DarkTheme.textPrimary,
+        color: '#111',
         textTransform: 'uppercase',
     },
     modalForm: {
-        padding: Spacing.xl,
+        padding: 24,
     },
     formSection: {
-        marginBottom: Spacing.xl,
+        marginBottom: 24,
     },
     formGroup: {
-        marginBottom: Spacing.lg,
+        marginBottom: 20,
     },
     label: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '800',
-        color: DarkTheme.textSecondary,
+        color: '#8E8E93',
         textTransform: 'uppercase',
         marginBottom: 8,
         letterSpacing: 1,
     },
     presetScroll: {
-        marginHorizontal: -Spacing.xl,
-        paddingHorizontal: Spacing.xl,
+        marginHorizontal: -24,
+        paddingHorizontal: 24,
     },
     presetChip: {
         paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: BorderRadius.sm,
-        backgroundColor: DarkTheme.cardBg,
-        borderWidth: 1,
-        borderColor: DarkTheme.neoBorder,
-        marginRight: 8,
+        paddingVertical: 10,
+        borderRadius: 12,
+        backgroundColor: '#F5F5F5',
+        marginRight: 10,
     },
     presetChipText: {
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: '700',
-        color: DarkTheme.textPrimary,
+        color: '#111',
     },
     input: {
-        backgroundColor: DarkTheme.cardBg,
-        borderWidth: 2,
-        borderColor: DarkTheme.neoBorder,
-        borderRadius: BorderRadius.sm,
-        padding: Spacing.md,
-        color: DarkTheme.textPrimary,
-        fontSize: FontSize.md,
+        backgroundColor: '#F5F5F5',
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        borderRadius: 16,
+        padding: 16,
+        color: '#111',
+        fontSize: 16,
         fontWeight: '700',
     },
     row: {
@@ -603,37 +627,35 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: DarkTheme.cardBg,
-        padding: Spacing.lg,
-        borderRadius: BorderRadius.md,
-        borderWidth: 1,
-        borderColor: DarkTheme.neoBorder,
-        marginBottom: Spacing.xl,
+        backgroundColor: '#F5F5F5',
+        padding: 16,
+        borderRadius: 16,
+        marginBottom: 24,
     },
     switchLabel: {
-        fontSize: FontSize.md,
+        fontSize: 15,
         fontWeight: '800',
-        color: DarkTheme.textPrimary,
+        color: '#111',
     },
     switchSubLabel: {
-        fontSize: 10,
-        color: DarkTheme.textMuted,
+        fontSize: 11,
+        color: '#8E8E93',
         marginTop: 2,
     },
     saveButton: {
-        backgroundColor: DarkTheme.accent,
-        paddingVertical: Spacing.lg,
-        borderRadius: BorderRadius.sm,
+        backgroundColor: '#6366F1',
+        paddingVertical: 18,
+        borderRadius: 16,
         alignItems: 'center',
-        borderWidth: 2,
-        borderColor: 'transparent',
-        ...NeoShadowSm,
+        shadowColor: '#6366F1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
     },
     saveButtonText: {
-        fontSize: FontSize.md,
+        fontSize: 16,
         fontWeight: '900',
         color: '#FFFFFF',
-        textTransform: 'uppercase',
     },
 });
-

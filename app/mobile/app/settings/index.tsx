@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, useWindowDimensions, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadowSm } from '@/constants/Theme';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
 export default function SettingsScreen() {
     const router = useRouter();
@@ -12,9 +12,9 @@ export default function SettingsScreen() {
     const { width } = useWindowDimensions();
     const isCompact = width < 360;
     const isTablet = width >= 768;
-    const horizontalPadding = isTablet ? Spacing.xxxl : isCompact ? Spacing.md : Spacing.lg;
+    const horizontalPadding = isTablet ? 32 : isCompact ? 16 : 24;
 
-    const [darkMode, setDarkMode] = React.useState(true);
+    const [darkMode, setDarkMode] = React.useState(false);
     const [biometrics, setBiometrics] = React.useState(false);
 
     const generalSettings = [
@@ -25,18 +25,19 @@ export default function SettingsScreen() {
 
     const dataSettings = [
         { icon: 'cloud-upload-outline', label: 'Backup Data' },
-        { icon: 'trash-outline', label: 'Clear All Data', color: DarkTheme.spending },
+        { icon: 'trash-outline', label: 'Clear All Data', color: '#F43F5E' },
     ];
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
-            <View style={[styles.header, { paddingHorizontal: horizontalPadding }]}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={20} color={DarkTheme.textPrimary} />
+            <StatusBar barStyle="dark-content" />
+            <Animated.View entering={FadeIn.delay(50).duration(300)} style={[styles.header, { paddingHorizontal: horizontalPadding }]}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
+                    <Ionicons name="arrow-back" size={20} color="#111" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Settings</Text>
-                <View style={{ width: 34 }} />
-            </View>
+                <View style={{ width: 40 }} />
+            </Animated.View>
 
             <ScrollView
                 style={styles.scrollView}
@@ -50,104 +51,121 @@ export default function SettingsScreen() {
                 showsVerticalScrollIndicator={false}
             >
                 <View style={[styles.contentInner, isTablet && styles.contentInnerTablet]}>
-                    <LinearGradient
-                        colors={['#1E2D6B', '#0D1630', '#060D1F']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={[styles.topCard, isCompact && styles.topCardCompact]}
-                    >
-                        <View style={styles.topCardIconWrap}>
-                            <Ionicons name="settings-outline" size={18} color={DarkTheme.textAccent} />
+                    <Animated.View entering={FadeInDown.delay(100).duration(400).springify()}>
+                        <LinearGradient
+                            colors={['#111', '#1A1C20']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={[styles.topCard, isCompact && styles.topCardCompact]}
+                        >
+                            <View style={styles.topCardIconWrap}>
+                                <Ionicons name="settings-outline" size={18} color="#2DCA72" />
+                            </View>
+                            <View style={styles.topCardTextWrap}>
+                                <Text style={styles.topCardTitle}>Preferences & Security</Text>
+                                <Text style={styles.topCardDesc}>Manage app behavior, reminders, and data controls.</Text>
+                            </View>
+                        </LinearGradient>
+                    </Animated.View>
+
+                    <Animated.View entering={FadeInDown.delay(150).duration(400)}>
+                        <Text style={styles.sectionTitle}>General</Text>
+                        <View style={styles.settingsGroup}>
+                            {generalSettings.map((item, index) => (
+                                <SettingItem
+                                    key={item.label}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    value={item.value}
+                                    onPress={() => { }}
+                                    isLast={index === generalSettings.length - 1}
+                                />
+                            ))}
                         </View>
-                        <View style={styles.topCardTextWrap}>
-                            <Text style={styles.topCardTitle}>Preferences & Security</Text>
-                            <Text style={styles.topCardDesc}>Manage app behavior, reminders, and data controls.</Text>
+                    </Animated.View>
+
+                    <Animated.View entering={FadeInDown.delay(200).duration(400)}>
+                        <Text style={styles.sectionTitle}>Preferences</Text>
+                        <View style={styles.settingsGroup}>
+                            <ToggleSettingRow
+                                icon="moon-outline"
+                                iconColor="#8B5CF6"
+                                iconTint="rgba(139,92,246,0.12)"
+                                label="Dark Mode"
+                                value={darkMode}
+                                onValueChange={setDarkMode}
+                            />
+                            <ToggleSettingRow
+                                icon="finger-print-outline"
+                                iconColor="#2DCA72"
+                                iconTint="rgba(45,202,114,0.12)"
+                                label="Biometric Lock"
+                                value={biometrics}
+                                onValueChange={setBiometrics}
+                                isLast
+                            />
                         </View>
-                    </LinearGradient>
+                    </Animated.View>
 
-                    <Text style={styles.sectionTitle}>General</Text>
-                    <View style={styles.settingsGroup}>
-                        {generalSettings.map((item, index) => (
+                    <Animated.View entering={FadeInDown.delay(250).duration(400)}>
+                        <Text style={styles.sectionTitle}>Notifications</Text>
+                        <View style={styles.settingsGroup}>
                             <SettingItem
-                                key={item.label}
-                                icon={item.icon}
-                                label={item.label}
-                                value={item.value}
-                                onPress={() => { }}
-                                isLast={index === generalSettings.length - 1}
+                                icon="notifications-outline"
+                                iconColor="#F59E0B"
+                                iconTint="rgba(245,158,11,0.12)"
+                                label="Reminders"
+                                onPress={() => router.push('/settings/reminders' as any)}
+                                isLast
                             />
-                        ))}
-                    </View>
+                        </View>
+                    </Animated.View>
 
-                    <Text style={styles.sectionTitle}>Preferences</Text>
-                    <View style={styles.settingsGroup}>
-                        <ToggleSettingRow
-                            icon="moon-outline"
-                            iconColor="#7C4DFF"
-                            iconTint="#7C4DFF22"
-                            label="Dark Mode"
-                            value={darkMode}
-                            onValueChange={setDarkMode}
-                        />
-                        <ToggleSettingRow
-                            icon="finger-print-outline"
-                            iconColor="#4CAF50"
-                            iconTint="#4CAF5022"
-                            label="Biometric Lock"
-                            value={biometrics}
-                            onValueChange={setBiometrics}
-                            isLast
-                        />
-                    </View>
-
-                    <Text style={styles.sectionTitle}>Notifications</Text>
-                    <View style={styles.settingsGroup}>
-                        <SettingItem
-                            icon="notifications-outline"
-                            label="Reminders"
-                            onPress={() => router.push('/settings/reminders')}
-                            isLast
-                        />
-                    </View>
-
-                    <Text style={styles.sectionTitle}>Data Management</Text>
-                    <View style={styles.settingsGroup}>
-                        {dataSettings.map((item, index) => (
-                            <SettingItem
-                                key={item.label}
-                                icon={item.icon}
-                                label={item.label}
-                                color={item.color}
-                                onPress={() => { }}
-                                isLast={index === dataSettings.length - 1}
-                            />
-                        ))}
-                    </View>
+                    <Animated.View entering={FadeInDown.delay(300).duration(400)}>
+                        <Text style={styles.sectionTitle}>Data Management</Text>
+                        <View style={styles.settingsGroup}>
+                            {dataSettings.map((item, index) => (
+                                <SettingItem
+                                    key={item.label}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    color={item.color}
+                                    onPress={() => { }}
+                                    isLast={index === dataSettings.length - 1}
+                                />
+                            ))}
+                        </View>
+                    </Animated.View>
                 </View>
             </ScrollView>
         </View>
     );
 }
 
-function SettingItem({ icon, label, value, onPress, color, isLast }: {
+function SettingItem({ icon, iconColor, iconTint, label, value, onPress, color, isLast }: {
     icon: string;
+    iconColor?: string;
+    iconTint?: string;
     label: string;
     value?: string;
     onPress: () => void;
     color?: string;
     isLast?: boolean;
 }) {
+    const finalIconColor = color || iconColor || '#8E8E93';
+    const finalBgColor = color ? color + '15' : iconTint || '#F5F5F5';
+
     return (
         <TouchableOpacity style={[styles.settingRow, isLast && styles.settingRowLast]} onPress={onPress} activeOpacity={0.7}>
             <View style={styles.settingLeft}>
-                <View style={[styles.settingIcon, { backgroundColor: (color || DarkTheme.textSecondary) + '22' }]}>
-                    <Ionicons name={icon as any} size={18} color={color || DarkTheme.textSecondary} />
+                <View style={[styles.settingIcon, { backgroundColor: finalBgColor }]}>
+                    <Ionicons name={icon as any} size={18} color={finalIconColor} />
                 </View>
                 <Text style={[styles.settingLabel, color ? { color } : {}]}>{label}</Text>
             </View>
             <View style={styles.settingRight}>
                 {value && <Text style={styles.settingValue}>{value}</Text>}
-                <Ionicons name="chevron-forward" size={16} color={DarkTheme.chevron} />
+                <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
             </View>
         </TouchableOpacity>
     );
@@ -181,8 +199,9 @@ function ToggleSettingRow({
             <Switch
                 value={value}
                 onValueChange={onValueChange}
-                trackColor={{ false: '#334155', true: DarkTheme.accent }}
-                thumbColor={value ? '#FFFFFF' : '#e2e8f0'}
+                trackColor={{ false: '#E5E5EA', true: '#2DCA72' }}
+                thumbColor="#fff"
+                ios_backgroundColor="#E5E5EA"
             />
         </View>
     );
@@ -191,32 +210,30 @@ function ToggleSettingRow({
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: DarkTheme.bg,
+        backgroundColor: '#fff',
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingVertical: Spacing.md,
+        paddingVertical: 14,
     },
     backBtn: {
-        width: 34,
-        height: 34,
-        borderRadius: BorderRadius.sm,
-        backgroundColor: DarkTheme.cardBg,
-        borderWidth: 1,
-        borderColor: DarkTheme.border,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F5F5F5',
         justifyContent: 'center',
         alignItems: 'center',
     },
     headerTitle: {
-        fontSize: FontSize.xl,
+        fontSize: 18,
         fontWeight: '800',
-        color: DarkTheme.textPrimary,
+        color: '#111',
     },
     scrollView: { flex: 1 },
     scrollContent: {
-        paddingTop: Spacing.sm,
+        paddingTop: 8,
     },
     contentInner: {
         width: '100%',
@@ -228,66 +245,76 @@ const styles = StyleSheet.create({
     topCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.md,
-        borderRadius: BorderRadius.xl,
-        padding: Spacing.lg,
-        marginBottom: Spacing.xl,
+        gap: 16,
+        borderRadius: 24,
+        padding: 24,
+        marginBottom: 24,
         borderWidth: 1,
-        borderColor: DarkTheme.borderLight,
-        ...NeoShadowSm,
+        borderColor: 'rgba(255,255,255,0.08)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 4,
     },
     topCardCompact: {
-        padding: Spacing.md,
+        padding: 16,
     },
     topCardIconWrap: {
-        width: 42,
-        height: 42,
-        borderRadius: BorderRadius.md,
+        width: 48,
+        height: 48,
+        borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(99,102,241,0.18)',
+        backgroundColor: 'rgba(45,202,114,0.15)',
         borderWidth: 1,
-        borderColor: 'rgba(165,180,252,0.32)',
+        borderColor: 'rgba(45,202,114,0.3)',
     },
     topCardTextWrap: {
         flex: 1,
     },
     topCardTitle: {
-        fontSize: FontSize.md,
+        fontSize: 16,
         fontWeight: '800',
         color: '#FFFFFF',
-        marginBottom: 2,
+        marginBottom: 4,
     },
     topCardDesc: {
-        fontSize: FontSize.xs,
-        color: DarkTheme.textSecondary,
-        fontWeight: '600',
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.6)',
+        fontWeight: '500',
+        lineHeight: 18,
     },
     sectionTitle: {
-        fontSize: FontSize.sm,
+        fontSize: 11,
         fontWeight: '800',
-        color: DarkTheme.textMuted,
-        marginBottom: Spacing.md,
-        marginTop: Spacing.md,
+        color: '#8E8E93',
+        marginBottom: 8,
+        marginTop: 4,
         textTransform: 'uppercase',
-        letterSpacing: 0.8,
-        paddingHorizontal: 2,
+        letterSpacing: 1.2,
+        paddingHorizontal: 8,
     },
     settingsGroup: {
-        backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.lg,
+        backgroundColor: '#fff',
+        borderRadius: 20,
         borderWidth: 1,
-        borderColor: DarkTheme.border,
+        borderColor: '#F2F2F7',
         overflow: 'hidden',
-        marginBottom: Spacing.lg,
+        marginBottom: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 8,
+        elevation: 1,
     },
     settingRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: Spacing.lg,
+        padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: DarkTheme.separator,
+        borderBottomColor: '#F2F2F7',
     },
     settingRowLast: {
         borderBottomWidth: 0,
@@ -295,30 +322,30 @@ const styles = StyleSheet.create({
     settingLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.md,
+        gap: 14,
         flex: 1,
     },
     settingIcon: {
-        width: 34,
-        height: 34,
-        borderRadius: BorderRadius.sm,
+        width: 36,
+        height: 36,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
     },
     settingLabel: {
-        fontSize: FontSize.md,
-        color: DarkTheme.textPrimary,
+        fontSize: 15,
+        color: '#111',
         fontWeight: '600',
         flexShrink: 1,
     },
     settingRight: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.sm,
+        gap: 8,
     },
     settingValue: {
-        fontSize: FontSize.sm,
-        color: DarkTheme.textSecondary,
+        fontSize: 14,
+        color: '#8E8E93',
         fontWeight: '500',
     },
 });
