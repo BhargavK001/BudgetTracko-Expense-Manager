@@ -7,11 +7,7 @@ import { DarkTheme, Spacing, FontSize, BorderRadius } from '@/constants/Theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const CircularGauge: React.FC<{ percent: number; label: string; size?: number }> = ({
-  percent,
-  label,
-  size = 88,
-}) => {
+const CircularGauge = React.memo<{ percent: number; label: string; size?: number }>(({ percent, label, size = 88 }) => {
   const strokeWidth = 8;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -28,40 +24,26 @@ const CircularGauge: React.FC<{ percent: number; label: string; size?: number }>
 
   const color = clamped < 10 ? DarkTheme.spending : clamped < 25 ? DarkTheme.warning : DarkTheme.income;
 
+  const containerStyle = React.useMemo(() => ({ width: size, height: size, alignItems: 'center' as const, justifyContent: 'center' as const }), [size]);
+  const percentStyle = React.useMemo(() => ({ color }), [color]);
+
   return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={containerStyle}>
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <G rotation="-90" origin={`${size / 2}, ${size / 2}`}>
-          <Circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={DarkTheme.border}
-            strokeWidth={strokeWidth}
-            fill="transparent"
-          />
-          <AnimatedCircle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            stroke={color}
-            strokeWidth={strokeWidth}
-            fill="transparent"
-            strokeDasharray={`${circumference} ${circumference}`}
-            animatedProps={animatedProps}
-            strokeLinecap="round"
-          />
+          <Circle cx={size / 2} cy={size / 2} r={radius} stroke={DarkTheme.border} strokeWidth={strokeWidth} fill="transparent" />
+          <AnimatedCircle cx={size / 2} cy={size / 2} r={radius} stroke={color} strokeWidth={strokeWidth} fill="transparent" strokeDasharray={`${circumference} ${circumference}`} animatedProps={animatedProps} strokeLinecap="round" />
         </G>
       </Svg>
       <View style={[StyleSheet.absoluteFillObject, { alignItems: 'center', justifyContent: 'center' }]}>
-        <Text style={[styles.gaugePercent, { color }]}>{clamped.toFixed(0)}%</Text>
+        <Text style={[styles.gaugePercent, percentStyle]}>{clamped.toFixed(0)}%</Text>
         <Text style={styles.gaugeLabel}>{label}</Text>
       </View>
     </View>
   );
-};
+});
 
-export const FinancialHealthWidget = ({ savingsRate }: { savingsRate: number }) => {
+export const FinancialHealthWidget = React.memo(({ savingsRate }: { savingsRate: number }) => {
   const { width } = useWindowDimensions();
   const isCompact = width < 360;
 
@@ -96,9 +78,9 @@ export const FinancialHealthWidget = ({ savingsRate }: { savingsRate: number }) 
       </View>
     </View>
   );
-};
+});
 
-export const SpendingVelocityWidget = ({
+export const SpendingVelocityWidget = React.memo(({
   percent,
   projected,
   target,
@@ -144,9 +126,9 @@ export const SpendingVelocityWidget = ({
       </View>
     </View>
   );
-};
+});
 
-export const UpcomingBillsWidget = () => {
+export const UpcomingBillsWidget = React.memo(() => {
   const { width } = useWindowDimensions();
   const isCompact = width < 360;
 
@@ -182,7 +164,7 @@ export const UpcomingBillsWidget = () => {
       ))}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   card: {

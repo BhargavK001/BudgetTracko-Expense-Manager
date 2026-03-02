@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AnimatedPressable from './AnimatedPressable';
 
 // ── Account type metadata ────────────────────────────────
 export const ACCOUNT_TYPE_META: Record<string, { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; defaultColor: string }> = {
@@ -26,7 +27,7 @@ type AccountCardProps = {
   onLongPress?: () => void;
 };
 
-export default function AccountCard({
+function AccountCard({
   name, type, balance, balanceNum = 0, color, masked = true,
   creditLimit, onPress, onLongPress,
 }: AccountCardProps) {
@@ -40,37 +41,40 @@ export default function AccountCard({
   const usagePct = hasLimit ? Math.min((used / creditLimit!) * 100, 100) : 0;
   const available = hasLimit ? Math.max(creditLimit! - used, 0) : 0;
 
+  const accentBarStyle = useMemo(() => ({ backgroundColor: accentColor }), [accentColor]);
+  const iconBgStyle = useMemo(() => ({ backgroundColor: accentColor + '14' }), [accentColor]);
+  const badgeBgStyle = useMemo(() => ({ backgroundColor: accentColor + '12' }), [accentColor]);
+  const badgeTextStyle = useMemo(() => ({ color: accentColor }), [accentColor]);
+  const balanceColor = useMemo(() => ({ color: masked ? '#C7C7CC' : isNegative ? '#F43F5E' : '#111' }), [masked, isNegative]);
+  const creditFillStyle = useMemo(() => ({
+    width: `${usagePct}%` as any,
+    backgroundColor: usagePct > 80 ? '#F43F5E' : usagePct > 50 ? '#FF9500' : '#2DCA72',
+  }), [usagePct]);
+
   return (
-    <TouchableOpacity
+    <AnimatedPressable
       style={styles.card}
       onPress={onPress}
       onLongPress={onLongPress}
-      activeOpacity={0.7}
-      delayLongPress={400}
+      scaleDown={0.97}
     >
-      <View style={[styles.accentBar, { backgroundColor: accentColor }]} />
+      <View style={[styles.accentBar, accentBarStyle]} />
 
-      <View style={[styles.iconWrap, { backgroundColor: accentColor + '14' }]}>
+      <View style={[styles.iconWrap, iconBgStyle]}>
         <Ionicons name={meta.icon} size={20} color={accentColor} />
       </View>
 
       <View style={styles.info}>
         <Text style={styles.name} numberOfLines={1}>{name}</Text>
-        <View style={[styles.typeBadge, { backgroundColor: accentColor + '12' }]}>
-          <Text style={[styles.typeBadgeText, { color: accentColor }]}>{meta.label}</Text>
+        <View style={[styles.typeBadge, badgeBgStyle]}>
+          <Text style={[styles.typeBadgeText, badgeTextStyle]}>{meta.label}</Text>
         </View>
 
         {/* Credit limit bar */}
         {hasLimit && !masked && (
           <View style={styles.creditWrap}>
             <View style={styles.creditBarBg}>
-              <View style={[
-                styles.creditBarFill,
-                {
-                  width: `${usagePct}%` as any,
-                  backgroundColor: usagePct > 80 ? '#F43F5E' : usagePct > 50 ? '#FF9500' : '#2DCA72',
-                },
-              ]} />
+              <View style={[styles.creditBarFill, creditFillStyle]} />
             </View>
             <View style={styles.creditLabels}>
               <Text style={styles.creditTxt}>
@@ -86,19 +90,18 @@ export default function AccountCard({
 
       <View style={styles.right}>
         <Text style={styles.balLabel}>Balance</Text>
-        <Text style={[
-          styles.balance,
-          { color: masked ? '#C7C7CC' : isNegative ? '#F43F5E' : '#111' },
-        ]}>
+        <Text style={[styles.balance, balanceColor]}>
           {masked ? '₹ ••••••' : balance}
         </Text>
         <View style={styles.historyHint}>
           <Text style={styles.historyText}>View →</Text>
         </View>
       </View>
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 }
+
+export default React.memo(AccountCard);
 
 const styles = StyleSheet.create({
   card: {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Alert, StatusBar, Switch, TextInput, Modal, Platform,
@@ -15,7 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 // ── Pulsing Badge ────────────────────────────────────────────
-const PulsingBadge = ({ text }: { text: string }) => {
+const PulsingBadge = React.memo(({ text }: { text: string }) => {
   const pulse = useSharedValue(1);
   useEffect(() => {
     pulse.value = withRepeat(
@@ -31,10 +31,10 @@ const PulsingBadge = ({ text }: { text: string }) => {
       <Text style={s.badgeText}>{text}</Text>
     </Animated.View>
   );
-};
+});
 
 // ── Glowing Premium Icon ─────────────────────────────────────
-const GlowingIcon = () => {
+const GlowingIcon = React.memo(() => {
   const glow = useSharedValue(0.15);
   useEffect(() => {
     glow.value = withRepeat(
@@ -53,7 +53,7 @@ const GlowingIcon = () => {
       <Ionicons name="diamond" size={20} color="#F59E0B" />
     </Animated.View>
   );
-};
+});
 
 // ── Types ────────────────────────────────────────────────────
 type MenuItem = {
@@ -83,27 +83,20 @@ export default function MoreScreen() {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
 
-  // ── Handlers ──────────────────────────────────────────────
-  const handleMenuPress = (item: MenuItem) => {
+  // ── Handlers ────────────────────────────────────────────
+  const handleMenuPress = useCallback((item: MenuItem) => {
     if (item.onPress) return item.onPress();
     if (item.route) router.push(item.route as any);
-  };
+  }, [router]);
 
-  const handleExportJSON = () => {
-    Alert.alert('Export Data', 'Your data will be exported as a JSON file.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Export', onPress: () => Alert.alert('Success', 'Data exported successfully!') },
-    ]);
-  };
-
-  const handleExportCSV = () => {
+  const handleExportCSV = useCallback(() => {
     Alert.alert('Export CSV', 'Your transactions will be exported as a CSV spreadsheet.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Export', onPress: () => Alert.alert('Success', 'CSV exported successfully!') },
     ]);
-  };
+  }, []);
 
-  const handleClearData = () => {
+  const handleClearData = useCallback(() => {
     Alert.alert(
       '⚠️ Clear All Data',
       'This will permanently delete ALL your transactions, accounts, categories, and budgets. This cannot be undone.',
@@ -112,19 +105,19 @@ export default function MoreScreen() {
         { text: 'Clear Everything', style: 'destructive', onPress: () => Alert.alert('Done', 'All data has been cleared.') },
       ]
     );
-  };
+  }, []);
 
-  const handleDeleteAccount = () => { setDeleteInput(''); setDeleteModalVisible(true); };
+  const handleDeleteAccount = useCallback(() => { setDeleteInput(''); setDeleteModalVisible(true); }, []);
 
-  const confirmDeleteAccount = async () => {
+  const confirmDeleteAccount = useCallback(async () => {
     if (deleteInput !== 'DELETE') { Alert.alert('Error', 'Please type DELETE to confirm.'); return; }
     setDeleteModalVisible(false);
     try {
       await logout(); router.replace('/(auth)/login');
     } catch (e) { Alert.alert('Error', 'Failed to delete account.'); }
-  };
+  }, [deleteInput, logout, router]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     Alert.alert('Log Out', 'Are you sure you want to log out?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -135,10 +128,12 @@ export default function MoreScreen() {
         },
       },
     ]);
-  };
+  }, [logout, router]);
 
-  // ── Menu Data ─────────────────────────────────────────────
-  const MENU_GROUPS: MenuGroup[] = [
+  const closeDeleteModal = useCallback(() => setDeleteModalVisible(false), []);
+
+  // ── Menu Data (memoized) ───────────────────────────────
+  const MENU_GROUPS: MenuGroup[] = useMemo(() => [
     {
       title: 'Account', delay: 100,
       items: [
@@ -163,7 +158,7 @@ export default function MoreScreen() {
           color: '#F59E0B', toggle: true, toggleValue: notificationsEnabled,
           onToggle: (v) => setNotificationsEnabled(v),
         },
-        { icon: 'grid-outline', label: 'Categories', subtitle: 'Manage expense & income categories', color: '#06B6D4' },
+        { icon: 'grid-outline', label: 'Categories', subtitle: 'Manage expense & income categories', color: '#06B6D4', route: '/features/categories' },
       ],
     },
     {
@@ -176,7 +171,6 @@ export default function MoreScreen() {
     {
       title: 'Data', delay: 400,
       items: [
-        { icon: 'cloud-download-outline', label: 'Export JSON', subtitle: 'Full data backup', color: '#3B82F6', onPress: handleExportJSON },
         { icon: 'document-text-outline', label: 'Export CSV', subtitle: 'Spreadsheet compatible', color: '#06B6D4', onPress: handleExportCSV },
         { icon: 'trash-outline', label: 'Clear All Data', subtitle: 'Delete all transactions & budgets', color: '#F43F5E', danger: true, onPress: handleClearData },
       ],
@@ -185,8 +179,8 @@ export default function MoreScreen() {
       title: 'App', delay: 500,
       items: [
         { icon: 'help-circle-outline', label: 'Help & Support', subtitle: 'FAQs & contact', color: '#06B6D4', route: '/help-support' },
-        { icon: 'star-outline', label: 'Rate Us', subtitle: 'Share your feedback', color: '#FBBF24' },
-        { icon: 'share-social-outline', label: 'Share App', subtitle: 'Invite friends', color: '#EC4899' },
+        { icon: 'star-outline', label: 'Rate Us', subtitle: 'Share your feedback', color: '#FBBF24', onPress: () => Alert.alert('Rate Us', 'Thanks for your support!') },
+        { icon: 'share-social-outline', label: 'Share App', subtitle: 'Invite friends', color: '#EC4899', route: '/share-app' },
       ],
     },
     {
@@ -195,7 +189,7 @@ export default function MoreScreen() {
         { icon: 'person-remove-outline', label: 'Delete Account', subtitle: 'Permanently delete your account & data', color: '#EF4444', danger: true, onPress: handleDeleteAccount },
       ],
     },
-  ];
+  ], [darkModeEnabled, notificationsEnabled, handleExportCSV, handleClearData, handleDeleteAccount]);
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -312,9 +306,9 @@ export default function MoreScreen() {
               <Text style={s.modalTitle}>Delete Account?</Text>
             </View>
             <Text style={s.modalMsg}>
-              This will <Text style={{ fontWeight: '900', color: '#EF4444' }}>permanently delete</Text> your account and all data. This action cannot be undone.
+              This will <Text style={{ fontWeight: '900', color: '#EF4444' }}>permanently delete</Text>{' '}your account and all data. This action cannot be undone.
             </Text>
-            <Text style={s.modalHint}>Type <Text style={{ fontWeight: '900', color: '#EF4444' }}>DELETE</Text> to confirm:</Text>
+            <Text style={s.modalHint}>Type <Text style={{ fontWeight: '900', color: '#EF4444' }}>DELETE</Text>{' '}to confirm:</Text>
             <TextInput
               style={s.modalInput}
               placeholder="Type DELETE"
@@ -324,7 +318,7 @@ export default function MoreScreen() {
               autoCapitalize="characters"
             />
             <View style={s.modalBtns}>
-              <TouchableOpacity style={s.modalCancelBtn} onPress={() => setDeleteModalVisible(false)}>
+              <TouchableOpacity style={s.modalCancelBtn} onPress={closeDeleteModal}>
                 <Text style={s.modalCancelTxt}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -459,5 +453,5 @@ const s = StyleSheet.create({
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: '#EF4444',
   },
-  modalDeleteTxt: { fontSize: 14, fontWeight: '800', color: '#fff' },
+  modalDeleteTxt: { fontSize: 13, fontWeight: '800', color: '#fff', textTransform: 'uppercase', letterSpacing: 0.5 },
 });

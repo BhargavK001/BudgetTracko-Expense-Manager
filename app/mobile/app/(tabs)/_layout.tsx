@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
@@ -26,7 +26,7 @@ const TABS: TabConfig[] = [
 ];
 
 // ── Bouncy tab item ──────────────────────────────────────────
-function TabItem({ tab, isFocused, onPress }: { tab: TabConfig; isFocused: boolean; onPress: () => void }) {
+const TabItem = React.memo(function TabItem({ tab, isFocused, onPress }: { tab: TabConfig; isFocused: boolean; onPress: () => void }) {
   const sc = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
   const press = () => {
@@ -48,10 +48,10 @@ function TabItem({ tab, isFocused, onPress }: { tab: TabConfig; isFocused: boole
       </Animated.View>
     </TouchableOpacity>
   );
-}
+});
 
 // ── Bouncy FAB ───────────────────────────────────────────────
-function FabButton({ onPress }: { onPress: () => void }) {
+const FabButton = React.memo(function FabButton({ onPress }: { onPress: () => void }) {
   const sc = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
   const press = () => {
@@ -65,7 +65,7 @@ function FabButton({ onPress }: { onPress: () => void }) {
       </Animated.View>
     </TouchableOpacity>
   );
-}
+});
 
 // ── Custom Tab Bar ───────────────────────────────────────────
 function CustomTabBar({ state, navigation, onFabPress }: any) {

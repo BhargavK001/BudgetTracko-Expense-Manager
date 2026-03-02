@@ -1,12 +1,12 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, Image, Alert,
+  StatusBar, Image, Alert, FlatList,
 } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTransactions, CATEGORY_ICONS, CATEGORY_COLORS } from '@/context/TransactionContext';
+import { useTransactions, CATEGORY_ICONS, CATEGORY_COLORS, Category } from '@/context/TransactionContext';
 import { useAuth } from '@/context/AuthContext';
 import Animated, {
   FadeInDown, FadeInUp, FadeIn, ZoomIn,
@@ -52,13 +52,13 @@ function useFloat() {
 }
 
 // ── Bouncy button wrapper ────────────────────────────────────
-function BounceButton({ children, onPress, style }: any) {
+const BounceButton = React.memo(function BounceButton({ children, onPress, style }: any) {
   const sc = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
-  const press = () => {
-    sc.value = withSequence(withSpring(0.88, { damping: 10 }), withSpring(1, { damping: 8 }));
+  const press = useCallback(() => {
+    sc.value = withSequence(withSpring(0.88, { damping: 12 }), withSpring(1, { damping: 10 }));
     onPress?.();
-  };
+  }, [onPress]);
   return (
     <Animated.View style={animStyle}>
       <TouchableOpacity onPress={press} activeOpacity={0.9} style={style}>
@@ -66,7 +66,7 @@ function BounceButton({ children, onPress, style }: any) {
       </TouchableOpacity>
     </Animated.View>
   );
-}
+});
 
 // ─────────────────────────────────────────────────────────────
 export default function HomeScreen() {
@@ -93,13 +93,41 @@ export default function HomeScreen() {
 
   const recentTxs = useMemo(() => transactions.slice(0, 6), [transactions]);
 
-  const actions = [
+  const actions = useMemo(() => [
     { icon: 'arrow-top-right', label: 'Send', msg: 'Send Money' },
     { icon: 'arrow-bottom-left', label: 'Receive', msg: 'Receive Money' },
     { icon: 'qrcode-scan', label: 'Scan', msg: 'Scan QR Code' },
     { icon: 'file-document-outline', label: 'Bills', msg: 'Pay Bills' },
     { icon: 'bank-transfer', label: 'Transfer', msg: 'Transfer Funds' },
-  ];
+  ], []);
+
+  const toggleHidden = useCallback(() => setHidden(h => !h), []);
+  const onNotification = useCallback(() => Alert.alert('Notifications', 'No new notifications'), []);
+
+  const renderTxItem = useCallback(({ item: tx, index: i }: { item: any; index: number }) => (
+    <Animated.View entering={FadeInDown.delay(440 + i * 40).duration(360)} style={styles.txRow}>
+      <View style={[styles.txIconWrap, { backgroundColor: (CATEGORY_COLORS[tx.category as Category] || '#F5F5F5') + '1A' }]}>
+        <Ionicons
+          name={(CATEGORY_ICONS[tx.category as Category] || 'receipt-outline') as any}
+          size={20}
+          color={CATEGORY_COLORS[tx.category as Category] || '#111'}
+        />
+      </View>
+      <View style={styles.txMid}>
+        <Text style={styles.txTitle} numberOfLines={1}>{tx.title}</Text>
+        <View style={styles.txMeta}>
+          <Text style={styles.txCat}>{tx.category || 'General'}</Text>
+          <Text style={styles.txDot}>·</Text>
+          <Text style={styles.txDate}>{fmtDate(tx.date)}</Text>
+        </View>
+      </View>
+      <Text style={[styles.txAmt, { color: tx.type === 'income' ? '#2DCA72' : '#111' }]}>
+        {tx.type === 'income' ? '+' : '−'}{fmt(tx.amount)}
+      </Text>
+    </Animated.View>
+  ), []);
+
+  const txKeyExtractor = useCallback((item: any) => item.id, []);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -121,7 +149,7 @@ export default function HomeScreen() {
               <Text style={styles.greetText}>{greeting()}, <Text style={styles.nameText}>{(user as any)?.displayName?.split(' ')[0] || 'Rahul'}</Text></Text>
             </View>
           </View>
-          <BounceButton onPress={() => Alert.alert('Notifications', 'No new notifications')} style={styles.bellBtn}>
+          <BounceButton onPress={onNotification} style={styles.bellBtn}>
             <MaterialCommunityIcons name="bell-outline" size={22} color="#111" />
             <View style={styles.badge} />
           </BounceButton>
@@ -143,7 +171,7 @@ export default function HomeScreen() {
                   {hidden ? '₹ ••••••' : fmt(balance)}
                 </Animated.Text>
               </View>
-              <TouchableOpacity onPress={() => setHidden(!hidden)}>
+              <TouchableOpacity onPress={toggleHidden}>
                 <MaterialCommunityIcons name={hidden ? 'eye-off-outline' : 'eye-outline'} size={22} color="#8E8E93" />
               </TouchableOpacity>
             </View>
@@ -254,28 +282,16 @@ export default function HomeScreen() {
               <Text style={styles.emptyP}>Tap the + button below to add your first transaction.</Text>
             </Animated.View>
           ) : (
-            recentTxs.map((tx, i) => (
-              <Animated.View key={tx.id} entering={FadeInDown.delay(440 + i * 40).duration(360)} style={styles.txRow}>
-                <View style={[styles.txIconWrap, { backgroundColor: (CATEGORY_COLORS[tx.category] || '#F5F5F5') + '1A' }]}>
-                  <Ionicons
-                    name={(CATEGORY_ICONS[tx.category] || 'receipt-outline') as any}
-                    size={20}
-                    color={CATEGORY_COLORS[tx.category] || '#111'}
-                  />
-                </View>
-                <View style={styles.txMid}>
-                  <Text style={styles.txTitle} numberOfLines={1}>{tx.title}</Text>
-                  <View style={styles.txMeta}>
-                    <Text style={styles.txCat}>{tx.category || 'General'}</Text>
-                    <Text style={styles.txDot}>·</Text>
-                    <Text style={styles.txDate}>{fmtDate(tx.date)}</Text>
-                  </View>
-                </View>
-                <Text style={[styles.txAmt, { color: tx.type === 'income' ? '#2DCA72' : '#111' }]}>
-                  {tx.type === 'income' ? '+' : '−'}{fmt(tx.amount)}
-                </Text>
-              </Animated.View>
-            ))
+            <FlatList
+              data={recentTxs}
+              renderItem={renderTxItem}
+              keyExtractor={txKeyExtractor}
+              scrollEnabled={false}
+              initialNumToRender={6}
+              maxToRenderPerBatch={6}
+              windowSize={3}
+              removeClippedSubviews={true}
+            />
           )}
         </View>
 

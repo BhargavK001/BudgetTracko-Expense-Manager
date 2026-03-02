@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DarkTheme, Spacing, FontSize, BorderRadius } from '@/constants/Theme';
+import AnimatedPressable from './AnimatedPressable';
 
 type TransactionItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -15,7 +16,7 @@ type TransactionItemProps = {
   onPress?: () => void;
 };
 
-export default function TransactionItem({
+function TransactionItem({
   icon,
   iconColor = DarkTheme.accent,
   iconBgColor,
@@ -30,16 +31,19 @@ export default function TransactionItem({
   const isCompact = width < 360;
 
   const isExpense = type === 'expense';
-  const amtColor  = isExpense ? DarkTheme.spending : DarkTheme.income;
-  const bg        = iconBgColor ?? (iconColor + '22');
+  const amtColor = isExpense ? DarkTheme.spending : DarkTheme.income;
+  const bg = iconBgColor ?? (iconColor + '22');
+
+  const iconBgStyle = useMemo(() => ({ backgroundColor: bg }), [bg]);
+  const amtStyle = useMemo(() => ({ color: amtColor }), [amtColor]);
 
   return (
-    <TouchableOpacity
+    <AnimatedPressable
       style={[styles.container, isCompact && styles.containerCompact]}
       onPress={onPress}
-      activeOpacity={0.7}
+      scaleDown={0.97}
     >
-      <View style={[styles.iconWrap, isCompact && styles.iconWrapCompact, { backgroundColor: bg }]}>
+      <View style={[styles.iconWrap, isCompact && styles.iconWrapCompact, iconBgStyle]}>
         <Ionicons name={icon} size={isCompact ? 17 : 19} color={iconColor} />
       </View>
 
@@ -49,14 +53,16 @@ export default function TransactionItem({
       </View>
 
       <View style={[styles.right, isCompact && styles.rightCompact]}>
-        <Text style={[styles.amount, isCompact && styles.amountCompact, { color: amtColor }]} numberOfLines={1}>
+        <Text style={[styles.amount, isCompact && styles.amountCompact, amtStyle]} numberOfLines={1}>
           {isExpense ? '-' : '+'}₹{amount}
         </Text>
         <Text style={styles.date}>{date}</Text>
       </View>
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 }
+
+export default React.memo(TransactionItem);
 
 const styles = StyleSheet.create({
   container: {

@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, Modal, TextInput, Alert, Platform,
+  StatusBar, Modal, TextInput, Alert, Platform, FlatList,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -33,19 +33,19 @@ function useFloat() {
 }
 
 // ── Bounce wrapper ───────────────────────────────────────
-function Bounce({ children, onPress, style }: any) {
+const Bounce = React.memo(function Bounce({ children, onPress, style }: any) {
   const sc = useSharedValue(1);
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
-  const press = () => {
-    sc.value = withSequence(withSpring(0.9, { damping: 10 }), withSpring(1, { damping: 8 }));
+  const press = useCallback(() => {
+    sc.value = withSequence(withSpring(0.9, { damping: 12 }), withSpring(1, { damping: 10 }));
     onPress?.();
-  };
+  }, [onPress]);
   return (
     <Animated.View style={anim}>
       <TouchableOpacity onPress={press} activeOpacity={0.9} style={style}>{children}</TouchableOpacity>
     </Animated.View>
   );
-}
+});
 
 // ── Color palette ────────────────────────────────────────
 const COLORS = ['#007AFF', '#2DCA72', '#FF9500', '#F43F5E', '#AF52DE', '#FF2D55', '#5856D6', '#34C759'];
@@ -234,9 +234,31 @@ function AccountHistoryModal({ visible, account, transactions, onClose }: Histor
   const meta = ACCOUNT_TYPE_META[account.type] || ACCOUNT_TYPE_META['bank'];
   const accentColor = account.color || meta.defaultColor;
 
-  const accountTxs = transactions
-    .filter(tx => tx.account === account.name)
-    .slice(0, 20);
+  const accountTxs = useMemo(() =>
+    transactions.filter(tx => tx.account === account.name).slice(0, 20),
+    [transactions, account.name]
+  );
+
+  const iconBgStyle = useMemo(() => ({ backgroundColor: accentColor + '14' }), [accentColor]);
+  const balAmtStyle = useMemo(() => ({ color: account.balance < 0 ? '#F43F5E' : '#111' }), [account.balance]);
+
+  const renderHistoryItem = useCallback(({ item: tx }: { item: any }) => {
+    const isIncome = tx.type === 'income';
+    return (
+      <View style={hm.txRow}>
+        <View style={[hm.txDot, { backgroundColor: isIncome ? '#2DCA72' : '#F43F5E' }]} />
+        <View style={{ flex: 1 }}>
+          <Text style={hm.txTitle} numberOfLines={1}>{tx.title}</Text>
+          <Text style={hm.txDate}>{new Date(tx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
+        </View>
+        <Text style={[hm.txAmt, { color: isIncome ? '#2DCA72' : '#111' }]}>
+          {isIncome ? '+' : '\u2212'}{fmt(tx.amount)}
+        </Text>
+      </View>
+    );
+  }, []);
+
+  const historyKeyExtractor = useCallback((item: any, index: number) => item.id || String(index), []);
 
   return (
     <Modal visible={visible} animationType="slide" transparent statusBarTranslucent>
@@ -247,7 +269,7 @@ function AccountHistoryModal({ visible, account, transactions, onClose }: Histor
 
           {/* Account header */}
           <View style={hm.accHeader}>
-            <View style={[hm.accIcon, { backgroundColor: accentColor + '14' }]}>
+            <View style={[hm.accIcon, iconBgStyle]}>
               <Ionicons name={meta.icon} size={22} color={accentColor} />
             </View>
             <View style={{ flex: 1 }}>
@@ -256,7 +278,7 @@ function AccountHistoryModal({ visible, account, transactions, onClose }: Histor
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={hm.balLabel}>Balance</Text>
-              <Text style={[hm.balAmt, { color: account.balance < 0 ? '#F43F5E' : '#111' }]}>
+              <Text style={[hm.balAmt, balAmtStyle]}>
                 {fmt(account.balance)}
               </Text>
             </View>
@@ -266,31 +288,25 @@ function AccountHistoryModal({ visible, account, transactions, onClose }: Histor
 
           <Text style={hm.sectionTitle}>Transaction History</Text>
 
-          <ScrollView style={hm.txScroll} showsVerticalScrollIndicator={false}>
-            {accountTxs.length === 0 ? (
-              <View style={hm.empty}>
-                <MaterialCommunityIcons name="receipt" size={28} color="#C7C7CC" />
-                <Text style={hm.emptyTxt}>No transactions for this account yet</Text>
-              </View>
-            ) : (
-              accountTxs.map((tx, i) => {
-                const isIncome = tx.type === 'income';
-                return (
-                  <View key={tx.id || i} style={hm.txRow}>
-                    <View style={[hm.txDot, { backgroundColor: isIncome ? '#2DCA72' : '#F43F5E' }]} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={hm.txTitle} numberOfLines={1}>{tx.title}</Text>
-                      <Text style={hm.txDate}>{new Date(tx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
-                    </View>
-                    <Text style={[hm.txAmt, { color: isIncome ? '#2DCA72' : '#111' }]}>
-                      {isIncome ? '+' : '−'}{fmt(tx.amount)}
-                    </Text>
-                  </View>
-                );
-              })
-            )}
-            <View style={{ height: 40 }} />
-          </ScrollView>
+          {accountTxs.length === 0 ? (
+            <View style={hm.empty}>
+              <MaterialCommunityIcons name="receipt" size={28} color="#C7C7CC" />
+              <Text style={hm.emptyTxt}>No transactions for this account yet</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={accountTxs}
+              renderItem={renderHistoryItem}
+              keyExtractor={historyKeyExtractor}
+              style={hm.txScroll}
+              showsVerticalScrollIndicator={false}
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              removeClippedSubviews={true}
+              ListFooterComponent={<View style={{ height: 40 }} />}
+            />
+          )}
         </View>
       </View>
     </Modal>
@@ -366,14 +382,14 @@ export default function AccountsScreen() {
   // ── Handlers ──
   const defaultForm = { name: '', type: 'bank', balance: '', color: '#007AFF', creditLimit: '' };
 
-  const handleOpenAdd = () => { setEditTarget(null); setShowForm(true); };
+  const handleOpenAdd = useCallback(() => { setEditTarget(null); setShowForm(true); }, []);
 
-  const handleOpenEdit = (acc: any) => {
+  const handleOpenEdit = useCallback((acc: any) => {
     setEditTarget(acc);
     setShowForm(true);
-  };
+  }, []);
 
-  const handleFormSubmit = (data: AccountFormData) => {
+  const handleFormSubmit = useCallback((data: AccountFormData) => {
     const accData = {
       name: data.name, type: data.type,
       initBalance: parseFloat(data.balance) || 0,
@@ -389,9 +405,9 @@ export default function AccountsScreen() {
     }
     setShowForm(false); setEditTarget(null);
     Alert.alert('Success', editTarget ? 'Account updated!' : `"${data.name}" added!`);
-  };
+  }, [editTarget]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     if (!editTarget) return;
     Alert.alert('Delete Account', `Are you sure you want to delete "${editTarget.name}"? All related transactions will remain.`, [
       { text: 'Cancel', style: 'cancel' },
@@ -402,9 +418,9 @@ export default function AccountsScreen() {
         }
       },
     ]);
-  };
+  }, [editTarget]);
 
-  const handleMoveUp = (acc: any) => {
+  const handleMoveUp = useCallback((acc: any) => {
     setAllAccounts(prev => {
       const idx = prev.findIndex(a => a.name === acc.name);
       if (idx <= 0) return prev;
@@ -412,9 +428,9 @@ export default function AccountsScreen() {
       [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
       return next;
     });
-  };
+  }, []);
 
-  const handleMoveDown = (acc: any) => {
+  const handleMoveDown = useCallback((acc: any) => {
     setAllAccounts(prev => {
       const idx = prev.findIndex(a => a.name === acc.name);
       if (idx < 0 || idx >= prev.length - 1) return prev;
@@ -422,7 +438,7 @@ export default function AccountsScreen() {
       [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
       return next;
     });
-  };
+  }, []);
 
   const handleLongPress = (acc: any, index: number) => {
     const buttons: any[] = [
