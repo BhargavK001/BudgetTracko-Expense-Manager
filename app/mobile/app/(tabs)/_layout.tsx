@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadow } from '@/constants/Theme';
+import Animated, {
+  useSharedValue, useAnimatedStyle,
+  withSpring, withSequence,
+} from 'react-native-reanimated';
 import AddTransactionModal from '@/components/AddTransactionModal';
-
-const { width } = Dimensions.get('window');
 
 type TabIconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -18,69 +19,77 @@ type TabConfig = {
 };
 
 const TABS: TabConfig[] = [
-  { name: 'index',    title: 'Home',     icon: 'home-outline',            iconFocused: 'home' },
-  { name: 'pulse',    title: 'Pulse',    icon: 'flash-outline',           iconFocused: 'flash' },
-  { name: 'accounts', title: 'Accounts', icon: 'wallet-outline',          iconFocused: 'wallet' },
-  { name: 'more',     title: 'More',     icon: 'grid-outline',            iconFocused: 'grid' },
+  { name: 'index', title: 'Home', icon: 'home-outline', iconFocused: 'home' },
+  { name: 'pulse', title: 'Pulse', icon: 'flash-outline', iconFocused: 'flash' },
+  { name: 'accounts', title: 'Accounts', icon: 'wallet-outline', iconFocused: 'wallet' },
+  { name: 'more', title: 'More', icon: 'grid-outline', iconFocused: 'grid' },
 ];
 
-function CustomTabBar({ state, descriptors, navigation, onFabPress }: any) {
+// ── Bouncy tab item ──────────────────────────────────────────
+function TabItem({ tab, isFocused, onPress }: { tab: TabConfig; isFocused: boolean; onPress: () => void }) {
+  const sc = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
+  const press = () => {
+    sc.value = withSequence(withSpring(0.85, { damping: 12 }), withSpring(1, { damping: 8 }));
+    onPress();
+  };
+  return (
+    <TouchableOpacity style={styles.tabItem} onPress={press} activeOpacity={1}>
+      <Animated.View style={[styles.tabItemInner, animStyle]}>
+        <Ionicons
+          name={isFocused ? tab.iconFocused : tab.icon}
+          size={21}
+          color={isFocused ? '#111' : '#C7C7CC'}
+        />
+        {isFocused && <View style={styles.activeDot} />}
+        <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+          {tab.title}
+        </Text>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
+// ── Bouncy FAB ───────────────────────────────────────────────
+function FabButton({ onPress }: { onPress: () => void }) {
+  const sc = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
+  const press = () => {
+    sc.value = withSequence(withSpring(0.82, { damping: 10 }), withSpring(1, { damping: 7 }));
+    onPress();
+  };
+  return (
+    <TouchableOpacity style={styles.fabTouchable} activeOpacity={1} onPress={press}>
+      <Animated.View style={[styles.fabCircle, animStyle]}>
+        <Ionicons name="add" size={28} color="#fff" />
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
+// ── Custom Tab Bar ───────────────────────────────────────────
+function CustomTabBar({ state, navigation, onFabPress }: any) {
   const insets = useSafeAreaInsets();
-  const fabIndex = 2; // FAB sits between Pulse and Accounts
+  const fabIndex = 2; // FAB between Pulse and Accounts
 
   return (
-    <View style={[styles.outerWrap, { paddingBottom: insets.bottom > 0 ? insets.bottom + 4 : 12 }]}>
-      <View style={styles.tabBarContainer}>
+    <View style={[styles.outerWrap, { paddingBottom: insets.bottom > 0 ? insets.bottom : 8 }]}>
+      <View style={styles.barContainer}>
         {state.routes.map((route: any, index: number) => {
           const tab = TABS.find((t) => t.name === route.name);
           if (!tab) return null;
-
           const isFocused = state.index === index;
           const tabArrayIndex = TABS.findIndex((t) => t.name === route.name);
 
           const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
-            }
+            const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+            if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name);
           };
 
           return (
             <React.Fragment key={route.key}>
-              {/* FAB before Accounts */}
-              {tabArrayIndex === fabIndex && (
-                <TouchableOpacity style={styles.fabWrapper} activeOpacity={0.85} onPress={onFabPress}>
-                  <View style={styles.fabButton}>
-                    <Ionicons name="add" size={26} color="#FFFFFF" />
-                  </View>
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity
-                style={styles.tabItem}
-                onPress={onPress}
-                activeOpacity={0.75}
-              >
-                {isFocused && <View style={styles.activePill} />}
-                <Ionicons
-                  name={isFocused ? tab.iconFocused : tab.icon}
-                  size={21}
-                  color={isFocused ? DarkTheme.tabBarActive : DarkTheme.tabBarInactive}
-                />
-                <Text
-                  style={[
-                    styles.tabLabel,
-                    { color: isFocused ? DarkTheme.tabBarActive : DarkTheme.tabBarInactive },
-                    isFocused && styles.tabLabelActive,
-                  ]}
-                >
-                  {tab.title}
-                </Text>
-              </TouchableOpacity>
+              {tabArrayIndex === fabIndex && <FabButton onPress={onFabPress} />}
+              <TabItem tab={tab} isFocused={isFocused} onPress={onPress} />
             </React.Fragment>
           );
         })}
@@ -89,6 +98,7 @@ function CustomTabBar({ state, descriptors, navigation, onFabPress }: any) {
   );
 }
 
+// ── Layout ───────────────────────────────────────────────────
 export default function TabLayout() {
   const [showAddModal, setShowAddModal] = useState(false);
 
@@ -110,80 +120,61 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   outerWrap: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: 0,
-    backgroundColor: 'transparent',
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    paddingHorizontal: 20, backgroundColor: 'transparent',
   },
-  tabBarContainer: {
+  barContainer: {
     flexDirection: 'row',
-    backgroundColor: DarkTheme.cardBg,
-    borderRadius: BorderRadius.xl,
+    backgroundColor: '#fff',
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'space-around',
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
     borderWidth: 1,
-    borderColor: DarkTheme.border,
+    borderColor: '#F2F2F7',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.45,
-        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
       },
-      android: { elevation: 16 },
+      android: { elevation: 10 },
     }),
   },
   tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.xs,
-    position: 'relative',
+    flex: 1, alignItems: 'center', justifyContent: 'center',
   },
-  activePill: {
-    position: 'absolute',
-    top: -Spacing.sm,
-    width: 32,
-    height: 3,
-    borderRadius: BorderRadius.full,
-    backgroundColor: DarkTheme.tabBarActive,
+  tabItemInner: {
+    alignItems: 'center', justifyContent: 'center', paddingVertical: 4, position: 'relative',
+  },
+  activeDot: {
+    position: 'absolute', bottom: -2,
+    width: 4, height: 4, borderRadius: 2,
+    backgroundColor: '#2DCA72',
   },
   tabLabel: {
-    fontSize: 10,
-    marginTop: 3,
-    fontWeight: '600',
-    letterSpacing: 0.2,
+    fontSize: 10, marginTop: 4, fontWeight: '500', color: '#C7C7CC',
   },
   tabLabelActive: {
-    fontWeight: '700',
+    fontWeight: '700', color: '#111',
   },
-  fabWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -28,
-    marginHorizontal: Spacing.xs,
+  fabTouchable: {
+    alignItems: 'center', justifyContent: 'center',
+    marginTop: -26, marginHorizontal: 4,
   },
-  fabButton: {
-    width: 56,
-    height: 56,
-    borderRadius: BorderRadius.full,
-    backgroundColor: DarkTheme.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
+  fabCircle: {
+    width: 54, height: 54, borderRadius: 27,
+    backgroundColor: '#111', alignItems: 'center', justifyContent: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: DarkTheme.accent,
+        shadowColor: '#111',
         shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.7,
-        shadowRadius: 16,
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
       },
-      android: { elevation: 12 },
+      android: { elevation: 10 },
     }),
   },
 });

@@ -1,348 +1,619 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  StatusBar, Modal, TextInput, Alert, Platform,
+} from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadow } from '@/constants/Theme';
-import AccountCard, { BalanceOverviewCard } from '@/components/AccountCard';
 import { useTransactions } from '@/context/TransactionContext';
+import AccountCard, { ACCOUNT_TYPE_META } from '@/components/AccountCard';
+import Animated, {
+  FadeInDown, FadeInUp, FadeIn, ZoomIn,
+  useSharedValue, useAnimatedStyle,
+  withRepeat, withTiming, withSequence, withSpring, Easing,
+} from 'react-native-reanimated';
 
-function formatCurrency(n: number): string {
-  return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+function fmt(n: number): string {
+  return (n < 0 ? '-' : '') + '₹' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
+// ── Floating glow ────────────────────────────────────────
+function useFloat() {
+  const y = useSharedValue(0);
+  React.useEffect(() => {
+    y.value = withRepeat(
+      withSequence(
+        withTiming(-6, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: 1600, easing: Easing.inOut(Easing.sin) }),
+      ), -1, false,
+    );
+  }, []);
+  return useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
+}
+
+// ── Bounce wrapper ───────────────────────────────────────
+function Bounce({ children, onPress, style }: any) {
+  const sc = useSharedValue(1);
+  const anim = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
+  const press = () => {
+    sc.value = withSequence(withSpring(0.9, { damping: 10 }), withSpring(1, { damping: 8 }));
+    onPress?.();
+  };
+  return (
+    <Animated.View style={anim}>
+      <TouchableOpacity onPress={press} activeOpacity={0.9} style={style}>{children}</TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+// ── Color palette ────────────────────────────────────────
+const COLORS = ['#007AFF', '#2DCA72', '#FF9500', '#F43F5E', '#AF52DE', '#FF2D55', '#5856D6', '#34C759'];
+
+// ── Account type list ────────────────────────────────────
+const ACCOUNT_TYPES = Object.entries(ACCOUNT_TYPE_META).map(([key, meta]) => ({
+  key, label: meta.label, icon: meta.icon, color: meta.defaultColor,
+}));
+
+// ═══════════════════════════════════════════════════════════
+// Add / Edit Account Modal
+// ═══════════════════════════════════════════════════════════
+type AccountFormData = { name: string; type: string; balance: string; color: string; creditLimit: string };
+type FormModalProps = {
+  visible: boolean;
+  editMode: boolean;
+  initial: AccountFormData;
+  onClose: () => void;
+  onSubmit: (data: AccountFormData) => void;
+  onDelete?: () => void;
+};
+
+function AccountFormModal({ visible, editMode, initial, onClose, onSubmit, onDelete }: FormModalProps) {
+  const [name, setName] = useState(initial.name);
+  const [type, setType] = useState(initial.type);
+  const [balance, setBalance] = useState(initial.balance);
+  const [color, setColor] = useState(initial.color);
+  const [creditLimit, setCreditLimit] = useState(initial.creditLimit);
+
+  React.useEffect(() => {
+    setName(initial.name); setType(initial.type);
+    setBalance(initial.balance); setColor(initial.color);
+    setCreditLimit(initial.creditLimit);
+  }, [initial, visible]);
+
+  const handleSubmit = () => {
+    if (!name.trim()) { Alert.alert('Missing Name', 'Please enter an account name.'); return; }
+    onSubmit({ name: name.trim(), type, balance, color, creditLimit });
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent>
+      <View style={fm.overlay}>
+        <TouchableOpacity style={fm.backdrop} activeOpacity={1} onPress={onClose} />
+        <View style={fm.sheet}>
+          <View style={fm.handleRow}><View style={fm.handle} /></View>
+
+          <View style={fm.header}>
+            <Text style={fm.headerTitle}>{editMode ? 'Edit Account' : 'Add Account'}</Text>
+            <TouchableOpacity onPress={onClose} style={fm.closeBtn}>
+              <Ionicons name="close" size={18} color="#111" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={fm.scrollBody} keyboardShouldPersistTaps="handled">
+            {/* Account type selector */}
+            <Text style={fm.label}>Account Type</Text>
+            <View style={fm.typeGrid}>
+              {ACCOUNT_TYPES.map(t => {
+                const sel = type === t.key;
+                return (
+                  <TouchableOpacity key={t.key}
+                    style={[fm.typeCard, sel && { borderColor: t.color, backgroundColor: t.color + '10' }]}
+                    onPress={() => { setType(t.key); if (!color || COLORS.includes(color)) setColor(t.color); }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[fm.typeIcon, { backgroundColor: t.color + '18' }]}>
+                      <Ionicons name={t.icon} size={16} color={t.color} />
+                    </View>
+                    <Text style={[fm.typeLabel, sel && { color: t.color, fontWeight: '700' }]} numberOfLines={1}>{t.label}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Name field */}
+            <Text style={fm.label}>Account Name</Text>
+            <View style={fm.inputRow}>
+              <MaterialCommunityIcons name="pencil-outline" size={16} color="#C7C7CC" style={{ marginRight: 10 }} />
+              <TextInput
+                style={fm.input}
+                placeholder="e.g. HDFC Savings, Paytm..."
+                placeholderTextColor="#C7C7CC"
+                value={name} onChangeText={setName} returnKeyType="done"
+              />
+            </View>
+
+            {/* ✅ Feature 1: Initial Balance field */}
+            <Text style={fm.label}>Initial Balance (₹)</Text>
+            <View style={fm.inputRow}>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: '#2DCA72', marginRight: 8 }}>₹</Text>
+              <TextInput
+                style={fm.input}
+                placeholder="0"
+                placeholderTextColor="#C7C7CC"
+                value={balance} onChangeText={setBalance}
+                keyboardType="numeric" returnKeyType="done"
+              />
+            </View>
+
+            {/* Credit Limit (only for credit cards) */}
+            {type === 'credit' && (
+              <>
+                <Text style={fm.label}>Credit Limit (₹)</Text>
+                <View style={fm.inputRow}>
+                  <Ionicons name="card-outline" size={16} color="#F43F5E" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={fm.input}
+                    placeholder="e.g. 50000"
+                    placeholderTextColor="#C7C7CC"
+                    value={creditLimit} onChangeText={setCreditLimit}
+                    keyboardType="numeric" returnKeyType="done"
+                  />
+                </View>
+              </>
+            )}
+
+            {/* Color picker */}
+            <Text style={fm.label}>Account Color</Text>
+            <View style={fm.colorRow}>
+              {COLORS.map(c => (
+                <TouchableOpacity key={c} onPress={() => setColor(c)}
+                  style={[fm.colorDot, { backgroundColor: c }, color === c && fm.colorDotActive]}
+                />
+              ))}
+            </View>
+          </ScrollView>
+
+          {/* Action buttons */}
+          <View style={fm.actions}>
+            {editMode && onDelete && (
+              <TouchableOpacity style={fm.deleteBtn} onPress={onDelete} activeOpacity={0.8}>
+                <Ionicons name="trash-outline" size={16} color="#F43F5E" />
+                <Text style={fm.deleteTxt}>Delete</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={[fm.submitBtn, editMode && onDelete ? { flex: 1 } : { width: '100%' as any }]} onPress={handleSubmit} activeOpacity={0.9}>
+              <Text style={fm.submitTxt}>{editMode ? 'Update Account' : 'Add Account'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const fm = StyleSheet.create({
+  overlay: { flex: 1, justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
+  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '88%' },
+  handleRow: { alignItems: 'center', paddingTop: 10, paddingBottom: 4 },
+  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#E5E5EA' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F2F2F7' },
+  headerTitle: { fontSize: 17, fontWeight: '800', color: '#111' },
+  closeBtn: { width: 30, height: 30, borderRadius: 15, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center' },
+  scrollBody: { paddingHorizontal: 24, paddingTop: 20, paddingBottom: 8 },
+  label: { fontSize: 11, fontWeight: '700', color: '#8E8E93', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8, marginTop: 4 },
+  typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
+  typeCard: { width: '47%' as any, flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, borderWidth: 1.5, borderColor: '#F2F2F7', backgroundColor: '#F9F9FB' },
+  typeIcon: { width: 32, height: 32, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
+  typeLabel: { fontSize: 11, fontWeight: '600', color: '#3A3A3C', flex: 1 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: 13, paddingHorizontal: 14, paddingVertical: 13, marginBottom: 16 },
+  input: { flex: 1, fontSize: 14, color: '#111', fontWeight: '500' },
+  colorRow: { flexDirection: 'row', gap: 10, marginBottom: 16, flexWrap: 'wrap' },
+  colorDot: { width: 30, height: 30, borderRadius: 15 },
+  colorDotActive: { borderWidth: 3, borderColor: '#111' },
+  actions: { flexDirection: 'row', paddingHorizontal: 24, paddingTop: 8, paddingBottom: 32, gap: 10 },
+  deleteBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 20, paddingVertical: 14, borderRadius: 14, backgroundColor: 'rgba(244,63,94,0.08)', borderWidth: 1, borderColor: 'rgba(244,63,94,0.2)' },
+  deleteTxt: { fontSize: 13, fontWeight: '700', color: '#F43F5E' },
+  submitBtn: { padding: 16, backgroundColor: '#111', borderRadius: 16, alignItems: 'center' },
+  submitTxt: { fontSize: 15, fontWeight: '700', color: '#fff' },
+});
+
+// ═══════════════════════════════════════════════════════════
+// Account History Modal (Feature 3)
+// ═══════════════════════════════════════════════════════════
+type HistoryProps = {
+  visible: boolean;
+  account: { name: string; type: string; balance: number; color: string } | null;
+  transactions: any[];
+  onClose: () => void;
+};
+
+function AccountHistoryModal({ visible, account, transactions, onClose }: HistoryProps) {
+  if (!account) return null;
+  const meta = ACCOUNT_TYPE_META[account.type] || ACCOUNT_TYPE_META['bank'];
+  const accentColor = account.color || meta.defaultColor;
+
+  const accountTxs = transactions
+    .filter(tx => tx.account === account.name)
+    .slice(0, 20);
+
+  return (
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent>
+      <View style={hm.overlay}>
+        <TouchableOpacity style={hm.backdrop} activeOpacity={1} onPress={onClose} />
+        <View style={hm.sheet}>
+          <View style={hm.handleRow}><View style={hm.handle} /></View>
+
+          {/* Account header */}
+          <View style={hm.accHeader}>
+            <View style={[hm.accIcon, { backgroundColor: accentColor + '14' }]}>
+              <Ionicons name={meta.icon} size={22} color={accentColor} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={hm.accName}>{account.name}</Text>
+              <Text style={hm.accType}>{meta.label}</Text>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={hm.balLabel}>Balance</Text>
+              <Text style={[hm.balAmt, { color: account.balance < 0 ? '#F43F5E' : '#111' }]}>
+                {fmt(account.balance)}
+              </Text>
+            </View>
+          </View>
+
+          <View style={hm.divider} />
+
+          <Text style={hm.sectionTitle}>Transaction History</Text>
+
+          <ScrollView style={hm.txScroll} showsVerticalScrollIndicator={false}>
+            {accountTxs.length === 0 ? (
+              <View style={hm.empty}>
+                <MaterialCommunityIcons name="receipt" size={28} color="#C7C7CC" />
+                <Text style={hm.emptyTxt}>No transactions for this account yet</Text>
+              </View>
+            ) : (
+              accountTxs.map((tx, i) => {
+                const isIncome = tx.type === 'income';
+                return (
+                  <View key={tx.id || i} style={hm.txRow}>
+                    <View style={[hm.txDot, { backgroundColor: isIncome ? '#2DCA72' : '#F43F5E' }]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={hm.txTitle} numberOfLines={1}>{tx.title}</Text>
+                      <Text style={hm.txDate}>{new Date(tx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
+                    </View>
+                    <Text style={[hm.txAmt, { color: isIncome ? '#2DCA72' : '#111' }]}>
+                      {isIncome ? '+' : '−'}{fmt(tx.amount)}
+                    </Text>
+                  </View>
+                );
+              })
+            )}
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const hm = StyleSheet.create({
+  overlay: { flex: 1, justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
+  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '80%' },
+  handleRow: { alignItems: 'center', paddingTop: 10, paddingBottom: 4 },
+  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#E5E5EA' },
+  accHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16, gap: 12 },
+  accIcon: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
+  accName: { fontSize: 17, fontWeight: '700', color: '#111' },
+  accType: { fontSize: 11, color: '#8E8E93', fontWeight: '600', marginTop: 2 },
+  balLabel: { fontSize: 9, color: '#8E8E93', fontWeight: '600', textTransform: 'uppercase', marginBottom: 2 },
+  balAmt: { fontSize: 18, fontWeight: '800' },
+  divider: { height: 1, backgroundColor: '#F2F2F7', marginHorizontal: 24 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#111', paddingHorizontal: 24, paddingVertical: 14 },
+  txScroll: { paddingHorizontal: 24 },
+  txRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F9F9FB' },
+  txDot: { width: 8, height: 8, borderRadius: 4, marginRight: 12 },
+  txTitle: { fontSize: 14, fontWeight: '600', color: '#111', marginBottom: 2 },
+  txDate: { fontSize: 11, color: '#C7C7CC' },
+  txAmt: { fontSize: 14, fontWeight: '700', marginLeft: 8 },
+  empty: { alignItems: 'center', paddingVertical: 40, gap: 10 },
+  emptyTxt: { fontSize: 13, color: '#C7C7CC', fontWeight: '500' },
+});
+
+// ═══════════════════════════════════════════════════════════
+// Main Accounts Screen
+// ═══════════════════════════════════════════════════════════
 export default function AccountsScreen() {
   const insets = useSafeAreaInsets();
   const [showBalance, setShowBalance] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editTarget, setEditTarget] = useState<any>(null);
+  const [historyTarget, setHistoryTarget] = useState<any>(null);
   const { transactions, getBalance } = useTransactions();
+  const floatStyle = useFloat();
 
   const balance = useMemo(() => getBalance(), [getBalance]);
 
+  // Build per-account
   const accountBalances = useMemo(() => {
     const map = new Map<string, number>();
-    transactions.forEach((tx) => {
-      const current = map.get(tx.account) || 0;
-      map.set(tx.account, current + (tx.type === 'income' ? tx.amount : -tx.amount));
+    transactions.forEach(tx => {
+      const cur = map.get(tx.account) || 0;
+      map.set(tx.account, cur + (tx.type === 'income' ? tx.amount : -tx.amount));
     });
     return map;
   }, [transactions]);
 
-  const cashBalance  = accountBalances.get('Cash')          || 0;
-  const bankBalance  = accountBalances.get('Bank Account')  || 0;
-  const sliceBalance = accountBalances.get('Slice')         || 0;
+  // Unified account list — defaults + user-added, all editable/deletable
+  const [allAccounts, setAllAccounts] = useState<{ name: string; type: string; initBalance: number; color: string; creditLimit?: number }[]>([
+    { name: 'Cash', type: 'cash', initBalance: 0, color: '#FF9500' },
+    { name: 'Bank Account', type: 'bank', initBalance: 0, color: '#007AFF' },
+    { name: 'Slice', type: 'credit', initBalance: 0, color: '#F43F5E', creditLimit: 50000 },
+  ]);
 
-  const sections = [
-    {
-      title: 'Bank Accounts',
-      icon:  'business-outline' as const,
-      color: '#6366F1',
-      accounts: [{ name: 'Slice', balance: formatCurrency(sliceBalance) }],
-    },
-    {
-      title: 'Wallets',
-      icon:  'wallet-outline' as const,
-      color: '#10B981',
-      accounts: [{ name: 'Bank Account', balance: formatCurrency(bankBalance) }],
-    },
-    {
-      title: 'Cash',
-      icon:  'cash-outline' as const,
-      color: '#F59E0B',
-      accounts: [{ name: 'Cash', balance: formatCurrency(cashBalance) }],
-    },
-  ];
+  const accounts = useMemo(() => {
+    return allAccounts.map(a => ({
+      ...a,
+      balance: (accountBalances.get(a.name) || 0) + a.initBalance,
+      creditLimit: a.creditLimit,
+    }));
+  }, [accountBalances, allAccounts]);
+
+  const totalAssets = accounts.reduce((s, a) => s + Math.max(a.balance, 0), 0);
+  const totalLiabilities = accounts.reduce((s, a) => s + Math.abs(Math.min(a.balance, 0)), 0);
+
+  // ── Handlers ──
+  const defaultForm = { name: '', type: 'bank', balance: '', color: '#007AFF', creditLimit: '' };
+
+  const handleOpenAdd = () => { setEditTarget(null); setShowForm(true); };
+
+  const handleOpenEdit = (acc: any) => {
+    setEditTarget(acc);
+    setShowForm(true);
+  };
+
+  const handleFormSubmit = (data: AccountFormData) => {
+    const accData = {
+      name: data.name, type: data.type,
+      initBalance: parseFloat(data.balance) || 0,
+      color: data.color,
+      ...(data.type === 'credit' ? { creditLimit: parseFloat(data.creditLimit) || 0 } : {}),
+    };
+    if (editTarget) {
+      setAllAccounts(prev => prev.map(a =>
+        a.name === editTarget.name ? accData : a
+      ));
+    } else {
+      setAllAccounts(prev => [...prev, accData]);
+    }
+    setShowForm(false); setEditTarget(null);
+    Alert.alert('Success', editTarget ? 'Account updated!' : `"${data.name}" added!`);
+  };
+
+  const handleDelete = () => {
+    if (!editTarget) return;
+    Alert.alert('Delete Account', `Are you sure you want to delete "${editTarget.name}"? All related transactions will remain.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete', style: 'destructive', onPress: () => {
+          setAllAccounts(prev => prev.filter(a => a.name !== editTarget.name));
+          setShowForm(false); setEditTarget(null);
+        }
+      },
+    ]);
+  };
+
+  const handleMoveUp = (acc: any) => {
+    setAllAccounts(prev => {
+      const idx = prev.findIndex(a => a.name === acc.name);
+      if (idx <= 0) return prev;
+      const next = [...prev];
+      [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+      return next;
+    });
+  };
+
+  const handleMoveDown = (acc: any) => {
+    setAllAccounts(prev => {
+      const idx = prev.findIndex(a => a.name === acc.name);
+      if (idx < 0 || idx >= prev.length - 1) return prev;
+      const next = [...prev];
+      [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+      return next;
+    });
+  };
+
+  const handleLongPress = (acc: any, index: number) => {
+    const buttons: any[] = [
+      { text: 'Edit', onPress: () => handleOpenEdit(acc) },
+    ];
+    if (index > 0) buttons.push({ text: '↑ Move Up', onPress: () => handleMoveUp(acc) });
+    if (index < accounts.length - 1) buttons.push({ text: '↓ Move Down', onPress: () => handleMoveDown(acc) });
+    buttons.push({
+      text: 'Delete', style: 'destructive', onPress: () => {
+        Alert.alert('Delete?', `Remove "${acc.name}"? Transactions will remain.`, [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Delete', style: 'destructive', onPress: () => setAllAccounts(prev => prev.filter(a => a.name !== acc.name)) },
+        ]);
+      }
+    });
+    buttons.push({ text: 'Cancel', style: 'cancel' });
+    Alert.alert(acc.name, 'What would you like to do?', buttons);
+  };
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
-      {/* ─── Header ─── */}
-      <View style={styles.header}>
+      {/* Header */}
+      <Animated.View entering={FadeIn.delay(50).duration(350)} style={styles.header}>
         <View>
           <Text style={styles.headerSub}>Overview</Text>
           <Text style={styles.headerTitle}>My Accounts</Text>
         </View>
-        <TouchableOpacity style={styles.iconBtn}>
-          <Ionicons name="add" size={22} color={DarkTheme.accent} />
-        </TouchableOpacity>
-      </View>
+        <Bounce onPress={handleOpenAdd} style={styles.addHeaderBtn}>
+          <Ionicons name="add" size={20} color="#fff" />
+        </Bounce>
+      </Animated.View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* ─── Net Worth Hero Card ─── */}
-        <LinearGradient
-          colors={['#1A2550', '#0D1630', '#060D1F']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.netWorthCard}
-        >
-          <View style={styles.blobTL} />
-          <View style={styles.netWorthRow}>
-            <View>
-              <Text style={styles.netWorthLabel}>Net Worth</Text>
-              <Text style={styles.netWorthValue}>
-                {showBalance ? formatCurrency(balance) : '₹ ••••••'}
-              </Text>
-              <Text style={styles.netWorthSub}>Across all accounts</Text>
-            </View>
-            <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowBalance(!showBalance)}>
-              <Ionicons
-                name={showBalance ? 'eye-outline' : 'eye-off-outline'}
-                size={20}
-                color={DarkTheme.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-          {/* mini overview pills */}
-          <View style={styles.overviewPills}>
-            <View style={styles.overviewPill}>
-              <Ionicons name="trending-up" size={12} color={DarkTheme.income} />
-              <Text style={styles.overviewPillText}>Assets</Text>
-              <Text style={styles.overviewPillVal}>
-                {showBalance ? formatCurrency(Math.max(balance, 0)) : '••••'}
-              </Text>
+        {/* ═══ Net Worth Hero ═══ */}
+        <Animated.View entering={FadeInDown.delay(80).duration(500).springify()}>
+          <LinearGradient
+            colors={['#1A1C20', '#0F1014']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+            style={styles.heroCard}
+          >
+            <Animated.View style={[styles.heroGlow, floatStyle]} />
+            <View style={styles.heroTop}>
+              <View>
+                <Text style={styles.heroLabel}>Net Worth</Text>
+                <Animated.Text entering={ZoomIn.delay(250).duration(380)} style={styles.heroAmount}>
+                  {showBalance ? fmt(balance) : '₹ ••••••'}
+                </Animated.Text>
+                <Text style={styles.heroSub}>Across {accounts.length} accounts</Text>
+              </View>
+              <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowBalance(!showBalance)}>
+                <Ionicons name={showBalance ? 'eye-outline' : 'eye-off-outline'} size={20} color="#8E8E93" />
+              </TouchableOpacity>
             </View>
-            <View style={styles.pillDivider} />
-            <View style={styles.overviewPill}>
-              <Ionicons name="trending-down" size={12} color={DarkTheme.spending} />
-              <Text style={styles.overviewPillText}>Liabilities</Text>
-              <Text style={styles.overviewPillVal}>
-                {showBalance ? formatCurrency(Math.abs(Math.min(balance, 0))) : '••••'}
-              </Text>
-            </View>
-          </View>
-        </LinearGradient>
 
-        {/* ─── Balance Overview ─── */}
-        <View style={styles.overviewRow}>
-          <BalanceOverviewCard
-            label="Available Balance"
-            masked={!showBalance}
-            amount={formatCurrency(balance)}
-            accentColor={DarkTheme.accent}
-          />
-          <View style={{ width: Spacing.md }} />
-          <BalanceOverviewCard
-            label="Available Credit"
-            masked={!showBalance}
-            amount="₹0"
-            accentColor={DarkTheme.success}
-          />
+            <Animated.View entering={FadeInUp.delay(300).duration(400)} style={styles.heroPills}>
+              <View style={styles.heroPillGreen}>
+                <Ionicons name="trending-up" size={14} color="#2DCA72" />
+                <Text style={styles.heroPillLabel}>Assets</Text>
+                <Text style={styles.heroPillGreenAmt}>{showBalance ? fmt(totalAssets) : '••••'}</Text>
+              </View>
+              <View style={styles.heroPillRed}>
+                <Ionicons name="trending-down" size={14} color="#F43F5E" />
+                <Text style={styles.heroPillLabel}>Liabilities</Text>
+                <Text style={styles.heroPillRedAmt}>{showBalance ? fmt(totalLiabilities) : '••••'}</Text>
+              </View>
+            </Animated.View>
+          </LinearGradient>
+        </Animated.View>
+
+        {/* ═══ Quick Stats ═══ */}
+        <View style={styles.statsRow}>
+          <Animated.View entering={FadeInUp.delay(200).duration(400)} style={[styles.statCard, { borderColor: 'rgba(45,202,114,0.2)' }]}>
+            <View style={[styles.statIcon, { backgroundColor: 'rgba(45,202,114,0.12)' }]}>
+              <Ionicons name="wallet-outline" size={18} color="#2DCA72" />
+            </View>
+            <Text style={styles.statLabel}>Available</Text>
+            <Text style={styles.statAmt}>{showBalance ? fmt(balance) : '••••'}</Text>
+          </Animated.View>
+          <Animated.View entering={FadeInUp.delay(280).duration(400)} style={[styles.statCard, { borderColor: 'rgba(0,122,255,0.15)' }]}>
+            <View style={[styles.statIcon, { backgroundColor: 'rgba(0,122,255,0.1)' }]}>
+              <MaterialCommunityIcons name="bank-outline" size={18} color="#007AFF" />
+            </View>
+            <Text style={styles.statLabel}>Accounts</Text>
+            <Text style={styles.statAmt}>{accounts.length}</Text>
+          </Animated.View>
         </View>
 
-        {/* ─── Account Sections ─── */}
-        {sections.map((sec) => (
-          <View key={sec.title} style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIconWrap, { backgroundColor: sec.color + '22' }]}>
-                <Ionicons name={sec.icon} size={14} color={sec.color} />
-              </View>
-              <Text style={styles.sectionTitle}>{sec.title}</Text>
-            </View>
-            {sec.accounts.map((acc) => (
-              <AccountCard
-                key={acc.name}
-                name={acc.name}
-                masked={!showBalance}
-                balance={acc.balance}
-              />
-            ))}
-          </View>
+        {/* ═══ All Accounts ═══ */}
+        <Animated.View entering={FadeIn.delay(320).duration(350)} style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>All Accounts</Text>
+          <TouchableOpacity onPress={() => setShowBalance(!showBalance)}>
+            <Text style={styles.toggleTxt}>{showBalance ? 'Hide' : 'Show'} balances</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        {accounts.map((acc, i) => (
+          <Animated.View key={acc.name} entering={FadeInDown.delay(360 + i * 50).duration(360)}>
+            <AccountCard
+              name={acc.name}
+              type={acc.type}
+              balance={fmt(acc.balance)}
+              balanceNum={acc.balance}
+              color={acc.color}
+              masked={!showBalance}
+              creditLimit={acc.creditLimit}
+              onPress={() => setHistoryTarget(acc)}
+              onLongPress={() => handleLongPress(acc, i)}
+            />
+          </Animated.View>
         ))}
 
-        {/* Add Account CTA */}
-        <TouchableOpacity style={styles.addAccountBtn} activeOpacity={0.7}>
-          <Ionicons name="add-circle-outline" size={20} color={DarkTheme.accent} />
-          <Text style={styles.addAccountText}>Add New Account</Text>
-        </TouchableOpacity>
+        {/* ═══ Add Account CTA ═══ */}
+        <Animated.View entering={FadeInDown.delay(520).duration(380)}>
+          <TouchableOpacity style={styles.addCta} onPress={handleOpenAdd} activeOpacity={0.7}>
+            <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#2DCA72" />
+            <Text style={styles.addCtaTxt}>Add New Account</Text>
+          </TouchableOpacity>
+        </Animated.View>
 
-        <Text style={styles.bottomNote}>
-          Balances are calculated from your transactions and may differ from actual amounts.
+        <Text style={styles.footNote}>
+          Balances are calculated from your transactions. Long-press any account to edit, delete, or reorder.
         </Text>
 
         <View style={{ height: 120 }} />
       </ScrollView>
+
+      {/* Add/Edit Modal */}
+      <AccountFormModal
+        visible={showForm}
+        editMode={!!editTarget}
+        initial={editTarget
+          ? { name: editTarget.name, type: editTarget.type, balance: String(editTarget.initBalance ?? editTarget.balance ?? 0), color: editTarget.color, creditLimit: String(editTarget.creditLimit ?? '') }
+          : defaultForm
+        }
+        onClose={() => { setShowForm(false); setEditTarget(null); }}
+        onSubmit={handleFormSubmit}
+        onDelete={editTarget ? handleDelete : undefined}
+      />
+
+      {/* History Modal */}
+      <AccountHistoryModal
+        visible={!!historyTarget}
+        account={historyTarget}
+        transactions={transactions}
+        onClose={() => setHistoryTarget(null)}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: DarkTheme.bg,
+  root: { flex: 1, backgroundColor: '#fff' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 24, paddingVertical: 14 },
+  headerSub: { fontSize: 11, color: '#8E8E93', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: '#111' },
+  addHeaderBtn: { width: 38, height: 38, borderRadius: 14, backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' },
+  scroll: { paddingHorizontal: 24, paddingTop: 4 },
+
+  heroCard: { borderRadius: 24, padding: 24, marginBottom: 18, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
+  heroGlow: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(45,202,114,0.16)', top: -40, right: -30 },
+  heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  heroLabel: { fontSize: 11, color: '#8E8E93', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 },
+  heroAmount: { fontSize: 34, fontWeight: '800', color: '#fff', letterSpacing: -1 },
+  heroSub: { fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 },
+  eyeBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center' },
+  heroPills: { flexDirection: 'row', gap: 10 },
+  heroPillGreen: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(45,202,114,0.1)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 },
+  heroPillRed: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(244,63,94,0.1)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 },
+  heroPillLabel: { fontSize: 11, color: 'rgba(255,255,255,0.45)', flex: 1 },
+  heroPillGreenAmt: { fontSize: 13, fontWeight: '700', color: '#2DCA72' },
+  heroPillRedAmt: { fontSize: 13, fontWeight: '700', color: '#F43F5E' },
+
+  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 22 },
+  statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 18, padding: 16, borderWidth: 1 },
+  statIcon: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
+  statLabel: { fontSize: 11, color: '#8E8E93', fontWeight: '500', marginBottom: 4 },
+  statAmt: { fontSize: 20, fontWeight: '800', color: '#111' },
+
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111' },
+  toggleTxt: { fontSize: 12, fontWeight: '600', color: '#2DCA72' },
+
+  addCta: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 16, borderRadius: 16,
+    borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#E5E5EA',
+    marginTop: 8, marginBottom: 14,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  headerSub: {
-    fontSize: FontSize.xs,
-    color: DarkTheme.textMuted,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 2,
-  },
-  headerTitle: {
-    fontSize: FontSize.xxl,
-    fontWeight: '800',
-    color: DarkTheme.textPrimary,
-  },
-  iconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: BorderRadius.md,
-    backgroundColor: 'rgba(99,102,241,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(99,102,241,0.35)',
-  },
-  scrollContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-  },
-  // Net Worth Card
-  netWorthCard: {
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xxl,
-    marginBottom: Spacing.lg,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: DarkTheme.borderLight,
-    ...NeoShadow,
-  },
-  blobTL: {
-    position: 'absolute',
-    top: -50,
-    left: -50,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(99,102,241,0.1)',
-  },
-  netWorthRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.xl,
-  },
-  netWorthLabel: {
-    fontSize: FontSize.xs,
-    color: 'rgba(148,163,184,0.85)',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: Spacing.xs,
-  },
-  netWorthValue: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-    marginBottom: 4,
-  },
-  netWorthSub: {
-    fontSize: FontSize.xs,
-    color: 'rgba(148,163,184,0.7)',
-    fontWeight: '600',
-  },
-  eyeBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: BorderRadius.md,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  overviewPills: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    alignItems: 'center',
-  },
-  overviewPill: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  pillDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    marginHorizontal: Spacing.md,
-  },
-  overviewPillText: {
-    fontSize: FontSize.xs,
-    color: 'rgba(148,163,184,0.7)',
-    flex: 1,
-  },
-  overviewPillVal: {
-    fontSize: FontSize.sm,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  // Overview Row
-  overviewRow: {
-    flexDirection: 'row',
-    marginBottom: Spacing.xl,
-  },
-  // Sections
-  section: {
-    marginBottom: Spacing.lg,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  sectionIconWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: BorderRadius.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sectionTitle: {
-    fontSize: FontSize.sm,
-    fontWeight: '700',
-    color: DarkTheme.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  // Add Account
-  addAccountBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: DarkTheme.border,
-    borderStyle: 'dashed',
-    marginBottom: Spacing.lg,
-  },
-  addAccountText: {
-    fontSize: FontSize.md,
-    fontWeight: '700',
-    color: DarkTheme.accent,
-  },
-  bottomNote: {
-    fontSize: FontSize.xs,
-    color: DarkTheme.textMuted,
-    textAlign: 'center',
-    lineHeight: 16,
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.lg,
-  },
+  addCtaTxt: { fontSize: 14, fontWeight: '600', color: '#2DCA72' },
+  footNote: { fontSize: 11, color: '#C7C7CC', textAlign: 'center', lineHeight: 17, paddingHorizontal: 12 },
 });
