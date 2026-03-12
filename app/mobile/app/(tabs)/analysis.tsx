@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useMemo, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimensions, InteractionManager, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DarkTheme, Spacing, FontSize, BorderRadius } from '@/constants/Theme';
@@ -7,14 +7,19 @@ import StatCard from '@/components/StatCard';
 import DonutChart from '@/components/DonutChart';
 import { useTransactions, Category, CATEGORY_COLORS, CATEGORY_ICONS } from '@/context/TransactionContext';
 import Svg, { Rect, G, Text as SvgText } from 'react-native-svg';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const { width } = Dimensions.get('window');
 
 function formatCurrency(n: number): string {
     return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-const SimpleBarChart = ({ data, height = 150 }: { data: { label: string, value: number }[], height?: number }) => {
+type TimeFilter = 'Week' | 'Month' | 'Year' | 'Custom';
+
+const SimpleBarChart = React.memo(({ data, height = 150 }: { data: { label: string, value: number }[], height?: number }) => {
     const max = Math.max(...data.map(d => d.value), 1000);
     const chartHeight = height - 40;
     const barWidth = 40;
@@ -63,18 +68,35 @@ const SimpleBarChart = ({ data, height = 150 }: { data: { label: string, value: 
             </Svg>
         </ScrollView>
     );
-};
-
-type TimeFilter = 'Week' | 'Month' | 'Year';
+});
 
 export default function AnalysisScreen() {
     const insets = useSafeAreaInsets();
     const { transactions } = useTransactions();
 
+    // Defer heavy UI rendering until navigation completes
+    const [isReady, setIsReady] = useState(false);
+    useEffect(() => {
+        InteractionManager.runAfterInteractions(() => {
+            setIsReady(true);
+        });
+    }, []);
+
     const [selectedFilter, setSelectedFilter] = useState<TimeFilter>('Month');
     const now = new Date();
     const [currentMonthIndex, setCurrentMonthIndex] = useState(now.getMonth());
     const [currentYear, setCurrentYear] = useState(now.getFullYear());
+
+    // Custom Date State
+    const [customStart, setCustomStart] = useState<Date>(new Date(now.getFullYear(), now.getMonth(), 1));
+    const [customEnd, setCustomEnd] = useState<Date>(now);
+    const [showPicker, setShowPicker] = useState<'start' | 'end' | null>(null);
+
+    // Sliding Animation State for Tabs (0: Week, 1: Month, 2: Year, 3: Custom)
+    const tabPosition = useSharedValue(1); // Default to 'Month' index
+    const animatedSliderStyle = useAnimatedStyle(() => ({
+        transform: [{ translateX: withSpring(tabPosition.value * ((width - Spacing.lg * 2 - 8) / 4), { damping: 15, stiffness: 120 }) }]
+    }));
 
     const goToPrevMonth = () => {
         if (currentMonthIndex === 0) {
@@ -103,20 +125,23 @@ export default function AnalysisScreen() {
             start = new Date(currentYear, 0, 1);
             end = new Date(currentYear, 11, 31, 23, 59, 59, 999);
         } else if (selectedFilter === 'Week') {
+            // Find current week (Monday-Sunday)
             const today = new Date();
-            if (currentMonthIndex === today.getMonth() && currentYear === today.getFullYear()) {
-                end = new Date(today);
-                end.setHours(23, 59, 59, 999);
-                start = new Date(end);
-                start.setDate(end.getDate() - 7);
-                start.setHours(0, 0, 0, 0);
-            } else {
-                start = new Date(currentYear, currentMonthIndex, 1);
-                end = new Date(currentYear, currentMonthIndex, 7, 23, 59, 59, 999);
-            }
+            const dayOfWeek = today.getDay() === 0 ? 6 : today.getDay() - 1; // 0 is Monday, 6 is Sunday
+            start = new Date(today);
+            start.setDate(today.getDate() - dayOfWeek);
+            start.setHours(0, 0, 0, 0);
+            end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            end.setHours(23, 59, 59, 999);
+        } else if (selectedFilter === 'Custom') {
+            start = new Date(customStart);
+            start.setHours(0, 0, 0, 0);
+            end = new Date(customEnd);
+            end.setHours(23, 59, 59, 999);
         }
         return { start, end };
-    }, [selectedFilter, currentMonthIndex, currentYear]);
+    }, [selectedFilter, currentMonthIndex, currentYear, customStart, customEnd]);
 
     // Local filtered transactions
     const filteredTxs = useMemo(() => {
@@ -141,7 +166,8 @@ export default function AnalysisScreen() {
         const expenses = filteredTxs.filter(t => t.type === 'expense');
         const map = new Map<Category, number>();
         expenses.forEach((t) => {
-            map.set(t.category, (map.get(t.category) || 0) + t.amount);
+            const cat = t.category as Category;
+            map.set(cat, (map.get(cat) || 0) + t.amount);
         });
         return Array.from(map.entries())
             .map(([name, amount]) => ({
@@ -156,14 +182,24 @@ export default function AnalysisScreen() {
     const chartData = useMemo(() => categoryData.map((c) => ({ value: c.amount, color: c.color, label: c.name })), [categoryData]);
 
     const trendData = useMemo(() => {
-        if (selectedFilter === 'Month') {
+        const expenses = filteredTxs.filter(t => t.type === 'expense');
+
+        if (selectedFilter === 'Week') {
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => ({ label: d, value: 0 }));
+            expenses.forEach(t => {
+                const day = new Date(t.date).getDay();
+                const idx = day === 0 ? 6 : day - 1; // Map Sunday (0) to index 6
+                days[idx].value += t.amount;
+            });
+            return days;
+        } else if (selectedFilter === 'Month') {
             const weeks = [
                 { label: 'W1', value: 0 },
                 { label: 'W2', value: 0 },
                 { label: 'W3', value: 0 },
                 { label: 'W4', value: 0 },
             ];
-            filteredTxs.filter(t => t.type === 'expense').forEach(t => {
+            expenses.forEach(t => {
                 const day = new Date(t.date).getDate();
                 if (day <= 7) weeks[0].value += t.amount;
                 else if (day <= 14) weeks[1].value += t.amount;
@@ -173,14 +209,60 @@ export default function AnalysisScreen() {
             return weeks;
         } else if (selectedFilter === 'Year') {
             const months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'].map(m => ({ label: m, value: 0 }));
-            filteredTxs.filter(t => t.type === 'expense').forEach(t => {
+            expenses.forEach(t => {
                 const mIdx = new Date(t.date).getMonth();
                 months[mIdx].value += t.amount;
             });
             return months;
+        } else if (selectedFilter === 'Custom') {
+            // Group dynamically depending on length of custom date range
+            const diffDays = Math.ceil(Math.abs(dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
+
+            if (diffDays <= 14) {
+                // Return daily points up to 14 days
+                const pts: any[] = [];
+                for (let i = 0; i <= diffDays; i++) {
+                    const d = new Date(dateRange.start);
+                    d.setDate(d.getDate() + i);
+                    pts.push({ label: d.getDate().toString(), value: 0, _dateDate: d.getDate() });
+                }
+                expenses.forEach(t => {
+                    const tDate = new Date(t.date).getDate();
+                    const bin = pts.find(p => p._dateDate === tDate);
+                    if (bin) bin.value += t.amount;
+                });
+                return pts;
+            } else if (diffDays <= 90) {
+                // Return Weekly buckets
+                let w = 1;
+                const pts: any[] = [];
+                for (let i = 0; i < diffDays; i += 7) {
+                    pts.push({ label: `W${w++}`, value: 0, _startDayOffset: i });
+                }
+                expenses.forEach(t => {
+                    const offset = Math.floor(Math.abs(new Date(t.date).getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
+                    const binIdx = Math.floor(offset / 7);
+                    if (pts[binIdx]) pts[binIdx].value += t.amount;
+                });
+                return pts;
+            } else {
+                // Return Monthly buckets
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, i) => ({ label: m, value: 0, _mIdx: i }));
+                expenses.forEach(t => {
+                    const mIdx = new Date(t.date).getMonth();
+                    const bin = months.find(m => m._mIdx === mIdx);
+                    if (bin) bin.value += t.amount;
+                });
+                // Filter out months with zero values that fall completely outside the range to save horizontal space, optionally
+                return months.filter(m => {
+                    const isWithinStart = (dateRange.start.getFullYear() < dateRange.end.getFullYear() || m._mIdx >= dateRange.start.getMonth());
+                    const isWithinEnd = (dateRange.start.getFullYear() < dateRange.end.getFullYear() || m._mIdx <= dateRange.end.getMonth());
+                    return isWithinStart && isWithinEnd;
+                });
+            }
         }
         return [];
-    }, [filteredTxs, selectedFilter]);
+    }, [filteredTxs, selectedFilter, dateRange]);
 
     const totalTransactions = filteredTxs.length;
     const diffTime = Math.abs(dateRange.end.getTime() - dateRange.start.getTime());
@@ -192,6 +274,14 @@ export default function AnalysisScreen() {
     const incomeTxCount = filteredTxs.filter((t) => t.type === 'income').length;
     const avgIncomePerDay = monthlyIncome / daysInRange;
     const avgIncomePerTx = incomeTxCount > 0 ? monthlyIncome / incomeTxCount : 0;
+
+    if (!isReady) {
+        return (
+            <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={DarkTheme.brandYellow} />
+            </View>
+        );
+    }
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -207,34 +297,78 @@ export default function AnalysisScreen() {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={styles.filterRow}>
-                    {(['Week', 'Month', 'Year'] as TimeFilter[]).map((filter) => (
-                        <TouchableOpacity
-                            key={filter}
-                            style={[styles.filterChip, selectedFilter === filter && styles.filterChipActive]}
-                            onPress={() => setSelectedFilter(filter)}
-                        >
-                            <Text style={[styles.filterText, selectedFilter === filter && styles.filterTextActive]}>
-                                {filter}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
+                <View style={styles.filterRowContainer}>
+                    <View style={styles.filterRow}>
+                        <Animated.View style={[styles.filterSlider, animatedSliderStyle]} />
+                        {(['Week', 'Month', 'Year', 'Custom'] as TimeFilter[]).map((filter, index) => (
+                            <TouchableOpacity
+                                key={filter}
+                                style={styles.filterChip}
+                                onPress={() => {
+                                    tabPosition.value = index;
+                                    setSelectedFilter(filter);
+                                }}
+                            >
+                                <Text style={[styles.filterText, selectedFilter === filter && styles.filterTextActive]}>
+                                    {filter}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
                 </View>
 
-                <View style={styles.summaryCard}>
+                {selectedFilter === 'Custom' && (
+                    <View style={styles.customDateContainer}>
+                        <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowPicker('start')}>
+                            <Ionicons name="calendar-outline" size={16} color={DarkTheme.textMuted} />
+                            <Text style={styles.datePickerText}>{customStart.toLocaleDateString()}</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.datePickerTo}>to</Text>
+                        <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowPicker('end')}>
+                            <Ionicons name="calendar-outline" size={16} color={DarkTheme.textMuted} />
+                            <Text style={styles.datePickerText}>{customEnd.toLocaleDateString()}</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {showPicker && (
+                    <DateTimePicker
+                        value={showPicker === 'start' ? customStart : customEnd}
+                        mode="date"
+                        display="default"
+                        maximumDate={now}
+                        onChange={(event, selectedDate) => {
+                            setShowPicker(null);
+                            if (selectedDate) {
+                                if (showPicker === 'start') {
+                                    setCustomStart(selectedDate);
+                                    if (selectedDate > customEnd) setCustomEnd(selectedDate); // Sync
+                                } else {
+                                    setCustomEnd(selectedDate);
+                                    if (selectedDate < customStart) setCustomStart(selectedDate); // Sync
+                                }
+                            }
+                        }}
+                    />
+                )}
+
+                <View style={[styles.summaryCard, selectedFilter === 'Custom' && { marginTop: 0 }]}>
                     <View style={styles.summaryHeader}>
                         <View>
                             <Text style={styles.summaryPeriod}>
-                                {selectedFilter === 'Year' ? currentYear : `${MONTHS[currentMonthIndex]} ${currentYear}`}
+                                {selectedFilter === 'Year' ? currentYear :
+                                    selectedFilter === 'Custom' ? 'Custom Range' :
+                                        selectedFilter === 'Week' ? 'This Week' :
+                                            `${MONTHS[currentMonthIndex]} ${currentYear}`}
                             </Text>
                             <Text style={styles.summaryBalanceLabel}>Total Balance</Text>
                         </View>
                         <View style={styles.navButtons}>
-                            <TouchableOpacity onPress={goToPrevMonth} style={styles.navButton}>
-                                <Ionicons name="chevron-back" size={18} color={DarkTheme.textPrimary} />
+                            <TouchableOpacity onPress={goToPrevMonth} style={styles.navButton} disabled={selectedFilter === 'Custom' || selectedFilter === 'Week'}>
+                                <Ionicons name="chevron-back" size={18} color={selectedFilter === 'Custom' || selectedFilter === 'Week' ? DarkTheme.textMuted + '50' : DarkTheme.textPrimary} />
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={goToNextMonth} style={styles.navButton}>
-                                <Ionicons name="chevron-forward" size={18} color={DarkTheme.textPrimary} />
+                            <TouchableOpacity onPress={goToNextMonth} style={styles.navButton} disabled={selectedFilter === 'Custom' || selectedFilter === 'Week'}>
+                                <Ionicons name="chevron-forward" size={18} color={selectedFilter === 'Custom' || selectedFilter === 'Week' ? DarkTheme.textMuted + '50' : DarkTheme.textPrimary} />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -367,23 +501,33 @@ const styles = StyleSheet.create({
         paddingHorizontal: Spacing.lg,
         paddingTop: Spacing.lg,
     },
+    filterRowContainer: {
+        marginBottom: Spacing.xl,
+    },
     filterRow: {
         flexDirection: 'row',
         backgroundColor: DarkTheme.cardBg,
         borderRadius: BorderRadius.md,
         padding: 4,
-        marginBottom: Spacing.xl,
         borderWidth: 1,
         borderColor: DarkTheme.border,
+        position: 'relative',
+    },
+    filterSlider: {
+        position: 'absolute',
+        top: 4,
+        bottom: 4,
+        left: 4,
+        width: (width - Spacing.lg * 2 - 8) / 4,
+        backgroundColor: DarkTheme.accent,
+        borderRadius: BorderRadius.sm,
     },
     filterChip: {
         flex: 1,
         paddingVertical: 10,
         borderRadius: BorderRadius.sm,
         alignItems: 'center',
-    },
-    filterChipActive: {
-        backgroundColor: DarkTheme.accent,
+        zIndex: 2,
     },
     filterText: {
         fontSize: FontSize.xs,
@@ -395,6 +539,35 @@ const styles = StyleSheet.create({
     filterTextActive: {
         color: '#FFFFFF',
         fontWeight: '800',
+    },
+    customDateContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        marginBottom: Spacing.xl,
+        marginTop: -8,
+    },
+    datePickerButton: {
+        backgroundColor: DarkTheme.cardBg,
+        borderWidth: 1,
+        borderColor: DarkTheme.border,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    datePickerText: {
+        color: DarkTheme.textPrimary,
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    datePickerTo: {
+        color: DarkTheme.textMuted,
+        fontSize: 12,
+        fontWeight: '600',
     },
     summaryCard: {
         backgroundColor: DarkTheme.cardBg,

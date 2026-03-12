@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.0.2] - 2026-03-12
+
+### Added
+- **Analytics Date Engine**: Upgraded the analytics screen to dynamically calculate custom start and end dates down to the day or month, featuring an animated sliding filter toggle.
+- **Custom Profile Avatars**: Users can now effortlessly select, upload, and remove custom avatar images from the mobile app settings. Features immediate UI sync and secure Cloudinary backend processing via `multer`.
+- **Transaction Details Action Bar**: Introduced the ability to directly edit or permanently delete existing transactions from within the application via an inline action sheet. 
+- **Universal Transaction Filtering**: The "All Transactions" page now accepts robust queries, allowing users to rapidly filter their entire financial history by type, specific dates, or a live-updating text search bar.
+- **EAS Build Configuration**: Injected `eas.json` templates explicitly pointing `buildType` to `.apk` to ensure the correct output binaries during compilation.
+
+### Changed
+- **Persistent Sessions**: Updated JWT and Session cookie expirations from 3 days to 30 days. The mobile App now detects valid tokens on launch and bypasses the Welcome screen instantly.
+- **Improved Date Pickers**: Replaced clunky native alerts with intuitive and seamless inline `@react-native-community/datetimepicker` modals.
+
+### Fixed
+- **Render Optimizations**: Drastically enhanced the UI framerate on heavy data sections utilizing React Native's `InteractionManager` combined with strict `React.memo` bindings on SVG arrays, stopping navigation lag.
+- **APK Title Naming conventions**: Repackaged the core identifier inside `app.json` and `package.json` to prevent arbitrary compile titles upon deployment.
+
 ## [1.0.1] - 2026-02-21
 
 ### Added

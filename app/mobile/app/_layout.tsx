@@ -77,7 +77,7 @@ function RootLayoutNav() {
       <TransactionProvider>
         <SafeAreaProvider>
           <ThemeProvider value={CustomDarkTheme}>
-            <View style={{ flex: 1, backgroundColor: '#060D1F' }}>
+            <View style={{ flex: 1, backgroundColor: '#fff' }}>
               <Stack
                 initialRouteName="index"
                 screenOptions={{
@@ -85,7 +85,7 @@ function RootLayoutNav() {
                   gestureEnabled: true,
                   fullScreenGestureEnabled: true,
                   headerShown: false,
-                  contentStyle: { backgroundColor: '#060D1F' },
+                  contentStyle: { backgroundColor: '#fff' },
                 }}
               >
                 <Stack.Screen name="index" options={{ headerShown: false }} />

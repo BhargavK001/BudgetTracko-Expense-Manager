@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, LayoutAnimation, UIManager, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, LayoutAnimation, UIManager, Platform, StatusBar, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -60,7 +60,7 @@ export default function HelpSupportScreen() {
                         <View style={styles.contactInfo}>
                             <Text style={styles.contactTitle}>Contact Support</Text>
                             <Text style={styles.contactDesc}>We usually respond within 24 hours.</Text>
-                            <TouchableOpacity style={styles.emailBtn} activeOpacity={0.8}>
+                            <TouchableOpacity style={styles.emailBtn} activeOpacity={0.8} onPress={() => Linking.openURL('mailto:support@budgettracko.com?subject=Support%20Request')}>
                                 <Text style={styles.emailText}>support@budgettracko.com</Text>
                             </TouchableOpacity>
                         </View>

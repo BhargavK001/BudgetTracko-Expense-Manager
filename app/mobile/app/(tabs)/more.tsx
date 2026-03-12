@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, StatusBar, Switch, TextInput, Modal, Platform,
+  Alert, StatusBar, Switch, TextInput, Modal, Platform, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
+import api, { API_BASE_URL } from '@/services/api';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import Animated, {
   FadeInDown, FadeIn, SlideInLeft, BounceIn,
   useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming,
@@ -82,6 +85,20 @@ export default function MoreScreen() {
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
+  const [recurringCount, setRecurringCount] = useState<string | undefined>(undefined);
+
+  // Fetch recurring bills count
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await api.get('/api/recurring');
+        if (res.data?.length > 0) setRecurringCount(String(res.data.length));
+      } catch (e) { /* ignore */ }
+    })();
+  }, []);
+
+  const userPlan = user?.subscription?.status === 'active' || user?.subscription?.status === 'authenticated'
+    ? (user?.subscription?.plan || 'Pro') : 'Free';
 
   // ── Handlers ────────────────────────────────────────────
   const handleMenuPress = useCallback((item: MenuItem) => {
@@ -89,10 +106,35 @@ export default function MoreScreen() {
     if (item.route) router.push(item.route as any);
   }, [router]);
 
-  const handleExportCSV = useCallback(() => {
+  const handleExportCSV = useCallback(async () => {
     Alert.alert('Export CSV', 'Your transactions will be exported as a CSV spreadsheet.', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Export', onPress: () => Alert.alert('Success', 'CSV exported successfully!') },
+      {
+        text: 'Export', onPress: async () => {
+          try {
+            const token = (await import('@react-native-async-storage/async-storage')).default;
+            const storedToken = await token.getItem('token');
+            const fileUri = FileSystem.documentDirectory + `budgettracko_export_${new Date().toISOString().split('T')[0]}.csv`;
+            const downloadResult = await FileSystem.downloadAsync(
+              `${API_BASE_URL}/api/user/export/csv`,
+              fileUri,
+              { headers: { Authorization: `Bearer ${storedToken}` } }
+            );
+            if (downloadResult.status === 200) {
+              const canShare = await Sharing.isAvailableAsync();
+              if (canShare) {
+                await Sharing.shareAsync(downloadResult.uri, { mimeType: 'text/csv', dialogTitle: 'Export Transactions' });
+              } else {
+                Alert.alert('Success', `CSV saved to ${downloadResult.uri}`);
+              }
+            } else {
+              Alert.alert('Error', 'Failed to download CSV.');
+            }
+          } catch (e: any) {
+            Alert.alert('Error', e.message || 'Export failed.');
+          }
+        }
+      },
     ]);
   }, []);
 
@@ -102,7 +144,21 @@ export default function MoreScreen() {
       'This will permanently delete ALL your transactions, accounts, categories, and budgets. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear Everything', style: 'destructive', onPress: () => Alert.alert('Done', 'All data has been cleared.') },
+        {
+          text: 'Clear Everything', style: 'destructive', onPress: async () => {
+            try {
+              const res = await api.delete('/api/user/data');
+              if (res.data?.success) {
+                const d = res.data.deleted;
+                Alert.alert('Done', `Cleared ${d.transactions} transactions, ${d.accounts} accounts, ${d.categories} categories, ${d.budgets} budgets.`);
+              } else {
+                Alert.alert('Error', 'Failed to clear data.');
+              }
+            } catch (e: any) {
+              Alert.alert('Error', e.response?.data?.message || 'Failed to clear data.');
+            }
+          }
+        },
       ]
     );
   }, []);
@@ -113,8 +169,9 @@ export default function MoreScreen() {
     if (deleteInput !== 'DELETE') { Alert.alert('Error', 'Please type DELETE to confirm.'); return; }
     setDeleteModalVisible(false);
     try {
+      await api.delete('/api/user/account');
       await logout(); router.replace('/(auth)/login');
-    } catch (e) { Alert.alert('Error', 'Failed to delete account.'); }
+    } catch (e: any) { Alert.alert('Error', e.response?.data?.message || 'Failed to delete account.'); }
   }, [deleteInput, logout, router]);
 
   const handleLogout = useCallback(() => {
@@ -156,7 +213,15 @@ export default function MoreScreen() {
           icon: 'notifications-outline', label: 'Notifications',
           subtitle: notificationsEnabled ? 'Enabled' : 'Disabled',
           color: '#F59E0B', toggle: true, toggleValue: notificationsEnabled,
-          onToggle: (v) => setNotificationsEnabled(v),
+          onToggle: async (v) => {
+            setNotificationsEnabled(v);
+            try {
+              await api.put('/api/user/preferences', { notifications: v });
+            } catch (e) {
+              // Revert on failure
+              setNotificationsEnabled(!v);
+            }
+          },
         },
         { icon: 'grid-outline', label: 'Categories', subtitle: 'Manage expense & income categories', color: '#06B6D4', route: '/features/categories' },
       ],
@@ -165,7 +230,7 @@ export default function MoreScreen() {
       title: 'Finance', delay: 300,
       items: [
         { icon: 'pie-chart-outline', label: 'Budgets', subtitle: 'Track spending limits', color: '#10B981', route: '/features/budgets' },
-        { icon: 'calendar-outline', label: 'Recurring Bills', subtitle: 'Subscriptions & more', color: '#EC4899', route: '/features/recurring-bills', badge: '3' },
+        { icon: 'calendar-outline', label: 'Recurring Bills', subtitle: 'Subscriptions & more', color: '#EC4899', route: '/features/recurring-bills', badge: recurringCount },
       ],
     },
     {
@@ -179,7 +244,7 @@ export default function MoreScreen() {
       title: 'App', delay: 500,
       items: [
         { icon: 'help-circle-outline', label: 'Help & Support', subtitle: 'FAQs & contact', color: '#06B6D4', route: '/help-support' },
-        { icon: 'star-outline', label: 'Rate Us', subtitle: 'Share your feedback', color: '#FBBF24', onPress: () => Alert.alert('Rate Us', 'Thanks for your support!') },
+        { icon: 'star-outline', label: 'Rate Us', subtitle: 'Share your feedback', color: '#FBBF24', onPress: () => { const url = Platform.OS === 'ios' ? 'https://apps.apple.com/app/budgettracko/id000000' : 'https://play.google.com/store/apps/details?id=com.budgettracko.app'; Linking.openURL(url); } },
         { icon: 'share-social-outline', label: 'Share App', subtitle: 'Invite friends', color: '#EC4899', route: '/share-app' },
       ],
     },
@@ -215,8 +280,8 @@ export default function MoreScreen() {
               <Text style={s.userName}>{user?.displayName || 'BudgetTracko User'}</Text>
               <Text style={s.userEmail} numberOfLines={1}>{user?.email || 'Authenticated mode'}</Text>
             </View>
-            <View style={s.planChip}>
-              <Text style={s.planText}>Free</Text>
+            <View style={[s.planChip, userPlan !== 'Free' && { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
+              <Text style={[s.planText, userPlan !== 'Free' && { color: '#F59E0B' }]}>{userPlan}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
           </TouchableOpacity>

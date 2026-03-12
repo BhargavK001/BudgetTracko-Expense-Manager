@@ -113,7 +113,10 @@ export default function TabLayout() {
         <Tabs.Screen name="accounts" />
         <Tabs.Screen name="more" />
       </Tabs>
-      <AddTransactionModal visible={showAddModal} onClose={() => setShowAddModal(false)} />
+      <AddTransactionModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+      />
     </>
   );
 }

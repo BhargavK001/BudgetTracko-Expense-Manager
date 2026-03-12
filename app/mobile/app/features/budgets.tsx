@@ -9,6 +9,7 @@ import {
     Modal,
     Platform,
     StatusBar,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -25,7 +26,7 @@ const PERIODS = [
 export default function BudgetsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { getCategoryBreakdown } = useTransactions();
+    const { budgets, addBudget, updateBudget, deleteBudget, getCategoryBreakdown } = useTransactions();
 
     const [activePeriod, setActivePeriod] = useState('monthly');
     const [showForm, setShowForm] = useState(false);
@@ -34,13 +35,6 @@ export default function BudgetsScreen() {
     // Form State
     const [formCategory, setFormCategory] = useState('');
     const [formAmount, setFormAmount] = useState('');
-
-    // Mock Budgets (Local only for now)
-    const [budgets, setBudgets] = useState([
-        { id: '1', category: 'Food and Dining', amount: 5000, period: 'monthly' },
-        { id: '2', category: 'Transport', amount: 2000, period: 'monthly' },
-        { id: '3', category: 'Shopping', amount: 3000, period: 'monthly' },
-    ]);
 
     const activeMonth = new Date().getMonth();
     const activeYear = new Date().getFullYear();
@@ -71,28 +65,44 @@ export default function BudgetsScreen() {
         setShowForm(true);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!formCategory || !formAmount) return;
 
-        if (editingBudget) {
-            setBudgets(prev => prev.map(b => b.id === editingBudget.id ? {
-                ...b,
-                category: formCategory as any,
-                amount: Number(formAmount)
-            } : b));
-        } else {
-            setBudgets(prev => [...prev, {
-                id: Date.now().toString(),
-                category: formCategory as any,
-                amount: Number(formAmount),
-                period: activePeriod
-            }]);
+        try {
+            if (editingBudget) {
+                await updateBudget(editingBudget.id, {
+                    category: formCategory as any,
+                    amount: Number(formAmount),
+                    period: activePeriod as any
+                });
+            } else {
+                await addBudget({
+                    category: formCategory as any,
+                    amount: Number(formAmount),
+                    period: activePeriod as any
+                });
+            }
+            setShowForm(false);
+        } catch (e: any) {
+            Alert.alert('Error', e.response?.data?.message || 'Failed to save budget.');
         }
-        setShowForm(false);
     };
 
     const handleDelete = (id: string) => {
-        setBudgets(prev => prev.filter(b => b.id !== id));
+        Alert.alert('Delete Budget', 'Are you sure you want to delete this budget?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        await deleteBudget(id);
+                    } catch (e: any) {
+                        Alert.alert('Error', e.response?.data?.message || 'Failed to delete budget.');
+                    }
+                }
+            }
+        ]);
     };
 
     return (

@@ -11,7 +11,11 @@ router.post('/forgotpassword', authController.forgotPassword);
 router.put('/resetpassword/:resettoken', authController.resetPassword);
 
 // Google Auth
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+// Google Auth
+router.get('/google', (req, res, next) => {
+    const state = req.query.state || 'web';
+    passport.authenticate('google', { scope: ['profile', 'email'], state })(req, res, next);
+});
 
 router.get(
     '/google/callback',
@@ -35,7 +39,11 @@ router.get(
 );
 
 // GitHub Auth
-router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
+// GitHub Auth
+router.get('/github', (req, res, next) => {
+    const state = req.query.state || 'web';
+    passport.authenticate('github', { scope: ['user:email'], state })(req, res, next);
+});
 
 router.get(
     '/github/callback',

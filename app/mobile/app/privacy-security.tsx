@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, StatusBar, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -103,7 +103,7 @@ export default function PrivacySecurityScreen() {
                     </View>
 
                     <Animated.View entering={FadeInDown.delay(600).duration(400)}>
-                        <TouchableOpacity style={styles.contactBtn} activeOpacity={0.8}>
+                        <TouchableOpacity style={styles.contactBtn} activeOpacity={0.8} onPress={() => Linking.openURL('mailto:privacy@budgettracko.com?subject=Privacy%20Inquiry')}>
                             <Text style={styles.contactBtnText}>Contact Privacy Team</Text>
                         </TouchableOpacity>
                     </Animated.View>

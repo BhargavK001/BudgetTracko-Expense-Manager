@@ -16,7 +16,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "backgroundColor": "#0A0A0A"
+      "backgroundColor": "#0A0A0A",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Allow BudgetTracko to authenticate you using Face ID."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -34,7 +37,8 @@
       "favicon": "./assets/images/logo512.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

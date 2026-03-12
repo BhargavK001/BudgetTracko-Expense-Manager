@@ -7,7 +7,7 @@ export default function FeaturesLayout() {
             animation: 'slide_from_right',
             gestureEnabled: true,
             fullScreenGestureEnabled: true,
-            contentStyle: { backgroundColor: '#0A0A0A' },
+            contentStyle: { backgroundColor: '#fff' },
         }}>
             <Stack.Screen name="track" />
             <Stack.Screen name="trends" />
@@ -17,9 +17,8 @@ export default function FeaturesLayout() {
             <Stack.Screen name="recurring-bills" />
             <Stack.Screen name="ask-tracko" />
             <Stack.Screen name="analysis" />
+            <Stack.Screen name="edit-profile" />
+            <Stack.Screen name="razorpay-checkout" />
         </Stack>
-
-
-
     );
 }

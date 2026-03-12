@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, StatusBar, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
+import api from '@/services/api';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
 export default function ProfileScreen() {
@@ -26,13 +27,43 @@ export default function ProfileScreen() {
         .map((part) => part[0]?.toUpperCase())
         .join('');
     const plan = user?.subscription?.plan || 'Free Plan';
-    const memberSince = 'Feb 2024';
 
-    const stats = [
-        { label: 'Transactions', value: '42', icon: 'list-outline', color: '#3B82F6' },
-        { label: 'Accounts', value: '3', icon: 'wallet-outline', color: '#10B981' },
-        { label: 'Budgets', value: '5', icon: 'pie-chart-outline', color: '#F59E0B' },
-    ];
+    const [statsLoading, setStatsLoading] = useState(true);
+    const [stats, setStats] = useState([
+        { label: 'Transactions', value: '—', icon: 'list-outline', color: '#3B82F6' },
+        { label: 'Accounts', value: '—', icon: 'wallet-outline', color: '#10B981' },
+        { label: 'Budgets', value: '—', icon: 'pie-chart-outline', color: '#F59E0B' },
+    ]);
+    const [memberSince, setMemberSince] = useState('—');
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const res = await api.get('/api/user/export');
+                if (res.data?.success && res.data.data?.summary) {
+                    const s = res.data.data.summary;
+                    setStats([
+                        { label: 'Transactions', value: String(s.totalTransactions || 0), icon: 'list-outline', color: '#3B82F6' },
+                        { label: 'Accounts', value: String(s.totalAccounts || 0), icon: 'wallet-outline', color: '#10B981' },
+                        { label: 'Budgets', value: String(s.totalBudgets || 0), icon: 'pie-chart-outline', color: '#F59E0B' },
+                    ]);
+                }
+            } catch (e) {
+                // Fallback silently
+            } finally {
+                setStatsLoading(false);
+            }
+        };
+
+        // Compute member since from user createdAt
+        if (user && (user as any).createdAt) {
+            const d = new Date((user as any).createdAt);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            setMemberSince(`${months[d.getMonth()]} ${d.getFullYear()}`);
+        }
+
+        fetchStats();
+    }, [user]);
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -119,11 +150,11 @@ export default function ProfileScreen() {
 
                     <Animated.View entering={FadeInDown.delay(450).duration(400)}>
                         <View style={styles.profileActionsCard}>
-                            <TouchableOpacity style={styles.profileActionBtn} activeOpacity={0.8}>
+                            <TouchableOpacity style={styles.profileActionBtn} activeOpacity={0.8} onPress={() => router.push('/features/edit-profile' as any)}>
                                 <Ionicons name="create-outline" size={16} color="#111" />
                                 <Text style={styles.profileActionText}>Edit Profile</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={[styles.profileActionBtn, styles.profileActionBtnAlt]} activeOpacity={0.8}>
+                            <TouchableOpacity style={[styles.profileActionBtn, styles.profileActionBtnAlt]} activeOpacity={0.8} onPress={() => router.push('/premium' as any)}>
                                 <Ionicons name="sparkles-outline" size={16} color="#6366F1" />
                                 <Text style={[styles.profileActionText, { color: '#6366F1' }]}>Manage Plan</Text>
                             </TouchableOpacity>

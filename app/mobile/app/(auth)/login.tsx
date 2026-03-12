@@ -8,6 +8,7 @@ import { StatusBar } from 'expo-status-bar';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
 import { API_BASE_URL } from '@/services/api';
+import { Alert } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 WebBrowser.maybeCompleteAuthSession();
@@ -15,11 +16,34 @@ WebBrowser.maybeCompleteAuthSession();
 export default function Login() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { login, completeSocialLogin } = useAuth();
+    const { login, completeSocialLogin, isBiometricSupported, hasBiometricKey, enableBiometricLogin, loginWithBiometrics } = useAuth();
     const [email, setEmail] = React.useState('');
     const [password, setPassword] = React.useState('');
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState('');
+
+    const askToEnableBiometrics = () => {
+        if (!isBiometricSupported || hasBiometricKey) {
+            router.replace('/(tabs)');
+            return;
+        }
+
+        Alert.alert(
+            'Enable Biometric Login',
+            'Would you like to use Face ID / Fingerprint to log in next time?',
+            [
+                { text: 'No Thanks', style: 'cancel', onPress: () => router.replace('/(tabs)') },
+                {
+                    text: 'Enable',
+                    style: 'default',
+                    onPress: async () => {
+                        await enableBiometricLogin();
+                        router.replace('/(tabs)');
+                    }
+                }
+            ]
+        );
+    };
 
     const handleLogin = async () => {
         if (!email || !password) {
@@ -30,7 +54,7 @@ export default function Login() {
         setError('');
         try {
             await login(email, password);
-            router.replace('/(tabs)');
+            askToEnableBiometrics();
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -51,7 +75,7 @@ export default function Login() {
                     const token = queryParams.token as string;
                     const user = JSON.parse(queryParams.user as string);
                     await completeSocialLogin(token, user);
-                    router.replace('/(tabs)');
+                    askToEnableBiometrics();
                 }
             }
         } catch (err: any) {
@@ -112,10 +136,24 @@ export default function Login() {
                             <Text style={styles.btnGText}>{loading ? "Signing In..." : "Sign In"}</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.bioBtn}>
-                            <MaterialCommunityIcons name="fingerprint" size={20} color="#111" />
-                            <Text style={styles.bioBtnText}>Sign in with Biometrics</Text>
-                        </TouchableOpacity>
+                        {(isBiometricSupported && hasBiometricKey) && (
+                            <TouchableOpacity
+                                style={styles.bioBtn}
+                                onPress={async () => {
+                                    try {
+                                        await loginWithBiometrics();
+                                        router.replace('/(tabs)');
+                                    } catch (err: any) {
+                                        if (err.message !== 'Biometric authentication failed or was cancelled.') {
+                                            setError(err.message);
+                                        }
+                                    }
+                                }}
+                            >
+                                <MaterialCommunityIcons name="fingerprint" size={20} color="#111" />
+                                <Text style={styles.bioBtnText}>Sign in with Biometrics</Text>
+                            </TouchableOpacity>
+                        )}
 
                         <View style={styles.divRow}>
                             <View style={styles.divL} />
