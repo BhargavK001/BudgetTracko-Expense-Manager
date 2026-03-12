@@ -63,11 +63,11 @@ const CustomDarkTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    background: '#0A0A0A',
-    card: '#0A0A0A',
-    text: '#FFFFFF',
-    border: '#1A1A1A',
-    notification: '#facc15',
+    background: '#060D1F',
+    card: '#0D1630',
+    text: '#F1F5F9',
+    border: '#1E2D4F',
+    notification: '#6366F1',
   },
 };
 
@@ -77,7 +77,7 @@ function RootLayoutNav() {
       <TransactionProvider>
         <SafeAreaProvider>
           <ThemeProvider value={CustomDarkTheme}>
-            <View style={{ flex: 1, backgroundColor: '#0A0A0A' }}>
+            <View style={{ flex: 1, backgroundColor: '#fff' }}>
               <Stack
                 initialRouteName="index"
                 screenOptions={{
@@ -85,7 +85,7 @@ function RootLayoutNav() {
                   gestureEnabled: true,
                   fullScreenGestureEnabled: true,
                   headerShown: false,
-                  contentStyle: { backgroundColor: '#0A0A0A' },
+                  contentStyle: { backgroundColor: '#fff' },
                 }}
               >
                 <Stack.Screen name="index" options={{ headerShown: false }} />

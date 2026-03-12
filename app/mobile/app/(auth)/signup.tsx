@@ -1,35 +1,40 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ScrollView } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ScrollView, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Container } from '../../components/Container';
-import { Button } from '../../components/Button';
-import { Input } from '../../components/Input';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import Animated, {
-    FadeInDown,
-} from 'react-native-reanimated';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/context/AuthContext';
+import { API_BASE_URL } from '@/services/api';
+
+const { width } = Dimensions.get('window');
+WebBrowser.maybeCompleteAuthSession();
 
 export default function Signup() {
     const router = useRouter();
-    const { signup } = useAuth();
-    const [name, setName] = React.useState('');
+    const insets = useSafeAreaInsets();
+    const { signup, completeSocialLogin } = useAuth();
+    const [firstName, setFirstName] = React.useState('');
+    const [lastName, setLastName] = React.useState('');
     const [email, setEmail] = React.useState('');
+    const [phone, setPhone] = React.useState('');
     const [password, setPassword] = React.useState('');
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState('');
 
     const handleSignup = async () => {
-        if (!name || !email || !password) {
-            setError('Please fill in all fields');
+        if (!firstName || !lastName || !email || !password) {
+            setError('Please fill in required fields');
             return;
         }
 
         setLoading(true);
         setError('');
         try {
-            await signup(name, email, password);
+            const fullName = `${firstName} ${lastName}`.trim();
+            await signup(fullName, email, password);
             router.replace('/(tabs)');
         } catch (err: any) {
             setError(err.message);
@@ -38,209 +43,290 @@ export default function Signup() {
         }
     };
 
-    return (
-        <Container backgroundColor="#FFD700">
-            <StatusBar style="dark" />
+    const handleSocialLogin = async (provider: 'google' | 'github') => {
+        setLoading(true);
+        setError('');
+        try {
+            const authUrl = `${API_BASE_URL}/auth/${provider}?state=mobile`;
+            const result = await WebBrowser.openAuthSessionAsync(authUrl, 'budgettracko://auth/callback');
 
+            if (result.type === 'success' && result.url) {
+                const { queryParams } = Linking.parse(result.url);
+                if (queryParams?.token && queryParams?.user) {
+                    const token = queryParams.token as string;
+                    const user = JSON.parse(queryParams.user as string);
+                    await completeSocialLogin(token, user);
+                    router.replace('/(tabs)');
+                }
+            }
+        } catch (err: any) {
+            setError(`Social login failed: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <View style={styles.container}>
+            <StatusBar style="dark" />
             <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                <KeyboardAvoidingView
-                    behavior={Platform.OS === "ios" ? "padding" : "height"}
-                    style={styles.keyboardView}
-                >
-                    <View style={styles.content}>
-                        <View style={styles.header}>
-                            <Animated.View entering={FadeInDown.delay(200).duration(800)}>
-                                <Text style={styles.title}>CREATE</Text>
-                            </Animated.View>
-                            <Animated.View entering={FadeInDown.delay(300).duration(800)}>
-                                <Text style={styles.title}>ACCOUNT</Text>
-                            </Animated.View>
-                            <Animated.View entering={FadeInDown.delay(400)}>
-                                <Text style={styles.subtitle}>
-                                    Start your financial journey today.
-                                </Text>
-                            </Animated.View>
+                <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.keyboardView}>
+                    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 20, paddingBottom: insets.bottom + 20 }]}>
+
+                        <TouchableOpacity style={styles.backBtn} onPress={() => router.push('/welcome')}>
+                            <MaterialCommunityIcons name="arrow-left" size={20} color="#111" />
+                        </TouchableOpacity>
+
+                        <View style={styles.suHead}>
+                            <Text style={styles.h2}>Create account</Text>
+                            <Text style={styles.p}>Start your journey to financial clarity.</Text>
                         </View>
 
-                        {/* Social Login */}
-                        <Animated.View entering={FadeInDown.delay(500)}>
-                            <View style={styles.socialContainer}>
-                                <TouchableOpacity style={[styles.socialButton, styles.googleButton]}>
-                                    <Image
-                                        source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }}
-                                        style={{ width: 24, height: 24 }}
-                                    />
-                                    <Text style={styles.socialButtonText}>Google</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity style={[styles.socialButton, styles.githubButton]}>
-                                    <MaterialCommunityIcons name="github" size={24} color="#FFFFFF" />
-                                    <Text style={[styles.socialButtonText, { color: '#FFFFFF' }]}>GitHub</Text>
-                                </TouchableOpacity>
-                            </View>
-                        </Animated.View>
-
-                        <Animated.View entering={FadeInDown.delay(600)}>
-                            <View style={styles.divider}>
-                                <View style={styles.line} />
-                                <Text style={styles.dividerText}>OR SIGN UP WITH</Text>
-                                <View style={styles.line} />
-                            </View>
-                        </Animated.View>
-
-                        {/* Form */}
-                        <Animated.View entering={FadeInDown.delay(700)}>
-                            <View style={styles.form}>
-                                <Input
-                                    label="Full Name"
-                                    placeholder="John Doe"
-                                    icon="account-outline"
+                        <View style={styles.ig2}>
+                            <View style={styles.igHalf}>
+                                <Text style={styles.il}>First Name</Text>
+                                <TextInput
+                                    style={styles.inf}
+                                    placeholder="Rahul"
+                                    placeholderTextColor="#C7C7CC"
                                     autoCapitalize="words"
-                                    value={name}
-                                    onChangeText={setName}
-                                />
-                                <Input
-                                    label="Email Address"
-                                    placeholder="username@gmail.com"
-                                    icon="email-outline"
-                                    keyboardType="email-address"
-                                    autoCapitalize="none"
-                                    value={email}
-                                    onChangeText={setEmail}
-                                />
-                                <Input
-                                    label="Password"
-                                    placeholder="Create a password"
-                                    icon="lock-outline"
-                                    secureTextEntry
-                                    value={password}
-                                    onChangeText={setPassword}
-                                />
-
-                                {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-                                <Button
-                                    title={loading ? "Creating Account..." : "Sign Up"}
-                                    onPress={handleSignup}
-                                    style={{ marginTop: 16 }}
-                                    disabled={loading}
+                                    value={firstName}
+                                    onChangeText={setFirstName}
                                 />
                             </View>
-                        </Animated.View>
-
-                        <Animated.View entering={FadeInDown.delay(800)}>
-                            <View style={styles.footer}>
-                                <Text style={styles.footerText}>Already have an account? </Text>
-                                <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-                                    <Text style={styles.footerLink}>Log In</Text>
-                                </TouchableOpacity>
+                            <View style={[styles.igHalf, { marginLeft: 12 }]}>
+                                <Text style={styles.il}>Last Name</Text>
+                                <TextInput
+                                    style={styles.inf}
+                                    placeholder="Sharma"
+                                    placeholderTextColor="#C7C7CC"
+                                    autoCapitalize="words"
+                                    value={lastName}
+                                    onChangeText={setLastName}
+                                />
                             </View>
-                        </Animated.View>
-                    </View>
+                        </View>
+
+                        <View style={styles.ig}>
+                            <Text style={styles.il}>Email</Text>
+                            <TextInput
+                                style={styles.inf}
+                                placeholder="rahul@example.com"
+                                placeholderTextColor="#C7C7CC"
+                                keyboardType="email-address"
+                                autoCapitalize="none"
+                                value={email}
+                                onChangeText={setEmail}
+                            />
+                        </View>
+
+                        <View style={styles.ig}>
+                            <Text style={styles.il}>Phone</Text>
+                            <TextInput
+                                style={styles.inf}
+                                placeholder="+91 98765 43210"
+                                placeholderTextColor="#C7C7CC"
+                                keyboardType="phone-pad"
+                                value={phone}
+                                onChangeText={setPhone}
+                            />
+                        </View>
+
+                        <View style={styles.ig}>
+                            <Text style={styles.il}>Password</Text>
+                            <TextInput
+                                style={styles.inf}
+                                placeholder="Minimum 8 characters"
+                                placeholderTextColor="#C7C7CC"
+                                secureTextEntry
+                                value={password}
+                                onChangeText={setPassword}
+                            />
+                        </View>
+
+                        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+                        <TouchableOpacity style={styles.btnG} onPress={handleSignup} disabled={loading}>
+                            <Text style={styles.btnGText}>{loading ? "Creating Account..." : "Create Account"}</Text>
+                        </TouchableOpacity>
+
+                        <View style={styles.divRow}>
+                            <View style={styles.divL} />
+                            <Text style={styles.divTxt}>or continue with</Text>
+                            <View style={styles.divL} />
+                        </View>
+
+                        <View style={styles.socRow}>
+                            <TouchableOpacity style={styles.socBtn} onPress={() => handleSocialLogin('google')} disabled={loading}>
+                                <Image source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }} style={{ width: 17, height: 17 }} />
+                                <Text style={styles.socBtnText}>Google</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.socBtn} onPress={() => handleSocialLogin('github')} disabled={loading}>
+                                <MaterialCommunityIcons name="github" size={17} color="#111" />
+                                <Text style={styles.socBtnText}>GitHub</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.termsT}>
+                            By signing up you agree to our <Text style={styles.termsLink}>Terms of Service</Text> & <Text style={styles.termsLink}>Privacy Policy</Text>
+                        </Text>
+
+                        <View style={styles.ll}>
+                            <Text style={styles.llText}>Already have an account? </Text>
+                            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+                                <Text style={styles.llLink}>Log in</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                    </ScrollView>
                 </KeyboardAvoidingView>
             </TouchableWithoutFeedback>
-        </Container>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
     keyboardView: {
         flex: 1,
     },
-    content: {
-        flex: 1,
-        justifyContent: 'center', // Centered vertically
-        paddingVertical: 24, // Balanced padding
+    scrollContent: {
+        flexGrow: 1,
+        paddingHorizontal: 24,
     },
-    header: {
-        marginBottom: 20, // Tightened
-        marginTop: 30, // Increased top margin
-    },
-    title: {
-        fontSize: 40, // Reduced from 48
-        fontWeight: '900',
-        color: '#000000',
-        lineHeight: 40, // Reduced from 48
-        letterSpacing: -1,
-    },
-    subtitle: {
-        fontSize: 16,
-        color: '#666666',
-        marginTop: 8,
-        fontWeight: '500',
-    },
-    socialContainer: {
-        flexDirection: 'row',
-        gap: 16,
-        marginBottom: 16, // Tightened
-    },
-    socialButton: {
-        flex: 1,
-        flexDirection: 'row',
+    backBtn: {
+        width: 36,
+        height: 36,
+        backgroundColor: '#F5F5F5',
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
+        marginBottom: 22,
+    },
+    suHead: {
+        marginBottom: 26,
+    },
+    h2: {
+        fontSize: 26,
+        fontWeight: '800',
+        color: '#111',
+        letterSpacing: -0.3,
+    },
+    p: {
+        fontSize: 13,
+        color: '#8E8E93',
+        marginTop: 5,
+    },
+    ig2: {
+        flexDirection: 'row',
+        marginBottom: 13,
+    },
+    igHalf: {
+        flex: 1,
+    },
+    ig: {
+        marginBottom: 13,
+    },
+    il: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#3A3A3C',
+        marginBottom: 6,
+    },
+    inf: {
+        width: '100%',
         paddingVertical: 14,
-        borderWidth: 2,
-        borderColor: '#000000',
-        borderRadius: 12,
-        gap: 8,
-        shadowColor: '#000000',
-        shadowOffset: { width: 4, height: 4 },
-        shadowOpacity: 1,
-        shadowRadius: 0,
-        backgroundColor: '#FFFFFF',
+        paddingHorizontal: 15,
+        backgroundColor: '#F5F5F5',
+        borderRadius: 13,
+        fontFamily: 'Plus Jakarta Sans',
+        fontSize: 14,
+        color: '#111',
     },
-    googleButton: {
-        // backgroundColor: '#FFFFFF', // Redundant as socialButton now sets it
+    btnG: {
+        width: '100%',
+        padding: 16,
+        backgroundColor: '#111',
+        borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 4,
     },
-    githubButton: {
-        backgroundColor: '#000000',
-    },
-    socialButtonText: {
-        fontSize: 16,
+    btnGText: {
+        fontFamily: 'Plus Jakarta Sans',
+        fontSize: 15,
         fontWeight: '700',
-        color: '#000000',
+        color: '#fff',
     },
-    divider: {
+    divRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
+        gap: 12,
+        marginVertical: 16,
     },
-    line: {
+    divL: {
         flex: 1,
         height: 1,
-        backgroundColor: '#E0E0E0',
+        backgroundColor: '#F2F2F7',
     },
-    dividerText: {
-        fontSize: 14,
+    divTxt: {
+        fontSize: 11,
+        color: '#C7C7CC',
+    },
+    socRow: {
+        flexDirection: 'row',
+        gap: 10,
+        marginBottom: 16,
+    },
+    socBtn: {
+        flex: 1,
+        padding: 13,
+        backgroundColor: '#F5F5F5',
+        borderRadius: 13,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 7,
+    },
+    socBtnText: {
+        fontFamily: 'Plus Jakarta Sans',
+        fontSize: 13,
         fontWeight: '600',
-        color: '#666666',
-        paddingHorizontal: 16,
+        color: '#111',
     },
-    // ...
-    form: {
-        marginBottom: 12, // Reduced to bring footer closer
+    termsT: {
+        fontSize: 11.5,
+        color: '#8E8E93',
+        textAlign: 'center',
+        lineHeight: 18,
     },
-    footer: {
+    termsLink: {
+        color: '#111',
+        fontWeight: '600',
+    },
+    ll: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
+        marginTop: 12,
     },
-    footerText: {
-        fontSize: 14,
-        color: '#000000',
-        fontWeight: '500',
+    llText: {
+        fontSize: 13,
+        color: '#8E8E93',
     },
-    footerLink: {
-        fontSize: 14,
-        color: '#000000',
-        fontWeight: '900',
-        textDecorationLine: 'underline',
+    llLink: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#111',
     },
     errorText: {
-        color: '#D32F2F',
+        color: '#F43F5E',
         fontSize: 12,
-        fontWeight: '700',
-        marginTop: 8,
+        fontWeight: '600',
+        marginBottom: 12,
         textAlign: 'center',
     },
 });

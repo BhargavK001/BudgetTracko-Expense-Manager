@@ -1,228 +1,470 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, useWindowDimensions, StatusBar, Alert, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadowSm } from '@/constants/Theme';
+import { useAuth } from '@/context/AuthContext';
+import api from '@/services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
 export default function SettingsScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { width } = useWindowDimensions();
+    const { isBiometricSupported, hasBiometricKey, enableBiometricLogin, disableBiometricLogin } = useAuth();
+    const isCompact = width < 360;
+    const isTablet = width >= 768;
+    const horizontalPadding = isTablet ? 32 : isCompact ? 16 : 24;
 
-    const [darkMode, setDarkMode] = React.useState(true);
-    const [biometrics, setBiometrics] = React.useState(false);
+    const [darkMode, setDarkMode] = React.useState(false);
+
+    // Persisted general settings
+    const CURRENCIES = ['INR (₹)', 'USD ($)', 'EUR (€)', 'GBP (£)', 'JPY (¥)', 'AUD (A$)', 'CAD (C$)'];
+    const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const LANGUAGES = ['English', 'Hindi', 'Spanish', 'French', 'German', 'Japanese', 'Chinese'];
+
+    const [currency, setCurrency] = useState('INR (₹)');
+    const [firstDay, setFirstDay] = useState('Monday');
+    const [language, setLanguage] = useState('English');
+    const [pickerVisible, setPickerVisible] = useState(false);
+    const [pickerTitle, setPickerTitle] = useState('');
+    const [pickerOptions, setPickerOptions] = useState<string[]>([]);
+    const [pickerOnSelect, setPickerOnSelect] = useState<(v: string) => void>(() => () => { });
+
+    useEffect(() => {
+        (async () => {
+            const c = await AsyncStorage.getItem('setting_currency');
+            const d = await AsyncStorage.getItem('setting_firstDay');
+            const l = await AsyncStorage.getItem('setting_language');
+            if (c) setCurrency(c);
+            if (d) setFirstDay(d);
+            if (l) setLanguage(l);
+        })();
+    }, []);
+
+    const openPicker = (title: string, options: string[], onSelect: (v: string) => void) => {
+        setPickerTitle(title);
+        setPickerOptions(options);
+        setPickerOnSelect(() => onSelect);
+        setPickerVisible(true);
+    };
+
+    const handleClearData = () => {
+        Alert.alert('⚠️ Clear All Data', 'This will permanently delete ALL your transactions, accounts, categories, and budgets.', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Clear Everything', style: 'destructive', onPress: async () => {
+                    try {
+                        const res = await api.delete('/api/user/data');
+                        if (res.data?.success) {
+                            const d = res.data.deleted;
+                            Alert.alert('Done', `Cleared ${d.transactions} transactions, ${d.accounts} accounts, ${d.categories} categories, ${d.budgets} budgets.`);
+                        }
+                    } catch (e: any) {
+                        Alert.alert('Error', e.response?.data?.message || 'Failed to clear data.');
+                    }
+                }
+            },
+        ]);
+    };
+
+    const generalSettings = [
+        { icon: 'cash-outline', label: 'Currency', value: currency, onPress: () => openPicker('Currency', CURRENCIES, async (v) => { setCurrency(v); await AsyncStorage.setItem('setting_currency', v); }) },
+        { icon: 'calendar-outline', label: 'First Day of Week', value: firstDay, onPress: () => openPicker('First Day of Week', DAYS, async (v) => { setFirstDay(v); await AsyncStorage.setItem('setting_firstDay', v); }) },
+        { icon: 'language-outline', label: 'Language', value: language, onPress: () => openPicker('Language', LANGUAGES, async (v) => { setLanguage(v); await AsyncStorage.setItem('setting_language', v); }) },
+    ];
+
+    const dataSettings = [
+        { icon: 'trash-outline', label: 'Clear All Data', color: '#F43F5E', onPress: handleClearData },
+    ];
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
-            {/* ─── Header ─── */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={20} color={DarkTheme.textPrimary} />
+            <StatusBar barStyle="dark-content" />
+            <Animated.View entering={FadeIn.delay(50).duration(300)} style={[styles.header, { paddingHorizontal: horizontalPadding }]}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
+                    <Ionicons name="arrow-back" size={20} color="#111" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Settings</Text>
-                <View style={{ width: 34 }} />
-            </View>
+                <View style={{ width: 40 }} />
+            </Animated.View>
 
             <ScrollView
                 style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    {
+                        paddingHorizontal: horizontalPadding,
+                        paddingBottom: insets.bottom + 36,
+                    },
+                ]}
                 showsVerticalScrollIndicator={false}
             >
-                {/* General Settings */}
-                <Text style={styles.sectionTitle}>General</Text>
-                <View style={styles.settingsGroup}>
-                    <SettingItem
-                        icon="cash-outline"
-                        label="Currency"
-                        value="INR (₹)"
-                        onPress={() => { }}
-                    />
-                    <SettingItem
-                        icon="calendar-outline"
-                        label="First Day of Week"
-                        value="Monday"
-                        onPress={() => { }}
-                    />
-                    <SettingItem
-                        icon="language-outline"
-                        label="Language"
-                        value="English"
-                        onPress={() => { }}
-                    />
-                </View>
-
-                {/* Preferences */}
-                <Text style={styles.sectionTitle}>Preferences</Text>
-                <View style={styles.settingsGroup}>
-                    <View style={styles.settingRow}>
-                        <View style={styles.settingLeft}>
-                            <View style={[styles.settingIcon, { backgroundColor: '#7C4DFF22' }]}>
-                                <Ionicons name="moon-outline" size={18} color="#7C4DFF" />
+                <View style={[styles.contentInner, isTablet && styles.contentInnerTablet]}>
+                    <Animated.View entering={FadeInDown.delay(100).duration(400).springify()}>
+                        <LinearGradient
+                            colors={['#111', '#1A1C20']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={[styles.topCard, isCompact && styles.topCardCompact]}
+                        >
+                            <View style={styles.topCardIconWrap}>
+                                <Ionicons name="settings-outline" size={18} color="#2DCA72" />
                             </View>
-                            <Text style={styles.settingLabel}>Dark Mode</Text>
-                        </View>
-                        <Switch
-                            value={darkMode}
-                            onValueChange={setDarkMode}
-                            trackColor={{ false: '#333', true: DarkTheme.brandYellow }}
-                            thumbColor={darkMode ? '#fff' : '#f4f3f4'}
-                        />
-                    </View>
-                    <View style={styles.settingRow}>
-                        <View style={styles.settingLeft}>
-                            <View style={[styles.settingIcon, { backgroundColor: '#4CAF5022' }]}>
-                                <Ionicons name="finger-print-outline" size={18} color="#4CAF50" />
+                            <View style={styles.topCardTextWrap}>
+                                <Text style={styles.topCardTitle}>Preferences & Security</Text>
+                                <Text style={styles.topCardDesc}>Manage app behavior, reminders, and data controls.</Text>
                             </View>
-                            <Text style={styles.settingLabel}>Biometric Lock</Text>
+                        </LinearGradient>
+                    </Animated.View>
+
+                    <Animated.View entering={FadeInDown.delay(150).duration(400)}>
+                        <Text style={styles.sectionTitle}>General</Text>
+                        <View style={styles.settingsGroup}>
+                            {generalSettings.map((item, index) => (
+                                <SettingItem
+                                    key={item.label}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    value={item.value}
+                                    onPress={item.onPress}
+                                    isLast={index === generalSettings.length - 1}
+                                />
+                            ))}
                         </View>
-                        <Switch
-                            value={biometrics}
-                            onValueChange={setBiometrics}
-                            trackColor={{ false: '#333', true: DarkTheme.brandYellow }}
-                            thumbColor={biometrics ? '#fff' : '#f4f3f4'}
-                        />
-                    </View>
-                </View>
+                    </Animated.View>
 
-                {/* Notifications */}
-                <Text style={styles.sectionTitle}>Notifications</Text>
-                <View style={styles.settingsGroup}>
-                    <SettingItem
-                        icon="notifications-outline"
-                        label="Reminders"
-                        onPress={() => router.push('/settings/reminders')}
-                    />
-                </View>
+                    <Animated.View entering={FadeInDown.delay(200).duration(400)}>
+                        <Text style={styles.sectionTitle}>Preferences</Text>
+                        <View style={styles.settingsGroup}>
+                            <ToggleSettingRow
+                                icon="moon-outline"
+                                iconColor="#8B5CF6"
+                                iconTint="rgba(139,92,246,0.12)"
+                                label="Dark Mode"
+                                value={darkMode}
+                                onValueChange={setDarkMode}
+                            />
+                            <ToggleSettingRow
+                                icon="finger-print-outline"
+                                iconColor="#2DCA72"
+                                iconTint="rgba(45,202,114,0.12)"
+                                label="Biometric Lock"
+                                value={hasBiometricKey}
+                                onValueChange={async (v) => {
+                                    if (!isBiometricSupported) {
+                                        Alert.alert('Not Available', 'Your device does not support biometric authentication.');
+                                        return;
+                                    }
+                                    if (v) {
+                                        const success = await enableBiometricLogin();
+                                        if (!success) {
+                                            Alert.alert('Failed', 'Could not enable biometric lock. Please try again.');
+                                        }
+                                    } else {
+                                        await disableBiometricLogin();
+                                    }
+                                }}
+                                isLast
+                            />
+                        </View>
+                    </Animated.View>
 
-                {/* Data */}
-                <Text style={styles.sectionTitle}>Data Management</Text>
-                <View style={styles.settingsGroup}>
-                    <SettingItem
-                        icon="cloud-upload-outline"
-                        label="Backup Data"
-                        onPress={() => { }}
-                    />
-                    <SettingItem
-                        icon="trash-outline"
-                        label="Clear All Data"
-                        color={DarkTheme.spending}
-                        onPress={() => { }}
-                    />
-                </View>
+                    <Animated.View entering={FadeInDown.delay(250).duration(400)}>
+                        <Text style={styles.sectionTitle}>Notifications</Text>
+                        <View style={styles.settingsGroup}>
+                            <SettingItem
+                                icon="notifications-outline"
+                                iconColor="#F59E0B"
+                                iconTint="rgba(245,158,11,0.12)"
+                                label="Reminders"
+                                onPress={() => router.push('/settings/reminders' as any)}
+                                isLast
+                            />
+                        </View>
+                    </Animated.View>
 
-                <View style={{ height: 40 }} />
+                    <Animated.View entering={FadeInDown.delay(300).duration(400)}>
+                        <Text style={styles.sectionTitle}>Data Management</Text>
+                        <View style={styles.settingsGroup}>
+                            {dataSettings.map((item, index) => (
+                                <SettingItem
+                                    key={item.label}
+                                    icon={item.icon}
+                                    label={item.label}
+                                    color={item.color}
+                                    onPress={item.onPress}
+                                    isLast={index === dataSettings.length - 1}
+                                />
+                            ))}
+                        </View>
+                    </Animated.View>
+                </View>
             </ScrollView>
+
+            {/* Picker Modal */}
+            <Modal visible={pickerVisible} transparent animationType="fade">
+                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setPickerVisible(false)}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>{pickerTitle}</Text>
+                        <FlatList
+                            data={pickerOptions}
+                            keyExtractor={(item) => item}
+                            renderItem={({ item }) => {
+                                const isSelected = (
+                                    pickerTitle === 'Currency' ? currency :
+                                        pickerTitle === 'First Day of Week' ? firstDay : language
+                                ) === item;
+                                return (
+                                    <TouchableOpacity
+                                        style={[styles.pickerItem, isSelected && styles.pickerItemActive]}
+                                        onPress={() => { pickerOnSelect(item); setPickerVisible(false); }}
+                                    >
+                                        <Text style={[styles.pickerItemText, isSelected && { color: '#6366F1', fontWeight: '800' }]}>{item}</Text>
+                                        {isSelected && <Ionicons name="checkmark-circle" size={20} color="#6366F1" />}
+                                    </TouchableOpacity>
+                                );
+                            }}
+                        />
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 }
 
-function SettingItem({ icon, label, value, onPress, color }: {
+function SettingItem({ icon, iconColor, iconTint, label, value, onPress, color, isLast }: {
     icon: string;
+    iconColor?: string;
+    iconTint?: string;
     label: string;
     value?: string;
     onPress: () => void;
     color?: string;
+    isLast?: boolean;
 }) {
+    const finalIconColor = color || iconColor || '#8E8E93';
+    const finalBgColor = color ? color + '15' : iconTint || '#F5F5F5';
+
     return (
-        <TouchableOpacity style={styles.settingRow} onPress={onPress} activeOpacity={0.7}>
+        <TouchableOpacity style={[styles.settingRow, isLast && styles.settingRowLast]} onPress={onPress} activeOpacity={0.7}>
             <View style={styles.settingLeft}>
-                <View style={[styles.settingIcon, { backgroundColor: (color || DarkTheme.textSecondary) + '22' }]}>
-                    <Ionicons name={icon as any} size={18} color={color || DarkTheme.textSecondary} />
+                <View style={[styles.settingIcon, { backgroundColor: finalBgColor }]}>
+                    <Ionicons name={icon as any} size={18} color={finalIconColor} />
                 </View>
                 <Text style={[styles.settingLabel, color ? { color } : {}]}>{label}</Text>
             </View>
             <View style={styles.settingRight}>
                 {value && <Text style={styles.settingValue}>{value}</Text>}
-                <Ionicons name="chevron-forward" size={16} color={DarkTheme.chevron} />
+                <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
             </View>
         </TouchableOpacity>
+    );
+}
+
+function ToggleSettingRow({
+    icon,
+    iconColor,
+    iconTint,
+    label,
+    value,
+    onValueChange,
+    isLast,
+}: {
+    icon: string;
+    iconColor: string;
+    iconTint: string;
+    label: string;
+    value: boolean;
+    onValueChange: (value: boolean) => void;
+    isLast?: boolean;
+}) {
+    return (
+        <View style={[styles.settingRow, isLast && styles.settingRowLast]}>
+            <View style={styles.settingLeft}>
+                <View style={[styles.settingIcon, { backgroundColor: iconTint }]}>
+                    <Ionicons name={icon as any} size={18} color={iconColor} />
+                </View>
+                <Text style={styles.settingLabel}>{label}</Text>
+            </View>
+            <Switch
+                value={value}
+                onValueChange={onValueChange}
+                trackColor={{ false: '#E5E5EA', true: '#2DCA72' }}
+                thumbColor="#fff"
+                ios_backgroundColor="#E5E5EA"
+            />
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: DarkTheme.bg,
+        backgroundColor: '#fff',
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
-        borderBottomWidth: 2,
-        borderBottomColor: DarkTheme.neoBorder,
+        paddingVertical: 14,
     },
     backBtn: {
-        width: 34,
-        height: 34,
-        borderRadius: BorderRadius.sm,
-        backgroundColor: DarkTheme.cardBg,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F5F5F5',
         justifyContent: 'center',
         alignItems: 'center',
     },
     headerTitle: {
-        fontSize: FontSize.xl,
+        fontSize: 18,
         fontWeight: '800',
-        color: DarkTheme.textPrimary,
+        color: '#111',
     },
     scrollView: { flex: 1 },
     scrollContent: {
-        paddingHorizontal: Spacing.lg,
-        paddingTop: Spacing.xl,
+        paddingTop: 8,
+    },
+    contentInner: {
+        width: '100%',
+    },
+    contentInnerTablet: {
+        maxWidth: 760,
+        alignSelf: 'center',
+    },
+    topCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+        borderRadius: 24,
+        padding: 24,
+        marginBottom: 24,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.08)',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 4,
+    },
+    topCardCompact: {
+        padding: 16,
+    },
+    topCardIconWrap: {
+        width: 48,
+        height: 48,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(45,202,114,0.15)',
+        borderWidth: 1,
+        borderColor: 'rgba(45,202,114,0.3)',
+    },
+    topCardTextWrap: {
+        flex: 1,
+    },
+    topCardTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#FFFFFF',
+        marginBottom: 4,
+    },
+    topCardDesc: {
+        fontSize: 12,
+        color: 'rgba(255,255,255,0.6)',
+        fontWeight: '500',
+        lineHeight: 18,
     },
     sectionTitle: {
-        fontSize: FontSize.sm,
+        fontSize: 11,
         fontWeight: '800',
-        color: DarkTheme.brandYellow,
-        marginBottom: Spacing.md,
-        marginTop: Spacing.md,
+        color: '#8E8E93',
+        marginBottom: 8,
+        marginTop: 4,
         textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        letterSpacing: 1.2,
+        paddingHorizontal: 8,
     },
     settingsGroup: {
-        backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#F2F2F7',
         overflow: 'hidden',
-        marginBottom: Spacing.lg,
+        marginBottom: 24,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 8,
+        elevation: 1,
     },
     settingRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: Spacing.lg,
+        padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: DarkTheme.separator,
+        borderBottomColor: '#F2F2F7',
+    },
+    settingRowLast: {
+        borderBottomWidth: 0,
     },
     settingLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.md,
+        gap: 14,
+        flex: 1,
     },
     settingIcon: {
-        width: 34,
-        height: 34,
-        borderRadius: BorderRadius.sm,
+        width: 36,
+        height: 36,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
     },
     settingLabel: {
-        fontSize: FontSize.md,
-        color: DarkTheme.textPrimary,
+        fontSize: 15,
+        color: '#111',
         fontWeight: '600',
+        flexShrink: 1,
     },
     settingRight: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: Spacing.sm,
+        gap: 8,
     },
     settingValue: {
-        fontSize: FontSize.sm,
-        color: DarkTheme.textSecondary,
+        fontSize: 14,
+        color: '#8E8E93',
         fontWeight: '500',
+    },
+    modalOverlay: {
+        flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: '#fff', borderTopLeftRadius: 28,
+        borderTopRightRadius: 28, padding: 24,
+        maxHeight: '60%',
+    },
+    modalTitle: {
+        fontSize: 18, fontWeight: '900', color: '#111',
+        marginBottom: 16, textAlign: 'center',
+    },
+    pickerItem: {
+        flexDirection: 'row', justifyContent: 'space-between',
+        alignItems: 'center', paddingVertical: 16,
+        paddingHorizontal: 8, borderBottomWidth: 1,
+        borderBottomColor: '#F2F2F7',
+    },
+    pickerItemActive: {
+        backgroundColor: 'rgba(99,102,241,0.06)',
+        borderRadius: 12,
+    },
+    pickerItemText: {
+        fontSize: 16, fontWeight: '600', color: '#111',
     },
 });

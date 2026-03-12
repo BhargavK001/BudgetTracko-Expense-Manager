@@ -1,157 +1,249 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadowSm } from '@/constants/Theme';
+import { useAuth } from '@/context/AuthContext';
+import api from '@/services/api';
+import Animated, { FadeInDown, FadeIn, ZoomIn } from 'react-native-reanimated';
 
 const PLANS = [
     {
-        name: 'Starter',
-        emoji: '🎒',
-        price: '₹0',
+        id: 'free',
+        name: 'Basic',
+        price: 'Free',
         period: 'forever',
-        isCurrent: true,
+        desc: 'Essential tracking for everyday needs.',
         features: [
-            'Track up to 50 transactions/month',
-            'Basic dashboard & spending charts',
-            'Dark & Light mode',
-            'Single account (cash / UPI)',
-            'Mobile friendly design',
-            'Perfect for pocket money tracking',
+            'Manual expense tracking',
+            'Up to 3 basic budgets',
+            'Standard categories',
+            '1 month history',
         ],
+        isPopular: false,
     },
     {
-        name: 'Campus Pro',
-        emoji: '🎓',
+        id: 'pro',
+        name: 'Pro',
         price: '₹49',
         period: '/month',
-        isPopular: true,
+        desc: 'Advanced tools for serious savers.',
         features: [
-            'Unlimited transactions',
-            'Advanced analytics & monthly reports',
-            'Multi-account (Cash, UPI, Bank, Cards)',
-            'Cloud backup & sync across devices',
-            'Budget alerts before you overspend',
-            'Recurring entries (rent, subscriptions)',
-            'Custom categories (food, travel, books)',
-            'Priority support via email',
+            'AI-powered transaction parsing',
+            'Unlimited budgets & bills',
+            'Custom categories',
+            'Export data to CSV/JSON',
+            'Priority support',
         ],
+        isPopular: true,
     },
     {
-        name: 'Hostel Squad',
-        emoji: '🏠',
+        id: 'squad',
+        name: 'Squad',
         price: '₹99',
         period: '/month',
+        desc: 'Team plan for families & groups.',
         features: [
-            'Everything in Campus Pro',
-            'Up to 5 roommates / friends',
-            'Split expenses & shared budgets',
-            'Group analytics & reports',
-            'Export to CSV / PDF',
-            'Dedicated support',
-            'Great for flatmates & hostel groups',
+            'All Pro features',
+            'Family sharing (up to 4)',
+            'Early access to new features',
+            'Direct line to developers',
         ],
-    },
+        isPopular: false,
+    }
 ];
 
 export default function PremiumScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { width } = useWindowDimensions();
 
+    const { user, refreshUser } = useAuth();
+
+    const isCompact = width < 360;
+    const isTablet = width >= 768;
+    const horizontalPadding = isTablet ? 32 : isCompact ? 16 : 24;
+
+    const [activePlan, setActivePlan] = useState('pro');
+    const [loading, setLoading] = useState(false);
+    const currentPlan = user?.subscription?.plan || 'free';
+    const isActive = user?.subscription?.status === 'active' || user?.subscription?.status === 'authenticated';
+
+    const handleUpgrade = async () => {
+        if (activePlan === 'free') {
+            router.back();
+            return;
+        }
+        if (isActive && currentPlan === activePlan) {
+            Alert.alert('Already Subscribed', `You are already on the ${activePlan.toUpperCase()} plan.`);
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const planKey = activePlan;
+            const res = await api.post('/api/payments/create-order', { plan: planKey });
+            const data = res.data;
+
+            if (data.success && data.key && data.subscription_id) {
+                // Navigate to in-app Razorpay WebView checkout
+                router.push({
+                    pathname: '/features/razorpay-checkout',
+                    params: {
+                        subscriptionId: data.subscription_id,
+                        key: data.key,
+                        planName: activePlan.toUpperCase(),
+                        amount: String(data.amount || ''),
+                        email: user?.email || '',
+                        name: user?.displayName || '',
+                    },
+                });
+            } else {
+                Alert.alert('Error', 'Could not initiate payment. Please try again.');
+            }
+        } catch (e: any) {
+            const msg = e.response?.data?.message || 'Payment failed. Please try again.';
+            Alert.alert('Error', msg);
+        } finally {
+            setLoading(false);
+        }
+    };
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
-            {/* ─── Header ─── */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={20} color={DarkTheme.textPrimary} />
+            <StatusBar barStyle="dark-content" />
+
+            <Animated.View entering={FadeIn.delay(50).duration(300)} style={[styles.header, { paddingHorizontal: horizontalPadding }]}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
+                    <Ionicons name="arrow-back" size={20} color="#111" />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Premium</Text>
-                <View style={{ width: 34 }} />
-            </View>
+                <Text style={styles.headerTitle}>Upgrade to Pro</Text>
+                <View style={{ width: 40 }} />
+            </Animated.View>
 
             <ScrollView
                 style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    {
+                        paddingHorizontal: horizontalPadding,
+                        paddingBottom: insets.bottom + 100,
+                    }
+                ]}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Hero */}
-                <View style={styles.hero}>
-                    <Text style={styles.heroTitle}>STUDENT PRICING</Text>
-                    <Text style={styles.heroDesc}>
-                        Built for students & college life. Affordable plans that won't burn a hole in your pocket. 🤞
-                    </Text>
-                </View>
+                <View style={[styles.contentInner, isTablet && styles.contentInnerTablet]}>
 
-                {/* Plans */}
-                {PLANS.map((plan, index) => (
-                    <View
-                        key={index}
-                        style={[
-                            styles.planCard,
-                            plan.isPopular && styles.planCardPopular,
-                        ]}
-                    >
-                        {plan.isPopular && (
-                            <View style={styles.popularBadge}>
-                                <Text style={styles.popularText}>MOST POPULAR</Text>
-                            </View>
-                        )}
-
-                        <View style={styles.planHeader}>
-                            <Text style={styles.planName}>
-                                {plan.name} {plan.emoji}
+                    {/* Hero */}
+                    <Animated.View entering={FadeInDown.delay(100).duration(400).springify()}>
+                        <View style={styles.heroSection}>
+                            <View style={styles.heroGlow} />
+                            <Ionicons name="diamond" size={64} color="#F59E0B" />
+                            <Text style={styles.heroTitle}>Unlock Your Full Financial Power</Text>
+                            <Text style={styles.heroDesc}>
+                                Take absolute control with AI-driven insights, limitless tracking, and complete data freedom.
                             </Text>
-                            <View style={styles.priceRow}>
-                                <Text style={[styles.planPrice, plan.isPopular && styles.planPricePopular]}>
-                                    {plan.price}
-                                </Text>
-                                <Text style={styles.planPeriod}>{plan.period}</Text>
-                            </View>
                         </View>
+                    </Animated.View>
 
-                        <View style={styles.featuresList}>
-                            {plan.features.map((feature, fi) => (
-                                <View key={fi} style={styles.featureRow}>
-                                    <Ionicons
-                                        name="checkmark-circle"
-                                        size={16}
-                                        color={plan.isPopular ? DarkTheme.brandYellow : DarkTheme.income}
-                                    />
-                                    <Text style={styles.featureText}>{feature}</Text>
-                                </View>
-                            ))}
-                        </View>
+                    {/* Plans */}
+                    <View style={styles.plansContainer}>
+                        {PLANS.map((plan, index) => {
+                            const isSelected = activePlan === plan.id;
 
-                        {plan.isCurrent ? (
-                            <View style={styles.currentPlanBtn}>
-                                <Text style={styles.currentPlanText}>Current Plan</Text>
-                            </View>
-                        ) : (
-                            <TouchableOpacity
-                                style={[styles.getStartedBtn, plan.isPopular && styles.getStartedBtnPopular]}
-                                activeOpacity={0.8}
-                            >
-                                <Text
-                                    style={[styles.getStartedText, plan.isPopular && styles.getStartedTextPopular]}
-                                >
-                                    Get Started
-                                </Text>
-                            </TouchableOpacity>
-                        )}
+                            // Animate popular plan with a pop
+                            const EnteringAnimation = plan.isPopular
+                                ? ZoomIn.delay(200 + index * 100).duration(500).springify()
+                                : FadeInDown.delay(200 + index * 100).duration(400).springify();
+
+                            return (
+                                <Animated.View key={plan.id} entering={EnteringAnimation}>
+                                    <TouchableOpacity
+                                        onPress={() => setActivePlan(plan.id)}
+                                        activeOpacity={0.9}
+                                    >
+                                        <LinearGradient
+                                            colors={plan.isPopular ? ['#2A2D3A', '#1F222B'] : ['#fff', '#fff']}
+                                            style={[
+                                                styles.planCard,
+                                                isSelected && styles.planCardActive,
+                                                plan.isPopular && styles.planCardPopular
+                                            ]}
+                                        >
+                                            {plan.isPopular && (
+                                                <View style={styles.popularBadge}>
+                                                    <Text style={styles.popularBadgeText}>MOST POPULAR</Text>
+                                                </View>
+                                            )}
+
+                                            <View style={styles.planHeader}>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={[styles.planName, plan.isPopular && { color: '#fff' }]}>{plan.name}</Text>
+                                                    <Text style={[styles.planDesc, plan.isPopular && { color: 'rgba(255,255,255,0.7)' }]}>{plan.desc}</Text>
+                                                </View>
+                                                <View style={styles.priceRow}>
+                                                    <View style={styles.priceWrap}>
+                                                        <Text style={[styles.planPrice, plan.isPopular && { color: '#fff' }]}>{plan.price}</Text>
+                                                        <Text style={[styles.planPeriod, plan.isPopular && { color: 'rgba(255,255,255,0.5)' }]}>{plan.period}</Text>
+                                                    </View>
+                                                    <View style={[
+                                                        styles.radioBtn,
+                                                        isSelected && styles.radioBtnActive,
+                                                        plan.isPopular && isSelected && { borderColor: '#6366F1' }
+                                                    ]}>
+                                                        {isSelected && <View style={[styles.radioDot, plan.isPopular && { backgroundColor: '#6366F1' }]} />}
+                                                    </View>
+                                                </View>
+                                            </View>
+
+                                            <View style={styles.featuresList}>
+                                                {plan.features.map((feature, i) => (
+                                                    <View key={i} style={styles.featureRow}>
+                                                        <Ionicons
+                                                            name="checkmark-circle"
+                                                            size={18}
+                                                            color={plan.isPopular ? '#2DCA72' : '#6366F1'}
+                                                        />
+                                                        <Text style={[styles.featureText, plan.isPopular && { color: '#fff' }]}>
+                                                            {feature}
+                                                        </Text>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        </LinearGradient>
+                                    </TouchableOpacity>
+                                </Animated.View>
+                            );
+                        })}
                     </View>
-                ))}
-
-                {/* Note */}
-                <View style={styles.noteCard}>
-                    <Ionicons name="information-circle" size={18} color={DarkTheme.brandYellow} />
-                    <Text style={styles.noteText}>
-                        Premium features are coming soon! You'll be notified when they're available.
-                    </Text>
                 </View>
-
-                <View style={{ height: 40 }} />
             </ScrollView>
+
+            {/* Bottom CTA */}
+            <Animated.View entering={FadeInDown.delay(500).duration(400)} style={[styles.bottomCard, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+                <TouchableOpacity style={styles.ctaButton} activeOpacity={0.9} onPress={handleUpgrade} disabled={loading}>
+                    <LinearGradient
+                        colors={['#6366F1', '#4F46E5']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.ctaGradient}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                            <>
+                                <Text style={styles.ctaText}>
+                                    {activePlan === 'free' ? 'Continue with Basic' : (isActive && currentPlan !== 'free' ? 'Change Plan' : 'Upgrade Now')}
+                                </Text>
+                                <Ionicons name="arrow-forward" size={20} color="#fff" />
+                            </>
+                        )}
+                    </LinearGradient>
+                </TouchableOpacity>
+                <Text style={styles.termsText}>
+                    By upgrading, you agree to our Terms of Service & Privacy Policy.
+                </Text>
+            </Animated.View>
         </View>
     );
 }
@@ -159,185 +251,228 @@ export default function PremiumScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: DarkTheme.bg,
+        backgroundColor: '#F8FAFC',
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
-        borderBottomWidth: 2,
-        borderBottomColor: DarkTheme.neoBorder,
+        paddingVertical: 14,
+        backgroundColor: '#F8FAFC',
     },
     backBtn: {
-        width: 34,
-        height: 34,
-        borderRadius: BorderRadius.sm,
-        backgroundColor: DarkTheme.cardBg,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#fff',
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: 1,
+        borderColor: '#F2F2F7',
     },
     headerTitle: {
-        fontSize: FontSize.xl,
+        fontSize: 18,
         fontWeight: '800',
-        color: DarkTheme.textPrimary,
+        color: '#111',
     },
-    scrollView: { flex: 1 },
+    scrollView: {
+        flex: 1,
+    },
     scrollContent: {
-        paddingHorizontal: Spacing.lg,
-        paddingTop: Spacing.xl,
+        paddingTop: 16,
     },
-    // Hero
-    hero: {
+    contentInner: {
+        width: '100%',
+    },
+    contentInnerTablet: {
+        maxWidth: 760,
+        alignSelf: 'center',
+    },
+    heroSection: {
         alignItems: 'center',
-        marginBottom: Spacing.xxl,
+        paddingVertical: 32,
+        paddingHorizontal: 16,
+        position: 'relative',
+    },
+    heroGlow: {
+        position: 'absolute',
+        top: 20,
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: 'rgba(245,158,11,0.15)',
+        transform: [{ scale: 1.5 }],
     },
     heroTitle: {
-        fontSize: FontSize.xxl + 2,
+        fontSize: 26,
         fontWeight: '900',
-        color: DarkTheme.brandYellow,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-        marginBottom: Spacing.sm,
+        color: '#111',
+        marginTop: 20,
+        marginBottom: 12,
+        textAlign: 'center',
+        lineHeight: 32,
     },
     heroDesc: {
-        fontSize: FontSize.sm,
-        color: DarkTheme.textSecondary,
+        fontSize: 15,
+        color: '#8E8E93',
         textAlign: 'center',
-        lineHeight: 20,
+        lineHeight: 22,
+        paddingHorizontal: 20,
     },
-    // Plan Card
+    plansContainer: {
+        gap: 20,
+    },
     planCard: {
-        backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
-        padding: Spacing.xl,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
-        marginBottom: Spacing.lg,
+        borderRadius: 28,
+        padding: 24,
+        borderWidth: 2,
+        borderColor: '#E2E8F0',
+        position: 'relative',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 16,
+        elevation: 2,
+    },
+    planCardActive: {
+        borderColor: '#6366F1',
+        shadowColor: '#6366F1',
+        shadowOpacity: 0.1,
     },
     planCardPopular: {
-        borderColor: DarkTheme.brandYellow,
-        borderWidth: 2.5,
-        backgroundColor: '#0D0D0D',
+        borderWidth: 0,
+        shadowColor: '#111',
+        shadowOpacity: 0.2,
     },
     popularBadge: {
-        alignSelf: 'flex-end',
-        backgroundColor: DarkTheme.textPrimary,
-        paddingHorizontal: Spacing.md,
-        paddingVertical: Spacing.xs,
-        borderRadius: BorderRadius.sm,
-        marginBottom: Spacing.sm,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
+        position: 'absolute',
+        top: -14,
+        alignSelf: 'center',
+        backgroundColor: '#F59E0B',
+        paddingHorizontal: 16,
+        paddingVertical: 6,
+        borderRadius: 20,
+        shadowColor: '#F59E0B',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+        zIndex: 10,
     },
-    popularText: {
-        fontSize: FontSize.xs - 1,
+    popularBadgeText: {
+        color: '#fff',
+        fontSize: 11,
         fontWeight: '900',
-        color: DarkTheme.brandBlack,
-        letterSpacing: 0.5,
+        letterSpacing: 1.5,
     },
     planHeader: {
-        marginBottom: Spacing.lg,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 20,
     },
     planName: {
-        fontSize: FontSize.lg,
+        fontSize: 22,
         fontWeight: '900',
-        color: DarkTheme.brandYellow,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        color: '#111',
+        marginBottom: 6,
+    },
+    planDesc: {
+        fontSize: 13,
+        color: '#8E8E93',
+        maxWidth: 180,
+        lineHeight: 18,
     },
     priceRow: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        marginTop: Spacing.xs,
+        alignItems: 'flex-end',
+        gap: 10,
+    },
+    priceWrap: {
+        alignItems: 'flex-end',
     },
     planPrice: {
-        fontSize: 36,
+        fontSize: 24,
         fontWeight: '900',
-        color: DarkTheme.textPrimary,
-    },
-    planPricePopular: {
-        color: DarkTheme.brandYellow,
+        color: '#111',
     },
     planPeriod: {
-        fontSize: FontSize.sm,
-        color: DarkTheme.textMuted,
+        fontSize: 12,
+        color: '#8E8E93',
         fontWeight: '600',
-        marginLeft: Spacing.xs,
+        marginTop: 2,
     },
-    // Features
     featuresList: {
-        gap: Spacing.sm + 2,
-        marginBottom: Spacing.xl,
+        gap: 12,
+        marginTop: 8,
     },
     featureRow: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        gap: Spacing.sm,
+        gap: 10,
     },
     featureText: {
-        fontSize: FontSize.sm,
-        color: DarkTheme.textPrimary,
+        fontSize: 14,
+        color: '#111',
         fontWeight: '500',
         flex: 1,
-        lineHeight: 18,
-    },
-    // Buttons
-    currentPlanBtn: {
-        alignItems: 'center',
-        paddingVertical: Spacing.md,
-        borderRadius: BorderRadius.sm,
-        backgroundColor: DarkTheme.income + '15',
-        borderWidth: 1.5,
-        borderColor: DarkTheme.income + '44',
-    },
-    currentPlanText: {
-        fontSize: FontSize.sm,
-        fontWeight: '800',
-        color: DarkTheme.income,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    getStartedBtn: {
-        alignItems: 'center',
-        paddingVertical: Spacing.md,
-        borderRadius: BorderRadius.sm,
-        backgroundColor: DarkTheme.textPrimary,
-        borderWidth: 2,
-        borderColor: DarkTheme.neoBorder,
-    },
-    getStartedBtnPopular: {
-        backgroundColor: DarkTheme.brandYellow,
-        borderColor: DarkTheme.brandBlack,
-        ...NeoShadowSm,
-    },
-    getStartedText: {
-        fontSize: FontSize.md,
-        fontWeight: '900',
-        color: DarkTheme.brandBlack,
-        letterSpacing: 0.5,
-    },
-    getStartedTextPopular: {
-        color: DarkTheme.brandBlack,
-    },
-    // Note
-    noteCard: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: Spacing.sm,
-        backgroundColor: DarkTheme.brandYellow + '10',
-        borderRadius: BorderRadius.md,
-        padding: Spacing.lg,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.brandYellow + '33',
-    },
-    noteText: {
-        flex: 1,
-        fontSize: FontSize.sm,
-        color: DarkTheme.textSecondary,
         lineHeight: 20,
+    },
+    radioBtn: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        borderWidth: 2,
+        borderColor: '#C7C7CC',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    radioBtnActive: {
+        borderColor: '#6366F1',
+    },
+    radioDot: {
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: '#6366F1',
+    },
+    bottomCard: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        paddingTop: 20,
+        paddingHorizontal: 24,
+        borderTopWidth: 1,
+        borderTopColor: '#F2F2F7',
+    },
+    ctaButton: {
+        width: '100%',
+        marginBottom: 16,
+        shadowColor: '#6366F1',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    ctaGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 20,
+        paddingVertical: 18,
+        gap: 10,
+    },
+    ctaText: {
+        color: '#fff',
+        fontSize: 17,
+        fontWeight: '900',
+    },
+    termsText: {
+        fontSize: 11,
+        color: '#A1A1AA',
+        textAlign: 'center',
+        paddingHorizontal: 20,
+        lineHeight: 16,
     },
 });

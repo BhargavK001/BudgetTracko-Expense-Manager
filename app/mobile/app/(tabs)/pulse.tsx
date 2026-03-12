@@ -1,205 +1,181 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Platform } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadow } from '@/constants/Theme';
+import Animated, {
+  FadeInDown, FadeIn, FadeInUp,
+  useSharedValue, useAnimatedStyle,
+  withRepeat, withSequence, withTiming, Easing,
+} from 'react-native-reanimated';
+
+function useFloat(offset = -5, dur = 2000) {
+  const y = useSharedValue(0);
+  React.useEffect(() => {
+    y.value = withRepeat(
+      withSequence(
+        withTiming(offset, { duration: dur, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: dur, easing: Easing.inOut(Easing.sin) }),
+      ), -1, false,
+    );
+  }, []);
+  return useAnimatedStyle(() => ({ transform: [{ translateY: y.value }] }));
+}
+
+// Tappable card with smooth scale
+function TapCard({ children, onPress, style, delay = 0 }: any) {
+  const sc = useSharedValue(1);
+  const anim = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
+  const press = () => {
+    sc.value = withSequence(
+      withTiming(0.97, { duration: 80 }),
+      withTiming(1, { duration: 200, easing: Easing.out(Easing.quad) }),
+    );
+    setTimeout(() => onPress?.(), 100);
+  };
+  return (
+    <Animated.View entering={FadeInDown.delay(delay).duration(500)} style={anim}>
+      <TouchableOpacity onPress={press} activeOpacity={1} style={style}>{children}</TouchableOpacity>
+    </Animated.View>
+  );
+}
 
 export default function PulseHubScreen() {
-    const insets = useSafeAreaInsets();
-    const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const floatStyle = useFloat();
 
-    return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <View style={styles.header}>
-                <View style={styles.iconBadge}>
-                    <Ionicons name="flash" size={24} color={DarkTheme.brandBlack} />
-                </View>
-                <View>
-                    <Text style={styles.title}>Tracko Pulse</Text>
-                    <Text style={styles.subtitle}>AI Financial Coach</Text>
-                </View>
-            </View>
+  const quickChips = [
+    { label: 'Can I afford…?', icon: 'help-circle-outline' as const, route: '/features/ask-tracko' },
+    { label: 'Monthly recap', icon: 'calendar-outline' as const, route: '/features/analysis' },
+    { label: 'Spending tips', icon: 'bulb-outline' as const, route: '/features/ask-tracko' },
+  ];
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                <View style={styles.heroSection}>
-                    <Text style={styles.heroTitle}>Choose Your Vibe</Text>
-                    <Text style={styles.heroDesc}>
-                        Do you want to chat directly with Tracko about a specific purchase, or get a brutally honest breakdown of your entire month?
-                    </Text>
-                </View>
+  return (
+    <View style={[styles.root, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" />
 
-                <View style={styles.grid}>
-                    {/* Chat Card */}
-                    <TouchableOpacity
-                        style={[styles.card, styles.chatCard]}
-                        activeOpacity={0.8}
-                        onPress={() => router.push('/features/ask-tracko')}
-                    >
-                        <View style={styles.cardAccent} />
-                        <View style={[styles.cardIconBox, { backgroundColor: '#E3F2FD', borderColor: '#2196F3' }]}>
-                            <Ionicons name="chatbubbles" size={32} color="#2196F3" />
-                        </View>
-                        <Text style={styles.cardTitle}>Chat with Bot</Text>
-                        <Text style={styles.cardDesc}>
-                            Ask if you can afford that Zomato order or stream advice on your remaining budget.
-                        </Text>
-                        <View style={styles.cardFooter}>
-                            <Text style={[styles.footerText, { color: '#2196F3' }]}>Enter Chat</Text>
-                            <Ionicons name="arrow-forward-circle" size={20} color="#2196F3" />
-                        </View>
-                    </TouchableOpacity>
-
-                    {/* Analysis Card */}
-                    <TouchableOpacity
-                        style={[styles.card, styles.pulseCard]}
-                        activeOpacity={0.8}
-                        onPress={() => router.push('/features/analysis')}
-                    >
-                        <View style={[styles.cardAccent, { backgroundColor: DarkTheme.brandYellow }]} />
-                        <View style={[styles.cardIconBox, { backgroundColor: '#FFF9C4', borderColor: DarkTheme.brandYellow }]}>
-                            <Ionicons name="bar-chart" size={32} color={DarkTheme.brandYellow} />
-                        </View>
-                        <Text style={styles.cardTitle}>Monthly Deep-Dive</Text>
-                        <Text style={styles.cardDesc}>
-                            Get roasted, praised, and find a side-hustle. A full breakdown of this month's finances.
-                        </Text>
-                        <View style={styles.cardFooter}>
-                            <Text style={styles.footerText}>Generate AI Pulse</Text>
-                            <Ionicons name="arrow-forward-circle" size={20} color={DarkTheme.brandYellow} />
-                        </View>
-                    </TouchableOpacity>
-                </View>
-            </ScrollView>
+      {/* Header */}
+      <Animated.View entering={FadeIn.delay(50).duration(400)} style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.iconBadge}>
+            <Ionicons name="flash" size={18} color="#fff" />
+          </View>
+          <View>
+            <Text style={styles.headerSub}>AI Financial Coach</Text>
+            <Text style={styles.headerTitle}>Tracko Pulse</Text>
+          </View>
         </View>
-    );
+      </Animated.View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+
+        {/* Hero */}
+        <Animated.View entering={FadeInDown.delay(100).duration(500)} style={styles.heroWrap}>
+          <Animated.View style={[styles.heroGlow, floatStyle]} />
+          <View style={styles.heroIconRow}>
+            <View style={styles.heroIcon}>
+              <MaterialCommunityIcons name="robot-outline" size={28} color="#2DCA72" />
+            </View>
+          </View>
+          <Text style={styles.heroTitle}>Choose Your Mode</Text>
+          <Text style={styles.heroDesc}>
+            Chat about a specific purchase, or get a deep-dive breakdown of your entire financial month.
+          </Text>
+        </Animated.View>
+
+        {/* Quick suggestion chips */}
+        <Animated.View entering={FadeInUp.delay(200).duration(400)} style={styles.chipRow}>
+          {quickChips.map((c, i) => (
+            <TouchableOpacity
+              key={i}
+              style={styles.chip}
+              onPress={() => router.push(c.route as any)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name={c.icon} size={14} color="#2DCA72" />
+              <Text style={styles.chipTxt}>{c.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </Animated.View>
+
+        {/* Feature cards */}
+        <View style={styles.cardsWrap}>
+          {/* Chat Card */}
+          <TapCard onPress={() => router.push('/features/ask-tracko')} style={styles.card} delay={300}>
+            <View style={[styles.cardAccent, { backgroundColor: '#007AFF' }]} />
+            <View style={[styles.cardIconBox, { backgroundColor: 'rgba(0,122,255,0.1)' }]}>
+              <Ionicons name="chatbubbles-outline" size={26} color="#007AFF" />
+            </View>
+            <Text style={styles.cardTitle}>Chat with Bot</Text>
+            <Text style={styles.cardDesc}>
+              Ask if you can afford that Zomato order or get advice on your remaining budget.
+            </Text>
+            <View style={styles.cardFooter}>
+              <Text style={[styles.cardCta, { color: '#007AFF' }]}>Start Chat</Text>
+              <Ionicons name="arrow-forward-circle-outline" size={16} color="#007AFF" />
+            </View>
+          </TapCard>
+
+          {/* Analysis Card */}
+          <TapCard onPress={() => router.push('/features/analysis')} style={styles.card} delay={420}>
+            <View style={[styles.cardAccent, { backgroundColor: '#FF9500' }]} />
+            <View style={[styles.cardIconBox, { backgroundColor: 'rgba(255,149,0,0.1)' }]}>
+              <Ionicons name="bar-chart-outline" size={26} color="#FF9500" />
+            </View>
+            <Text style={styles.cardTitle}>Monthly Deep-Dive</Text>
+            <Text style={styles.cardDesc}>
+              Get a full AI breakdown of your month — what you spent, saved, and how to improve.
+            </Text>
+            <View style={styles.cardFooter}>
+              <Text style={[styles.cardCta, { color: '#FF9500' }]}>Generate Pulse</Text>
+              <Ionicons name="arrow-forward-circle-outline" size={16} color="#FF9500" />
+            </View>
+          </TapCard>
+        </View>
+
+        <View style={{ height: 120 }} />
+      </ScrollView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: DarkTheme.bg,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.md,
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.lg,
-        borderBottomWidth: 2,
-        borderBottomColor: DarkTheme.neoBorder,
-    },
-    iconBadge: {
-        width: 44,
-        height: 44,
-        backgroundColor: DarkTheme.brandYellow,
-        borderRadius: BorderRadius.sm,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: DarkTheme.brandBlack,
-        ...NeoShadow,
-    },
-    title: {
-        fontSize: FontSize.xxl,
-        fontWeight: '900',
-        color: DarkTheme.textPrimary,
-        textTransform: 'uppercase',
-        letterSpacing: 1,
-    },
-    subtitle: {
-        fontSize: FontSize.sm,
-        fontWeight: '700',
-        color: DarkTheme.textMuted,
-        textTransform: 'uppercase',
-    },
-    scrollContent: {
-        padding: Spacing.lg,
-        paddingBottom: 100,
-    },
-    heroSection: {
-        alignItems: 'center',
-        marginVertical: Spacing.xl,
-        paddingHorizontal: Spacing.md,
-    },
-    heroTitle: {
-        fontSize: 24,
-        fontWeight: '900',
-        color: DarkTheme.textPrimary,
-        textTransform: 'uppercase',
-        marginBottom: Spacing.sm,
-        textAlign: 'center',
-    },
-    heroDesc: {
-        fontSize: FontSize.md,
-        fontWeight: '700',
-        color: DarkTheme.textSecondary,
-        textAlign: 'center',
-        lineHeight: 22,
-    },
-    grid: {
-        gap: Spacing.xl,
-    },
-    card: {
-        backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
-        padding: Spacing.xl,
-        borderWidth: 4,
-        borderColor: DarkTheme.brandBlack,
-        ...NeoShadow,
-        position: 'relative',
-        overflow: 'hidden',
-    },
-    chatCard: {
-        // blue theme
-    },
-    pulseCard: {
-        // yellow theme
-    },
-    cardAccent: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 6,
-        backgroundColor: '#42A5F5',
-    },
-    cardIconBox: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        marginBottom: Spacing.md,
-        alignSelf: 'center',
-    },
-    cardTitle: {
-        fontSize: FontSize.xl,
-        fontWeight: '900',
-        color: DarkTheme.textPrimary,
-        textTransform: 'uppercase',
-        textAlign: 'center',
-        marginBottom: Spacing.sm,
-    },
-    cardDesc: {
-        fontSize: FontSize.sm,
-        fontWeight: '700',
-        color: DarkTheme.textSecondary,
-        textAlign: 'center',
-        lineHeight: 20,
-        marginBottom: Spacing.lg,
-    },
-    cardFooter: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-    },
-    footerText: {
-        fontSize: FontSize.md,
-        fontWeight: '900',
-        textTransform: 'uppercase',
-        color: DarkTheme.brandYellow,
-    },
+  root: { flex: 1, backgroundColor: '#fff' },
+  header: { paddingHorizontal: 24, paddingVertical: 14 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconBadge: { width: 40, height: 40, borderRadius: 14, backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' },
+  headerSub: { fontSize: 11, color: '#8E8E93', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#111' },
+  scroll: { paddingHorizontal: 24, paddingTop: 4 },
+
+  // Hero
+  heroWrap: { alignItems: 'center', paddingVertical: 24, position: 'relative', marginBottom: 8 },
+  heroGlow: { position: 'absolute', width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(45,202,114,0.1)', top: -10, right: 20 },
+  heroIconRow: { marginBottom: 16 },
+  heroIcon: { width: 56, height: 56, borderRadius: 20, backgroundColor: 'rgba(45,202,114,0.08)', justifyContent: 'center', alignItems: 'center' },
+  heroTitle: { fontSize: 22, fontWeight: '800', color: '#111', marginBottom: 8, textAlign: 'center' },
+  heroDesc: { fontSize: 13, color: '#8E8E93', textAlign: 'center', lineHeight: 20, paddingHorizontal: 12 },
+
+  // Chips
+  chipRow: { flexDirection: 'row', gap: 8, marginBottom: 24, flexWrap: 'wrap', justifyContent: 'center' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: '#F5F5F5', borderWidth: 1, borderColor: '#F2F2F7' },
+  chipTxt: { fontSize: 12, fontWeight: '600', color: '#3A3A3C' },
+
+  // Cards
+  cardsWrap: { gap: 14 },
+  card: {
+    backgroundColor: '#fff', borderRadius: 20, padding: 22, position: 'relative', overflow: 'hidden',
+    borderWidth: 1, borderColor: '#F2F2F7',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 12 },
+      android: { elevation: 3 },
+    }),
+  },
+  cardAccent: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+  cardIconBox: { width: 50, height: 50, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 14 },
+  cardTitle: { fontSize: 17, fontWeight: '700', color: '#111', marginBottom: 6 },
+  cardDesc: { fontSize: 13, color: '#8E8E93', lineHeight: 19, marginBottom: 16 },
+  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  cardCta: { fontSize: 13, fontWeight: '700' },
 });

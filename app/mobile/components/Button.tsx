@@ -93,48 +93,49 @@ const styles = StyleSheet.create({
     button: {
         paddingVertical: 16,
         paddingHorizontal: 32,
-        borderRadius: 0, // Neo-brutalist sharp corners
-        borderWidth: 2,
-        borderColor: '#000000',
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'transparent',
         alignItems: 'center',
         justifyContent: 'center',
-        marginVertical: 8,
-        shadowColor: '#000000',
-        shadowOffset: { width: 4, height: 4 },
-        shadowOpacity: 1,
-        shadowRadius: 0,
-        elevation: 0, // Disable Android elevation for custom shadow look
+        marginVertical: 6,
+        shadowColor: '#6366F1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 5,
     },
     text: {
-        fontSize: 18,
-        fontWeight: '900',
-        textTransform: 'uppercase',
-        letterSpacing: 1,
+        fontSize: 16,
+        fontWeight: '700',
+        letterSpacing: 0.5,
     },
     primaryButton: {
-        backgroundColor: '#000000',
+        backgroundColor: '#6366F1',
     },
     primaryText: {
         color: '#FFFFFF',
     },
     secondaryButton: {
-        backgroundColor: '#FFD700', // Brand Yellow
+        backgroundColor: '#132040',
+        borderColor: '#1E2D4F',
     },
     secondaryText: {
-        color: '#000000',
+        color: '#F1F5F9',
     },
     outlineButton: {
-        backgroundColor: '#FFFFFF',
+        backgroundColor: 'transparent',
+        borderColor: '#6366F1',
     },
     outlineText: {
-        color: '#000000',
+        color: '#6366F1',
     },
     disabledButton: {
-        backgroundColor: '#CCCCCC',
-        borderColor: '#666666',
-        shadowOffset: { width: 0, height: 0 },
+        backgroundColor: '#1E2D4F',
+        borderColor: '#1E2D4F',
+        shadowOpacity: 0,
     },
     disabledText: {
-        color: '#666666',
+        color: '#475569',
     },
 });

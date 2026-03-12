@@ -45,8 +45,9 @@ Everything you need to take full control of your finances.
 
 *   **🌓 Dark & Light Mode**: Seamless theme switching for day or night usage.
 *   **🏦 Multi-Account Support**: Track Cash, Bank Accounts, UPI, and Digital Wallets in one place.
-*   **asd Advanced Analytics**: Interactive charts showing spending trends and category breakdowns.
-*   **🔐 Secure Authentication**: Enterprise-grade OAuth 2.0 (Google/GitHub) and JWT protection.
+*   **📊 Advanced Analytics**: Interactive charts showing daily/weekly spending trends and customizable category breakdowns.
+*   **📸 Profile Customization**: Seamlessly upload avatars to the cloud and map them across your devices via Cloudinary.
+*   **🔐 Secure Authentication**: Enterprise-grade OAuth 2.0 (Google/GitHub) and 30-day persistent JWT protection.
 *   **☁️ Cloud Sync**: Automatic cloud backup ensures you never lose your data.
 *   **🚨 Budget Alerts**: Set limits and get notified before you overspend.
 *   **🔄 Recurring Transactions**: Automate rent, subscriptions, and salary entries.
@@ -111,8 +112,9 @@ Built for students & college life. Affordable plans that won't burn a hole in yo
     ```
 
 3.  **Configure Environment**
-    *   Rename `.env.example` to `.env` in both directories.
+  *   Rename `.env.example` to `.env` in `app/backend`, `app/frontend`, and `app/mobile`.
     *   Add your MongoDB URI and API keys (see [Backend Docs](./app/backend/README.md)).
+  *   In `app/mobile/.env`, set `EXPO_PUBLIC_API_URL` to your backend URL (use your local network IP for physical devices).
 
 4.  **Run Locally**
     ```bash

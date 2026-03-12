@@ -1,102 +1,134 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DarkTheme, Spacing, FontSize, BorderRadius } from '@/constants/Theme';
+import AnimatedPressable from './AnimatedPressable';
 
 type TransactionItemProps = {
-    icon: keyof typeof Ionicons.glyphMap;
-    iconColor?: string;
-    iconBgColor?: string;
-    title: string;
-    description?: string;
-    amount: string;
-    date: string;
-    type: 'expense' | 'income';
-    accountIcon?: keyof typeof Ionicons.glyphMap;
-    onPress?: () => void;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor?: string;
+  iconBgColor?: string;
+  title: string;
+  description?: string;
+  amount: string;
+  date: string;
+  type: 'expense' | 'income';
+  onPress?: () => void;
 };
 
-export default function TransactionItem({
-    icon,
-    iconColor = DarkTheme.accentSecondary,
-    iconBgColor = '#2D2517',
-    title,
-    description,
-    amount,
-    date,
-    type,
-    accountIcon = 'business-outline',
-    onPress,
+function TransactionItem({
+  icon,
+  iconColor = DarkTheme.accent,
+  iconBgColor,
+  title,
+  description,
+  amount,
+  date,
+  type,
+  onPress,
 }: TransactionItemProps) {
-    const isExpense = type === 'expense';
+  const { width } = useWindowDimensions();
+  const isCompact = width < 360;
 
-    return (
-        <TouchableOpacity
-            style={styles.container}
-            onPress={onPress}
-            activeOpacity={0.7}
-        >
-            <View style={[styles.iconCircle, { backgroundColor: iconBgColor }]}>
-                <Ionicons name={icon} size={18} color={iconColor} />
-            </View>
+  const isExpense = type === 'expense';
+  const amtColor = isExpense ? DarkTheme.spending : DarkTheme.income;
+  const bg = iconBgColor ?? (iconColor + '22');
 
-            <View style={styles.details}>
-                <Text style={styles.amount} numberOfLines={1}>
-                    {isExpense ? '' : '+'}₹{amount}
-                </Text>
-                <Text style={styles.title} numberOfLines={1}>
-                    {title}
-                    {description ? ` ${description}` : ''}
-                </Text>
-            </View>
+  const iconBgStyle = useMemo(() => ({ backgroundColor: bg }), [bg]);
+  const amtStyle = useMemo(() => ({ color: amtColor }), [amtColor]);
 
-            <View style={styles.rightSection}>
-                <Text style={styles.date}>{date}</Text>
-                <Ionicons name={accountIcon} size={16} color={DarkTheme.textMuted} />
-            </View>
-        </TouchableOpacity>
-    );
+  return (
+    <AnimatedPressable
+      style={[styles.container, isCompact && styles.containerCompact]}
+      onPress={onPress}
+      scaleDown={0.97}
+    >
+      <View style={[styles.iconWrap, isCompact && styles.iconWrapCompact, iconBgStyle]}>
+        <Ionicons name={icon} size={isCompact ? 17 : 19} color={iconColor} />
+      </View>
+
+      <View style={styles.details}>
+        <Text style={[styles.title, isCompact && styles.titleCompact]} numberOfLines={1}>{title}</Text>
+        {description ? <Text style={styles.desc} numberOfLines={1}>{description}</Text> : null}
+      </View>
+
+      <View style={[styles.right, isCompact && styles.rightCompact]}>
+        <Text style={[styles.amount, isCompact && styles.amountCompact, amtStyle]} numberOfLines={1}>
+          {isExpense ? '-' : '+'}₹{amount}
+        </Text>
+        <Text style={styles.date}>{date}</Text>
+      </View>
+    </AnimatedPressable>
+  );
 }
 
+export default React.memo(TransactionItem);
+
 const styles = StyleSheet.create({
-    container: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
-        padding: Spacing.md,
-        marginBottom: Spacing.sm,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
-    },
-    iconCircle: {
-        width: 40,
-        height: 40,
-        borderRadius: BorderRadius.sm,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: Spacing.md,
-    },
-    details: {
-        flex: 1,
-    },
-    amount: {
-        fontSize: FontSize.lg,
-        fontWeight: '800',
-        color: DarkTheme.textPrimary,
-    },
-    title: {
-        fontSize: FontSize.sm,
-        color: DarkTheme.textSecondary,
-        marginTop: 2,
-    },
-    rightSection: {
-        alignItems: 'flex-end',
-        gap: Spacing.xs,
-    },
-    date: {
-        fontSize: FontSize.xs,
-        color: DarkTheme.textSecondary,
-        fontWeight: '600',
-    },
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: DarkTheme.cardBg,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: DarkTheme.border,
+  },
+  containerCompact: {
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+  },
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
+  },
+  iconWrapCompact: {
+    width: 40,
+    height: 40,
+    marginRight: Spacing.sm,
+  },
+  details: {
+    flex: 1,
+    minWidth: 0,
+  },
+  title: {
+    fontSize: FontSize.md,
+    fontWeight: '700',
+    color: DarkTheme.textPrimary,
+    marginBottom: 2,
+  },
+  titleCompact: {
+    fontSize: FontSize.sm,
+  },
+  desc: {
+    fontSize: FontSize.xs,
+    color: DarkTheme.textMuted,
+  },
+  right: {
+    alignItems: 'flex-end',
+    gap: 3,
+    marginLeft: Spacing.sm,
+    minWidth: 92,
+  },
+  rightCompact: {
+    minWidth: 82,
+  },
+  amount: {
+    fontSize: FontSize.md,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  amountCompact: {
+    fontSize: FontSize.sm,
+  },
+  date: {
+    fontSize: FontSize.xs,
+    color: DarkTheme.textMuted,
+    fontWeight: '600',
+  },
 });

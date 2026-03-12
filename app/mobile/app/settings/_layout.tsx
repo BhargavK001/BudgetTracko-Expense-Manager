@@ -7,7 +7,7 @@ export default function SettingsLayout() {
             animation: 'slide_from_right',
             gestureEnabled: true,
             fullScreenGestureEnabled: true,
-            contentStyle: { backgroundColor: '#0A0A0A' },
+            contentStyle: { backgroundColor: '#fff' },
         }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="reminders" />

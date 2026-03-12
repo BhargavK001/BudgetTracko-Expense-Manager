@@ -1,97 +1,102 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, LayoutAnimation, UIManager, Platform, StatusBar, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DarkTheme, Spacing, FontSize, BorderRadius, NeoShadowSm } from '@/constants/Theme';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
-const FAQ_ITEMS = [
+const FAQS = [
     {
-        question: 'How do I add a transaction?',
-        answer: 'Tap the yellow + button at the bottom of the screen. Choose expense or income, enter the amount, title, category, and account, then tap Save.',
+        id: '1',
+        q: 'How do I reset my data?',
+        a: 'You can reset all your data by going to Settings > Data Management > Clear All Data. Please note this action is irreversible.'
     },
     {
-        question: 'Is my data stored securely?',
-        answer: 'All data is stored locally on your device using encrypted storage. No data is sent to any server in offline mode.',
+        id: '2',
+        q: 'Can I export my transactions?',
+        a: 'Yes! Navigate to the "More" tab, and under "Data", you can choose to export your transactions as a CSV or JSON file.'
     },
     {
-        question: 'Can I export my transaction data?',
-        answer: 'Export functionality is coming soon in a future update. Stay tuned!',
+        id: '3',
+        q: 'How does the budgeting work?',
+        a: 'When you create a budget in the Finance section, the app automatically tracks your expenses against it based on the assigned category.'
     },
     {
-        question: 'How do I delete a transaction?',
-        answer: 'Swipe left on any transaction in the list to reveal the delete option. This feature is coming soon.',
-    },
-    {
-        question: 'What categories are available?',
-        answer: 'We have 8 expense categories (Food, Transport, Shopping, Entertainment, Bills, Health, Education, Other) and 5 income categories (Salary, Freelance, Investment, Gift, Other).',
-    },
+        id: '4',
+        q: 'Is my financial data secure?',
+        a: 'We prioritize your privacy. Your data is stored locally on your device by default. If you use cloud sync, it is end-to-end encrypted.'
+    }
 ];
 
 export default function HelpSupportScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    const handleEmail = () => {
-        Linking.openURL('mailto:support@budgettracko.com?subject=BudgetTracko%20Support');
+    const toggleExpand = (id: string) => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setExpandedId(expandedId === id ? null : id);
     };
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
-            {/* ─── Header ─── */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-                    <Ionicons name="arrow-back" size={20} color={DarkTheme.textPrimary} />
+            <StatusBar barStyle="dark-content" />
+
+            <Animated.View entering={FadeIn.delay(50).duration(300)} style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
+                    <Ionicons name="arrow-back" size={20} color="#111" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Help & Support</Text>
-                <View style={{ width: 34 }} />
-            </View>
+                <View style={{ width: 40 }} />
+            </Animated.View>
 
-            <ScrollView
-                style={styles.scrollView}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* Contact Card */}
-                <View style={styles.contactCard}>
-                    <View style={styles.contactIcon}>
-                        <Ionicons name="mail" size={24} color={DarkTheme.brandYellow} />
-                    </View>
-                    <Text style={styles.contactTitle}>Need help?</Text>
-                    <Text style={styles.contactDesc}>
-                        Reach out to us and we'll get back to you within 24 hours.
-                    </Text>
-                    <TouchableOpacity style={styles.contactBtn} onPress={handleEmail}>
-                        <Ionicons name="mail-outline" size={16} color={DarkTheme.brandBlack} />
-                        <Text style={styles.contactBtnText}>Email Support</Text>
-                    </TouchableOpacity>
-                </View>
+            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-                {/* FAQ Section */}
-                <Text style={styles.sectionTitle}>FAQ</Text>
-                <View style={styles.faqContainer}>
-                    {FAQ_ITEMS.map((item, index) => (
-                        <View
-                            key={index}
-                            style={[
-                                styles.faqItem,
-                                index < FAQ_ITEMS.length - 1 && styles.faqItemBorder,
-                            ]}
-                        >
-                            <View style={styles.faqQuestion}>
-                                <Ionicons name="help-circle" size={18} color={DarkTheme.brandYellow} />
-                                <Text style={styles.faqQuestionText}>{item.question}</Text>
-                            </View>
-                            <Text style={styles.faqAnswer}>{item.answer}</Text>
+                <Animated.View entering={FadeInDown.delay(100).duration(400).springify()}>
+                    <View style={styles.contactCard}>
+                        <View style={styles.contactIconWrap}>
+                            <Ionicons name="mail" size={28} color="#6366F1" />
                         </View>
-                    ))}
-                </View>
+                        <View style={styles.contactInfo}>
+                            <Text style={styles.contactTitle}>Contact Support</Text>
+                            <Text style={styles.contactDesc}>We usually respond within 24 hours.</Text>
+                            <TouchableOpacity style={styles.emailBtn} activeOpacity={0.8} onPress={() => Linking.openURL('mailto:support@budgettracko.com?subject=Support%20Request')}>
+                                <Text style={styles.emailText}>support@budgettracko.com</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Animated.View>
 
-                {/* App Info */}
-                <View style={styles.infoCard}>
-                    <Text style={styles.infoLabel}>App Version</Text>
-                    <Text style={styles.infoValue}>1.0.0</Text>
-                </View>
+                <Animated.View entering={FadeInDown.delay(150).duration(400)}>
+                    <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
+
+                    <View style={styles.faqList}>
+                        {FAQS.map((faq, index) => {
+                            const isExpanded = expandedId === faq.id;
+                            return (
+                                <Animated.View key={faq.id} entering={FadeInDown.delay(200 + index * 50).duration(400).springify()}>
+                                    <TouchableOpacity
+                                        style={[styles.faqItem, isExpanded && styles.faqItemActive]}
+                                        onPress={() => toggleExpand(faq.id)}
+                                        activeOpacity={0.7}
+                                    >
+                                        <View style={styles.faqHeader}>
+                                            <Text style={styles.faqQ}>{faq.q}</Text>
+                                            <Ionicons
+                                                name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                                                size={20}
+                                                color="#8E8E93"
+                                            />
+                                        </View>
+                                        {isExpanded && (
+                                            <Text style={styles.faqA}>{faq.a}</Text>
+                                        )}
+                                    </TouchableOpacity>
+                                </Animated.View>
+                            );
+                        })}
+                    </View>
+                </Animated.View>
 
                 <View style={{ height: 40 }} />
             </ScrollView>
@@ -102,147 +107,128 @@ export default function HelpSupportScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: DarkTheme.bg,
+        backgroundColor: '#fff',
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
-        borderBottomWidth: 2,
-        borderBottomColor: DarkTheme.neoBorder,
+        paddingHorizontal: 24,
+        paddingVertical: 14,
     },
     backBtn: {
-        width: 34,
-        height: 34,
-        borderRadius: BorderRadius.sm,
-        backgroundColor: DarkTheme.cardBg,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F5F5F5',
         justifyContent: 'center',
         alignItems: 'center',
     },
     headerTitle: {
-        fontSize: FontSize.xl,
+        fontSize: 18,
         fontWeight: '800',
-        color: DarkTheme.textPrimary,
+        color: '#111',
     },
-    scrollView: { flex: 1 },
-    scrollContent: {
-        paddingHorizontal: Spacing.lg,
-        paddingTop: Spacing.xl,
-    },
-    // Contact Card
-    contactCard: {
-        backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
-        padding: Spacing.xxl,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
-        alignItems: 'center',
-        marginBottom: Spacing.xxl,
-    },
-    contactIcon: {
-        width: 56,
-        height: 56,
-        borderRadius: BorderRadius.md,
-        backgroundColor: DarkTheme.brandYellow + '22',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: Spacing.md,
-    },
-    contactTitle: {
-        fontSize: FontSize.xl,
-        fontWeight: '800',
-        color: DarkTheme.textPrimary,
-        marginBottom: Spacing.sm,
-    },
-    contactDesc: {
-        fontSize: FontSize.sm,
-        color: DarkTheme.textSecondary,
-        textAlign: 'center',
-        lineHeight: 20,
-        marginBottom: Spacing.lg,
-    },
-    contactBtn: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.sm,
-        backgroundColor: DarkTheme.brandYellow,
-        paddingHorizontal: Spacing.xl,
-        paddingVertical: Spacing.md,
-        borderRadius: BorderRadius.sm,
-        borderWidth: 2,
-        borderColor: DarkTheme.brandBlack,
-        ...NeoShadowSm,
-    },
-    contactBtnText: {
-        fontSize: FontSize.sm,
-        fontWeight: '800',
-        color: DarkTheme.brandBlack,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    // FAQ
-    sectionTitle: {
-        fontSize: FontSize.xl,
-        fontWeight: '800',
-        color: DarkTheme.brandYellow,
-        marginBottom: Spacing.md,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    faqContainer: {
-        backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
-        marginBottom: Spacing.xxl,
-    },
-    faqItem: {
-        padding: Spacing.lg,
-    },
-    faqItemBorder: {
-        borderBottomWidth: 1,
-        borderBottomColor: DarkTheme.separator,
-    },
-    faqQuestion: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: Spacing.sm,
-        marginBottom: Spacing.sm,
-    },
-    faqQuestionText: {
-        fontSize: FontSize.md,
-        fontWeight: '700',
-        color: DarkTheme.textPrimary,
+    scrollView: {
         flex: 1,
     },
-    faqAnswer: {
-        fontSize: FontSize.sm,
-        color: DarkTheme.textSecondary,
-        lineHeight: 20,
-        paddingLeft: 26,
+    scrollContent: {
+        paddingHorizontal: 24,
+        paddingTop: 16,
     },
-    // Info
-    infoCard: {
+    contactCard: {
+        flexDirection: 'row',
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        padding: 24,
+        alignItems: 'flex-start',
+        borderWidth: 1,
+        borderColor: '#F2F2F7',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+        elevation: 2,
+        marginBottom: 32,
+    },
+    contactIconWrap: {
+        width: 56,
+        height: 56,
+        borderRadius: 16,
+        backgroundColor: 'rgba(99,102,241,0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    contactInfo: {
+        flex: 1,
+    },
+    contactTitle: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#111',
+        marginBottom: 4,
+    },
+    contactDesc: {
+        fontSize: 14,
+        color: '#8E8E93',
+        marginBottom: 12,
+    },
+    emailBtn: {
+        backgroundColor: '#F5F5F5',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        alignSelf: 'flex-start',
+    },
+    emailText: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: '#6366F1',
+    },
+    sectionTitle: {
+        fontSize: 13,
+        fontWeight: '800',
+        color: '#8E8E93',
+        textTransform: 'uppercase',
+        letterSpacing: 1.2,
+        marginBottom: 16,
+        paddingHorizontal: 4,
+    },
+    faqList: {
+        gap: 12,
+    },
+    faqItem: {
+        backgroundColor: '#fff',
+        borderRadius: 16,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: '#F2F2F7',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 6,
+        elevation: 1,
+    },
+    faqItemActive: {
+        borderColor: 'rgba(99,102,241,0.3)',
+    },
+    faqHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
-        padding: Spacing.lg,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
+        alignItems: 'center',
     },
-    infoLabel: {
-        fontSize: FontSize.md,
-        color: DarkTheme.textSecondary,
-        fontWeight: '600',
-    },
-    infoValue: {
-        fontSize: FontSize.md,
-        color: DarkTheme.textPrimary,
+    faqQ: {
+        fontSize: 15,
         fontWeight: '700',
+        color: '#111',
+        flex: 1,
+        paddingRight: 16,
+    },
+    faqA: {
+        fontSize: 14,
+        color: '#8E8E93',
+        marginTop: 12,
+        lineHeight: 22,
     },
 });

@@ -16,7 +16,7 @@ type DonutChartProps = {
     showPercentages?: boolean;
 };
 
-export default function DonutChart({
+export default React.memo(function DonutChart({
     data,
     size = 200,
     strokeWidth = 40,
@@ -115,7 +115,7 @@ export default function DonutChart({
             </Svg>
         </View>
     );
-}
+});
 
 const styles = StyleSheet.create({
     container: {

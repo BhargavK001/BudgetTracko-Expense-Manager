@@ -6,6 +6,7 @@ const Account = require('../models/Account');
 const Category = require('../models/Category');
 const Budget = require('../models/Budget');
 const { getCookieOptions } = require('../utils/authUtils');
+const uploadAvatarMiddleware = require('../middleware/uploadAvatarMiddleware');
 
 const router = express.Router();
 
@@ -116,6 +117,59 @@ router.put('/profile', async (req, res) => {
         });
     } catch (err) {
         if (process.env.NODE_ENV !== 'production') console.error('Update profile error:', err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// ─── PUT /api/user/avatar ───
+// Upload and update user avatar (profile picture)
+router.put('/avatar', uploadAvatarMiddleware, async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No image file provided' });
+        }
+
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // The Cloudinary URL is automatically provided by multer-storage-cloudinary
+        user.avatar = req.file.path;
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Avatar updated successfully',
+            avatar: user.avatar
+        });
+    } catch (err) {
+        if (process.env.NODE_ENV !== 'production') console.error('Upload avatar error:', err);
+        res.status(500).json({ success: false, message: 'Server error during avatar upload' });
+    }
+});
+
+// ─── DELETE /api/user/avatar ───
+// Remove user avatar
+router.delete('/avatar', async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // Technically we might want to delete it from Cloudinary to save space, but 
+        // resetting the URL works for now. 
+        user.avatar = '';
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Avatar removed successfully',
+            avatar: ''
+        });
+    } catch (err) {
+        if (process.env.NODE_ENV !== 'production') console.error('Remove avatar error:', err);
         res.status(500).json({ success: false, message: 'Server error' });
     }
 });
@@ -324,23 +378,39 @@ router.post('/import/csv', upload.single('file'), async (req, res) => {
         const userAccounts = await Account.find({ userId });
         const accountMap = new Map(userAccounts.map(a => [a.name.toLowerCase(), a]));
 
+        const userCategories = await Category.find({ userId });
+        const categoryMap = new Map(userCategories.map(c => [c.name.toLowerCase(), c]));
+
         // Process each row
         for (const row of parsedData) {
+            // Field mapping to support alternative headers (e.g., from generated backup files)
+            const rowType = row.Type || row.type;
+            const rowDate = row.Date;
+            const rowAmount = row.Amount;
+            const rowCategory = row.Category;
+            const rowText = row.Text || row.Note || row.Tags;
+            const rowNote = row.Note;
+            const rowPaymentMode = row.PaymentMode || row['Payment mode'] || row['Payment Mode'];
+
+            const fromAccountName = row.FromAccount || row['Payment mode'] || row['Payment Mode'];
+            const toAccountName = row.ToAccount || row['To payment mode'] || row['To Payment Mode'];
+            const accountName = row.Account || row['Payment mode'] || row['Payment Mode'];
+
             // Basic validation
-            if (!row.Date || !row.Amount || !row.Type) {
+            if (!rowDate || !rowAmount || !rowType) {
                 stats.skipped++;
                 continue;
             }
 
-            const type = row.Type.toLowerCase();
-            const rawAmount = Math.abs(parseFloat(row.Amount));
+            const type = rowType.toLowerCase();
+            const rawAmount = Math.abs(parseFloat(rowAmount));
             const amount = Number(rawAmount.toFixed(2));
             if (isNaN(amount) || amount === 0) {
                 stats.skipped++;
                 continue;
             }
 
-            const parsedDate = new Date(row.Date);
+            const parsedDate = new Date(rowDate);
             if (isNaN(parsedDate.getTime())) {
                 stats.skipped++;
                 continue;
@@ -370,9 +440,27 @@ router.post('/import/csv', upload.single('file'), async (req, res) => {
                 return newAcc._id;
             };
 
+            const getOrCreateCategory = async (name, catType) => {
+                if (!name) return 'Other';
+                const normalized = name.trim().toLowerCase();
+                if (categoryMap.has(normalized)) return categoryMap.get(normalized).name; // Return the exact cased name
+
+                // Create new category
+                const newCat = await Category.create({
+                    userId,
+                    name: name.trim(),
+                    type: catType === 'expense' ? 'expense' : catType === 'income' ? 'income' : 'both',
+                    color: '#10B981', // green default
+                    icon: 'BsBox'
+                });
+                categoryMap.set(normalized, newCat);
+                stats.newCategories++;
+                return newCat.name;
+            };
+
             if (type === 'transfer') {
-                fromAccountId = await getOrCreateAccount(row.FromAccount);
-                toAccountId = await getOrCreateAccount(row.ToAccount);
+                fromAccountId = await getOrCreateAccount(fromAccountName);
+                toAccountId = await getOrCreateAccount(toAccountName);
                 if (!fromAccountId || !toAccountId) {
                     // Fallback if transfer accounts missing
                     stats.skipped++;
@@ -384,11 +472,17 @@ router.post('/import/csv', upload.single('file'), async (req, res) => {
                 await Account.findByIdAndUpdate(toAccountId, { $inc: { balance: amount } });
 
             } else {
-                accountId = await getOrCreateAccount(row.Account);
+                accountId = await getOrCreateAccount(accountName);
                 if (accountId) {
                     const balanceChange = type === 'income' ? amount : -amount;
                     await Account.findByIdAndUpdate(accountId, { $inc: { balance: balanceChange } });
                 }
+            }
+
+            // Get or create the category (skip for transfers, they use "Transfer")
+            let categoryName = 'Transfer';
+            if (type !== 'transfer') {
+                categoryName = await getOrCreateCategory(rowCategory || 'Other', type);
             }
 
             // Create Transaction
@@ -396,11 +490,11 @@ router.post('/import/csv', upload.single('file'), async (req, res) => {
                 userId,
                 type: type,
                 amount: type === 'expense' ? -amount : amount,
-                category: row.Category || 'Other',
+                category: categoryName,
                 date: parsedDate,
-                text: row.Text || row.Note || 'Imported Transaction',
-                note: row.Note || 'Imported via CSV',
-                paymentMode: row.PaymentMode || 'Cash',
+                text: rowText || 'Imported Transaction',
+                note: rowNote || 'Imported via CSV',
+                paymentMode: rowPaymentMode || 'Cash',
                 accountId,
                 fromAccountId,
                 toAccountId

@@ -1,8 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/services/api';
 
 // ─── Types ───────────────────────────────────────────────
-export type TransactionType = 'income' | 'expense';
+export type TransactionType = 'income' | 'expense' | 'transfer';
 
 export type Category =
     | 'Food and Dining'
@@ -16,6 +16,7 @@ export type Category =
     | 'Freelance'
     | 'Investment'
     | 'Gift'
+    | 'Transfer'
     | 'Other';
 
 export const EXPENSE_CATEGORIES: Category[] = [
@@ -37,7 +38,7 @@ export const INCOME_CATEGORIES: Category[] = [
     'Other',
 ];
 
-export const CATEGORY_ICONS: Record<Category, string> = {
+export const CATEGORY_ICONS: Record<string, string> = {
     'Food and Dining': 'restaurant-outline',
     Transport: 'car-outline',
     Shopping: 'cart-outline',
@@ -49,10 +50,11 @@ export const CATEGORY_ICONS: Record<Category, string> = {
     Freelance: 'laptop-outline',
     Investment: 'trending-up-outline',
     Gift: 'gift-outline',
+    Transfer: 'swap-horizontal-outline',
     Other: 'ellipsis-horizontal-circle-outline',
 };
 
-export const CATEGORY_COLORS: Record<Category, string> = {
+export const CATEGORY_COLORS: Record<string, string> = {
     'Food and Dining': '#FF9800',
     Transport: '#2196F3',
     Shopping: '#E91E63',
@@ -64,88 +66,212 @@ export const CATEGORY_COLORS: Record<Category, string> = {
     Freelance: '#7C4DFF',
     Investment: '#FF5722',
     Gift: '#FFD700',
+    Transfer: '#007AFF',
     Other: '#795548',
 };
 
 export interface Transaction {
     id: string;
+    _id?: string;
     title: string;
+    text?: string;
     amount: number;
     type: TransactionType;
-    category: Category;
-    date: string; // ISO string
-    account: string; // e.g. 'Cash', 'Bank Account', 'Slice'
+    category: Category | string;
+    date: string;
+    time?: string;
+    account: string;
+    accountId?: any;
+    fromAccountId?: any;
+    toAccountId?: any;
+    note?: string;
+    attachments?: any[];
+}
+
+export interface Budget {
+    id: string;
+    _id?: string;
+    category: Category | string;
+    amount: number;
+    period: 'weekly' | 'monthly' | 'yearly';
 }
 
 // ─── Context Shape ───────────────────────────────────────
 interface TransactionContextType {
     transactions: Transaction[];
+    budgets: Budget[];
     isLoading: boolean;
+    // Transactions
     addTransaction: (tx: Omit<Transaction, 'id'>) => Promise<void>;
     deleteTransaction: (id: string) => Promise<void>;
+    refreshTransactions: () => Promise<void>;
+    // Budgets
+    addBudget: (budget: Omit<Budget, 'id' | '_id'>) => Promise<void>;
+    updateBudget: (id: string, budget: Omit<Budget, 'id' | '_id'>) => Promise<void>;
+    deleteBudget: (id: string) => Promise<void>;
+    refreshBudgets: () => Promise<void>;
+    getTotalBudget: (period: 'weekly' | 'monthly' | 'yearly') => number;
+    // Analytics
     getTotalIncome: (month?: number, year?: number) => number;
     getTotalExpense: (month?: number, year?: number) => number;
     getBalance: () => number;
     getTransactionsForMonth: (month: number, year: number) => Transaction[];
-    getCategoryBreakdown: (month: number, year: number) => { name: Category; amount: number; color: string; icon: string }[];
+    getCategoryBreakdown: (month: number, year: number) => { name: string; amount: number; color: string; icon: string }[];
 }
 
 const TransactionContext = createContext<TransactionContextType | undefined>(undefined);
 
-const STORAGE_KEY = '@budgettracko_transactions';
+// ─── Normalizer ──────────────────────────────────────────
+export function mapCategoryIcon(iconName: string): string {
+    if (!iconName) return 'ellipsis-horizontal-circle-outline';
+    if (!iconName.startsWith('Bs')) return iconName;
+
+    // Map common Bootstrap icons to Ionicons
+    const mapping: Record<string, string> = {
+        'BsHouse': 'home-outline',
+        'BsShop': 'business-outline',
+        'BsBox': 'cube-outline',
+        'BsCart3': 'cart-outline',
+        'BsBag': 'bag-outline',
+        'BsLightningCharge': 'flash-outline',
+        'BsHeart': 'heart-outline',
+        'BsBook': 'book-outline',
+        'BsFilm': 'film-outline',
+        'BsCurrencyDollar': 'cash-outline',
+        'BsCashCoin': 'cash-outline',
+        'BsBusFront': 'bus-outline',
+        'BsCarFront': 'car-outline',
+        'BsAirplane': 'airplane-outline',
+        'BsCupHot': 'cafe-outline',
+        'BsController': 'game-controller-outline',
+        'BsMusicNoteBeamed': 'musical-notes-outline',
+        'BsGraphUpArrow': 'trending-up-outline',
+        'BsShieldCheck': 'shield-checkmark-outline',
+        'BsLaptop': 'laptop-outline',
+        'BsPhone': 'phone-portrait-outline',
+        'BsBicycle': 'bicycle-outline',
+        'BsWrench': 'build-outline',
+        'BsScissors': 'cut-outline',
+        'BsPalette': 'color-palette-outline'
+    };
+
+    return mapping[iconName] || 'ellipsis-horizontal-circle-outline';
+}
+
+function normalizeTransaction(tx: any): Transaction {
+    return {
+        id: tx._id || tx.id || '',
+        _id: tx._id,
+        title: tx.text || tx.title || '',
+        text: tx.text,
+        amount: Math.abs(tx.amount || 0),
+        type: tx.type || 'expense',
+        category: tx.category || 'Other',
+        date: tx.date || new Date().toISOString(),
+        time: tx.time,
+        account: tx.accountId?.name || tx.account || '',
+        accountId: tx.accountId,
+        fromAccountId: tx.fromAccountId,
+        toAccountId: tx.toAccountId,
+        note: tx.note,
+        attachments: tx.attachments,
+    };
+}
 
 // ─── Provider ────────────────────────────────────────────
 export function TransactionProvider({ children }: { children: React.ReactNode }) {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [budgets, setBudgets] = useState<Budget[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Load from AsyncStorage on mount
-    useEffect(() => {
-        (async () => {
-            try {
-                const raw = await AsyncStorage.getItem(STORAGE_KEY);
-                if (raw) {
-                    setTransactions(JSON.parse(raw));
-                }
-            } catch (e) {
-                console.error('Failed to load transactions', e);
-            } finally {
-                setIsLoading(false);
-            }
-        })();
+    const refreshTransactions = useCallback(async () => {
+        try {
+            const res = await api.get('/api/transactions');
+            const raw = res.data;
+            const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+            setTransactions(list.map(normalizeTransaction));
+        } catch (e) {
+            console.log('Failed to fetch transactions:', e);
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
 
-    // Persist helper
-    const persist = async (txs: Transaction[]) => {
+    const refreshBudgets = useCallback(async () => {
         try {
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(txs));
+            const res = await api.get('/api/budgets');
+            const data = res.data;
+            const fetchedBudgets = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+            setBudgets(fetchedBudgets.map((b: any) => ({
+                id: b._id || b.id,
+                _id: b._id,
+                category: b.category,
+                amount: Math.abs(b.amount || 0),
+                period: b.period || 'monthly'
+            })));
         } catch (e) {
-            console.error('Failed to persist transactions', e);
+            console.log('Failed to fetch budgets:', e);
         }
-    };
+    }, []);
 
-    // Persistence watcher
     useEffect(() => {
-        if (!isLoading) {
-            persist(transactions);
-        }
-    }, [transactions, isLoading]);
+        refreshTransactions();
+        refreshBudgets();
+    }, [refreshTransactions, refreshBudgets]);
 
     const addTransaction = useCallback(async (tx: Omit<Transaction, 'id'>) => {
-        const newTx: Transaction = {
-            ...tx,
-            id: Date.now().toString() + Math.random().toString(36).substring(2, 9),
-        };
-        setTransactions((prev) => [newTx, ...prev]);
-    }, []);
+        // The AddTransactionModal now handles the API call directly.
+        // This is kept for backward compatibility with other screens.
+        await refreshTransactions();
+    }, [refreshTransactions]);
 
     const deleteTransaction = useCallback(async (id: string) => {
-        setTransactions((prev) => prev.filter((t) => t.id !== id));
+        try {
+            await api.delete(`/api/transactions/${id}`);
+            setTransactions(prev => prev.filter(t => t.id !== id && t._id !== id));
+        } catch (e: any) {
+            console.log('Failed to delete transaction:', e);
+            throw e;
+        }
     }, []);
+
+    const addBudget = useCallback(async (b: Omit<Budget, 'id' | '_id'>) => {
+        try {
+            await api.post('/api/budgets', b);
+            await refreshBudgets();
+        } catch (e) {
+            console.log('Failed to add budget:', e);
+            throw e;
+        }
+    }, [refreshBudgets]);
+
+    const updateBudget = useCallback(async (id: string, b: Omit<Budget, 'id' | '_id'>) => {
+        try {
+            await api.put(`/api/budgets/${id}`, b);
+            await refreshBudgets();
+        } catch (e) {
+            console.log('Failed to update budget:', e);
+            throw e;
+        }
+    }, [refreshBudgets]);
+
+    const deleteBudget = useCallback(async (id: string) => {
+        try {
+            await api.delete(`/api/budgets/${id}`);
+            setBudgets(prev => prev.filter(b => b.id !== id && b._id !== id));
+        } catch (e) {
+            console.log('Failed to delete budget:', e);
+            throw e;
+        }
+    }, []);
+
+    const getTotalBudget = useCallback((period: 'weekly' | 'monthly' | 'yearly') => {
+        return budgets.filter(b => b.period === period).reduce((sum, b) => sum + (b.amount || 0), 0);
+    }, [budgets]);
 
     const getTransactionsForMonth = useCallback(
         (month: number, year: number) => {
-            return transactions.filter((t) => {
+            return transactions.filter(t => {
                 const d = new Date(t.date);
                 return d.getMonth() === month && d.getFullYear() === year;
             });
@@ -156,7 +282,7 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     const getTotalIncome = useCallback(
         (month?: number, year?: number) => {
             const list = month !== undefined && year !== undefined ? getTransactionsForMonth(month, year) : transactions;
-            return list.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+            return list.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
         },
         [transactions, getTransactionsForMonth]
     );
@@ -164,7 +290,7 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     const getTotalExpense = useCallback(
         (month?: number, year?: number) => {
             const list = month !== undefined && year !== undefined ? getTransactionsForMonth(month, year) : transactions;
-            return list.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+            return list.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
         },
         [transactions, getTransactionsForMonth]
     );
@@ -175,10 +301,11 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
 
     const getCategoryBreakdown = useCallback(
         (month: number, year: number) => {
-            const monthly = getTransactionsForMonth(month, year).filter((t) => t.type === 'expense');
-            const map = new Map<Category, number>();
-            monthly.forEach((t) => {
-                map.set(t.category, (map.get(t.category) || 0) + t.amount);
+            const monthly = getTransactionsForMonth(month, year).filter(t => t.type === 'expense');
+            const map = new Map<string, number>();
+            monthly.forEach(t => {
+                const cat = t.category || 'Other';
+                map.set(cat, (map.get(cat) || 0) + t.amount);
             });
             return Array.from(map.entries())
                 .map(([name, amount]) => ({
@@ -196,9 +323,16 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
         <TransactionContext.Provider
             value={{
                 transactions,
+                budgets,
                 isLoading,
                 addTransaction,
                 deleteTransaction,
+                refreshTransactions,
+                addBudget,
+                updateBudget,
+                deleteBudget,
+                refreshBudgets,
+                getTotalBudget,
                 getTotalIncome,
                 getTotalExpense,
                 getBalance,

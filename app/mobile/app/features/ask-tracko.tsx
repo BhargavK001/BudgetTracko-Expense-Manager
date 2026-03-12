@@ -1,34 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    ScrollView,
-    TouchableOpacity,
-    TextInput,
-    KeyboardAvoidingView,
-    Platform,
-    Keyboard,
-    ActivityIndicator,
+    View, Text, StyleSheet, ScrollView, TouchableOpacity,
+    TextInput, KeyboardAvoidingView, Platform, StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown, SlideInRight, Layout } from 'react-native-reanimated';
-import {
-    DarkTheme,
-    Spacing,
-    FontSize,
-    BorderRadius,
-    NeoShadowSm,
-} from '@/constants/Theme';
+import Animated, {
+    FadeIn, FadeInDown, SlideInLeft, SlideInRight,
+    useSharedValue, useAnimatedStyle,
+    withRepeat, withSequence, withTiming, Easing,
+    type SharedValue,
+} from 'react-native-reanimated';
 
 const LOADING_PHRASES = [
     "Calculating how much you spent on Momo's...",
     "Judging your Swiggy orders...",
     "Crunching numbers faster than your GPA drops...",
     "Finding missing rupees in the couch cushions...",
-    "Checking if you can actually afford that trip to Goa..."
+    "Checking if you can actually afford that trip to Goa...",
 ];
 
 interface Message {
@@ -36,7 +26,44 @@ interface Message {
     sender: 'tracko' | 'user';
     text: string;
     timestamp: Date;
-    isError?: boolean;
+}
+
+// ── Animated typing dots ──────────────────────────────────
+function TypingDots() {
+    const d1 = useSharedValue(0);
+    const d2 = useSharedValue(0);
+    const d3 = useSharedValue(0);
+    useEffect(() => {
+        const anim = (v: SharedValue<number>, delay: number) => {
+            setTimeout(() => {
+                v.value = withRepeat(
+                    withSequence(
+                        withTiming(-4, { duration: 300, easing: Easing.out(Easing.quad) }),
+                        withTiming(0, { duration: 300, easing: Easing.in(Easing.quad) }),
+                    ), -1, false,
+                );
+            }, delay);
+        };
+        anim(d1, 0); anim(d2, 150); anim(d3, 300);
+    }, []);
+    const s1 = useAnimatedStyle(() => ({ transform: [{ translateY: d1.value }] }));
+    const s2 = useAnimatedStyle(() => ({ transform: [{ translateY: d2.value }] }));
+    const s3 = useAnimatedStyle(() => ({ transform: [{ translateY: d3.value }] }));
+    return (
+        <View style={styles.dotsRow}>
+            <Animated.View style={[styles.dot, s1]} />
+            <Animated.View style={[styles.dot, s2]} />
+            <Animated.View style={[styles.dot, s3]} />
+        </View>
+    );
+}
+
+// ── Relative time ──────────────────────────────────────────
+function relTime(d: Date): string {
+    const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (diff < 60) return 'Just now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 export default function AskTrackoScreen() {
@@ -46,177 +73,168 @@ export default function AskTrackoScreen() {
 
     const [messages, setMessages] = useState<Message[]>([
         {
-            id: 'welcome',
-            sender: 'tracko',
-            text: "Hey! I'm Tracko, your brutally honest financial coach. Ask me anything about your remaining budget, recent spending, or if you can afford that new pair of sneakers.",
-            timestamp: new Date()
-        }
+            id: 'welcome', sender: 'tracko',
+            text: "Hey! I'm Tracko, your brutally honest financial coach. Ask me anything about your budget, spending, or if you can afford that new gadget.",
+            timestamp: new Date(),
+        },
     ]);
     const [inputValue, setInputValue] = useState('');
     const [isTyping, setIsTyping] = useState(false);
     const [loadingPhrase, setLoadingPhrase] = useState(LOADING_PHRASES[0]);
 
-    // Scroll to bottom when messages change
     useEffect(() => {
-        setTimeout(() => {
-            scrollRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+        setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     }, [messages, isTyping]);
 
-    // Cycle through loading phrases
     useEffect(() => {
         let interval: any;
         if (isTyping) {
             interval = setInterval(() => {
                 setLoadingPhrase(LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)]);
-            }, 3000);
+            }, 2500);
         }
         return () => clearInterval(interval);
     }, [isTyping]);
 
-    const handleSendMessage = () => {
-        if (!inputValue.trim() || isTyping) return;
-
-        const userMsg: Message = {
-            id: Date.now().toString(),
-            sender: 'user',
-            text: inputValue.trim(),
-            timestamp: new Date()
-        };
-
+    const sendMessage = (text: string) => {
+        if (!text.trim() || isTyping) return;
+        const userMsg: Message = { id: Date.now().toString(), sender: 'user', text: text.trim(), timestamp: new Date() };
         setMessages(prev => [...prev, userMsg]);
         setInputValue('');
         setIsTyping(true);
         setLoadingPhrase(LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)]);
 
-        // Mock AI Response after delay
         setTimeout(() => {
-            const aiMsg: Message = {
-                id: (Date.now() + 1).toString(),
-                sender: 'tracko',
-                text: getMockResponse(userMsg.text),
-                timestamp: new Date()
-            };
+            const aiMsg: Message = { id: (Date.now() + 1).toString(), sender: 'tracko', text: getMock(text), timestamp: new Date() };
             setMessages(prev => [...prev, aiMsg]);
             setIsTyping(false);
-        }, 2500);
+        }, 2200);
     };
 
-    const getMockResponse = (input: string) => {
-        const lower = input.toLowerCase();
-        if (lower.includes('budget')) return "You've used 65% of your food budget this week. Maybe skip that extra Starbucks? (P.S. I'm watching you)";
-        if (lower.includes('afford')) return "Technically yes, but if you buy it, your savings goal for next month will look like a sad emoji.";
-        if (lower.includes('spent')) return "You spent ₹4,200 on 'Eating Out' this month. That's about 15% more than last month. Slow down, master chef.";
-        return "I heard what you said, but my brain is currently in 'Mock Mode'. Once I'm connected to the backend, I'll give you real, brutal advice!";
+    const getMock = (input: string) => {
+        const l = input.toLowerCase();
+        if (l.includes('budget')) return "You've used 65% of your food budget this week. Maybe skip that extra Starbucks?";
+        if (l.includes('afford')) return "Technically yes, but your savings goal will take a hit. Is it worth it?";
+        if (l.includes('spent')) return "You spent ₹4,200 on 'Eating Out' this month — that's 15% more than last month.";
+        return "I'm in mock mode right now. Once connected to the backend, I'll give you real financial insights!";
     };
+
+    const quickActions = [
+        { label: 'Budget check', icon: 'pie-chart-outline' as const },
+        { label: 'Can I afford?', icon: 'help-circle-outline' as const },
+        { label: 'Spending summary', icon: 'stats-chart-outline' as const },
+    ];
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={[styles.root, { paddingTop: insets.top }]}>
+            <StatusBar barStyle="dark-content" />
+
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={DarkTheme.brandBlack} />
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                    <Ionicons name="arrow-back" size={20} color="#111" />
                 </TouchableOpacity>
                 <View style={styles.headerInfo}>
-                    <View style={styles.trackoIcon}>
-                        <Ionicons name="flash" size={20} color={DarkTheme.brandBlack} />
+                    <View style={styles.botAvatar}>
+                        <Ionicons name="flash" size={16} color="#fff" />
                     </View>
                     <View>
                         <Text style={styles.headerTitle}>Ask Tracko</Text>
-                        <Text style={styles.headerSubtitle}>AI Financial Coach</Text>
+                        <View style={styles.onlineRow}>
+                            <View style={styles.onlineDot} />
+                            <Text style={styles.onlineTxt}>Online</Text>
+                        </View>
                     </View>
                 </View>
-                <TouchableOpacity style={styles.optionsButton}>
-                    <Ionicons name="ellipsis-vertical" size={20} color={DarkTheme.brandBlack} />
+                <TouchableOpacity style={styles.moreBtn}>
+                    <Ionicons name="ellipsis-vertical" size={18} color="#8E8E93" />
                 </TouchableOpacity>
             </View>
 
+            {/* Chat area */}
             <ScrollView
                 ref={scrollRef}
                 style={styles.chatArea}
                 contentContainerStyle={styles.chatContent}
                 showsVerticalScrollIndicator={false}
             >
-                {messages.map((msg, index) => (
-                    <Animated.View
-                        key={msg.id}
-                        entering={FadeInDown.delay(100)}
-                        style={[
-                            styles.messageRow,
-                            msg.sender === 'user' ? styles.userRow : styles.trackoRow
-                        ]}
-                    >
-                        {msg.sender === 'tracko' && (
-                            <View style={[styles.avatar, styles.trackoAvatar]}>
-                                <Ionicons name="chatbubble-ellipses-outline" size={16} color={DarkTheme.brandBlack} />
+                {messages.map((msg) => {
+                    const isUser = msg.sender === 'user';
+                    return (
+                        <Animated.View
+                            key={msg.id}
+                            entering={isUser ? SlideInRight.duration(300) : SlideInLeft.duration(300)}
+                            style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowBot]}
+                        >
+                            {!isUser && (
+                                <View style={styles.msgAvatar}>
+                                    <Ionicons name="flash" size={12} color="#fff" />
+                                </View>
+                            )}
+                            <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleBot]}>
+                                <Text style={[styles.msgTxt, isUser ? styles.msgTxtUser : styles.msgTxtBot]}>
+                                    {msg.text}
+                                </Text>
+                                <Text style={[styles.time, isUser ? styles.timeUser : styles.timeBot]}>
+                                    {relTime(msg.timestamp)}
+                                </Text>
                             </View>
+                        </Animated.View>
+                    );
+                })}
 
-                        )}
-                        <View style={[
-                            styles.bubble,
-                            msg.sender === 'user' ? styles.userBubble : styles.trackoBubble
-                        ]}>
-                            <Text style={[
-                                styles.messageText,
-                                msg.sender === 'user' ? styles.userText : styles.trackoText
-                            ]}>
-                                {msg.text}
-                            </Text>
-                            <Text style={[
-                                styles.timestamp,
-                                msg.sender === 'user' ? styles.userTimestamp : styles.trackoTimestamp
-                            ]}>
-                                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </Text>
-                        </View>
-                        {msg.sender === 'user' && (
-                            <View style={[styles.avatar, styles.userAvatar]}>
-                                <Ionicons name="person" size={16} color="#FFF" />
-                            </View>
-                        )}
-                    </Animated.View>
-                ))}
-
+                {/* Typing indicator */}
                 {isTyping && (
-                    <Animated.View entering={FadeIn} style={styles.typingContainer}>
-                        <View style={[styles.avatar, styles.trackoAvatar]}>
-                            <Ionicons name="chatbubble-ellipses-outline" size={16} color={DarkTheme.brandBlack} />
+                    <Animated.View entering={FadeIn.duration(250)} style={[styles.msgRow, styles.msgRowBot]}>
+                        <View style={styles.msgAvatar}>
+                            <Ionicons name="flash" size={12} color="#fff" />
                         </View>
-
-                        <View style={styles.typingBubble}>
-                            <View style={styles.typingContent}>
-                                <ActivityIndicator size="small" color={DarkTheme.brandBlack} />
-                                <Text style={styles.loadingPhrase}>{loadingPhrase}</Text>
-                            </View>
+                        <View style={styles.typingWrap}>
+                            <TypingDots />
+                            <Text style={styles.typingPhrase}>{loadingPhrase}</Text>
                         </View>
                     </Animated.View>
                 )}
             </ScrollView>
 
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
-            >
-                <View style={[styles.inputContainer, { paddingBottom: Math.max(Spacing.lg, insets.bottom) }]}>
-                    <View style={styles.inputWrapper}>
+            {/* Quick actions */}
+            {messages.length <= 2 && !isTyping && (
+                <Animated.View entering={FadeInDown.duration(350)} style={styles.quickRow}>
+                    {quickActions.map((qa, i) => (
+                        <TouchableOpacity
+                            key={i}
+                            style={styles.quickChip}
+                            onPress={() => sendMessage(qa.label)}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name={qa.icon} size={13} color="#2DCA72" />
+                            <Text style={styles.quickTxt}>{qa.label}</Text>
+                        </TouchableOpacity>
+                    ))}
+                </Animated.View>
+            )}
+
+            {/* Input bar */}
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}>
+                <View style={[styles.inputBar, { paddingBottom: Math.max(16, insets.bottom) }]}>
+                    <View style={styles.inputWrap}>
                         <TextInput
                             style={styles.input}
                             placeholder="Ask Tracko anything..."
-                            placeholderTextColor={DarkTheme.textMuted}
+                            placeholderTextColor="#C7C7CC"
                             value={inputValue}
                             onChangeText={setInputValue}
                             multiline
                             maxLength={500}
+                            returnKeyType="send"
+                            onSubmitEditing={() => sendMessage(inputValue)}
                         />
                         <TouchableOpacity
-                            style={[
-                                styles.sendButton,
-                                !inputValue.trim() && styles.sendButtonDisabled
-                            ]}
-                            onPress={handleSendMessage}
+                            style={[styles.sendBtn, !inputValue.trim() && styles.sendBtnOff]}
+                            onPress={() => sendMessage(inputValue)}
                             disabled={!inputValue.trim() || isTyping}
                         >
-                            <Ionicons name="send" size={18} color={DarkTheme.brandBlack} />
+                            <Ionicons name="send" size={16} color="#fff" />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -226,193 +244,51 @@ export default function AskTrackoScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: DarkTheme.bg,
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
-        backgroundColor: DarkTheme.brandYellow,
-        borderBottomWidth: 3,
-        borderBottomColor: DarkTheme.brandBlack,
-    },
-    backButton: {
-        padding: 5,
-    },
-    headerInfo: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginLeft: Spacing.md,
-        gap: 12,
-    },
-    trackoIcon: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
-        backgroundColor: '#FFF',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: DarkTheme.brandBlack,
-        ...NeoShadowSm,
-    },
-    headerTitle: {
-        fontSize: FontSize.md,
-        fontWeight: '900',
-        color: DarkTheme.brandBlack,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    headerSubtitle: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: DarkTheme.brandBlack,
-        opacity: 0.7,
-    },
-    optionsButton: {
-        padding: 5,
-    },
-    chatArea: {
-        flex: 1,
-    },
-    chatContent: {
-        padding: Spacing.lg,
-        paddingBottom: 20,
-    },
-    messageRow: {
-        flexDirection: 'row',
-        marginBottom: Spacing.xl,
-        alignItems: 'flex-end',
-        gap: 8,
-    },
-    userRow: {
-        justifyContent: 'flex-end',
-    },
-    trackoRow: {
-        justifyContent: 'flex-start',
-    },
-    avatar: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.brandBlack,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    trackoAvatar: {
-        backgroundColor: DarkTheme.brandYellow,
-    },
-    userAvatar: {
-        backgroundColor: '#4A90E2',
-    },
-    bubble: {
-        maxWidth: '75%',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 16,
-        borderWidth: 2,
-        borderColor: DarkTheme.brandBlack,
-        ...NeoShadowSm,
-    },
-    userBubble: {
-        backgroundColor: '#FFF',
-        borderBottomRightRadius: 2,
-    },
-    trackoBubble: {
-        backgroundColor: '#E8F5E9', // Light green
-        borderBottomLeftRadius: 2,
-    },
-    messageText: {
-        fontSize: FontSize.sm,
-        lineHeight: 20,
-        fontWeight: '600',
-    },
-    userText: {
-        color: DarkTheme.brandBlack,
-    },
-    trackoText: {
-        color: DarkTheme.brandBlack,
-    },
-    timestamp: {
-        fontSize: 8,
-        fontWeight: '700',
-        marginTop: 4,
-        opacity: 0.4,
-    },
-    userTimestamp: {
-        textAlign: 'right',
-    },
-    trackoTimestamp: {
-        textAlign: 'left',
-    },
-    typingContainer: {
-        flexDirection: 'row',
-        gap: 8,
-        alignItems: 'flex-end',
-        marginBottom: 20,
-    },
-    typingBubble: {
-        backgroundColor: DarkTheme.cardBg,
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        borderRadius: 16,
-        borderBottomLeftRadius: 2,
-        borderWidth: 2,
-        borderColor: DarkTheme.neoBorder,
-    },
-    typingContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-    },
-    loadingPhrase: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: DarkTheme.textSecondary,
-        fontStyle: 'italic',
-    },
-    inputContainer: {
-        padding: Spacing.lg,
-        backgroundColor: DarkTheme.bg,
-        borderTopWidth: 2,
-        borderTopColor: DarkTheme.neoBorder,
-    },
-    inputWrapper: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: DarkTheme.cardBg,
-        borderWidth: 2,
-        borderColor: DarkTheme.brandBlack,
-        borderRadius: BorderRadius.md,
-        paddingHorizontal: 12,
-        ...NeoShadowSm,
-    },
-    input: {
-        flex: 1,
-        color: DarkTheme.textPrimary,
-        fontSize: FontSize.md,
-        fontWeight: '600',
-        paddingVertical: 12,
-        maxHeight: 100,
-    },
-    sendButton: {
-        width: 40,
-        height: 40,
-        borderRadius: 8,
-        backgroundColor: DarkTheme.brandYellow,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginLeft: 8,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.brandBlack,
-    },
-    sendButtonDisabled: {
-        backgroundColor: DarkTheme.textMuted,
-        opacity: 0.5,
-    },
+    root: { flex: 1, backgroundColor: '#F9F9FB' },
+
+    // Header
+    header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#F2F2F7' },
+    backBtn: { padding: 6 },
+    headerInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', marginLeft: 10, gap: 10 },
+    botAvatar: { width: 34, height: 34, borderRadius: 12, backgroundColor: '#2DCA72', justifyContent: 'center', alignItems: 'center' },
+    headerTitle: { fontSize: 15, fontWeight: '700', color: '#111' },
+    onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 1 },
+    onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#2DCA72' },
+    onlineTxt: { fontSize: 10, color: '#2DCA72', fontWeight: '600' },
+    moreBtn: { padding: 6 },
+
+    // Chat
+    chatArea: { flex: 1 },
+    chatContent: { padding: 20, paddingBottom: 10 },
+    msgRow: { flexDirection: 'row', marginBottom: 16, alignItems: 'flex-end', gap: 8 },
+    msgRowUser: { justifyContent: 'flex-end' },
+    msgRowBot: { justifyContent: 'flex-start' },
+    msgAvatar: { width: 28, height: 28, borderRadius: 10, backgroundColor: '#2DCA72', justifyContent: 'center', alignItems: 'center' },
+    bubble: { maxWidth: '78%', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18 },
+    bubbleUser: { backgroundColor: '#111', borderBottomRightRadius: 4 },
+    bubbleBot: { backgroundColor: '#fff', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#F2F2F7' },
+    msgTxt: { fontSize: 14, lineHeight: 20, fontWeight: '500' },
+    msgTxtUser: { color: '#fff' },
+    msgTxtBot: { color: '#111' },
+    time: { fontSize: 9, fontWeight: '500', marginTop: 4, opacity: 0.5 },
+    timeUser: { textAlign: 'right', color: '#fff' },
+    timeBot: { textAlign: 'left', color: '#8E8E93' },
+
+    // Typing
+    typingWrap: { backgroundColor: '#fff', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#F2F2F7' },
+    dotsRow: { flexDirection: 'row', gap: 4, marginBottom: 4 },
+    dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#C7C7CC' },
+    typingPhrase: { fontSize: 10, fontWeight: '500', color: '#8E8E93', fontStyle: 'italic' },
+
+    // Quick actions
+    quickRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 10, flexWrap: 'wrap' },
+    quickChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#F2F2F7' },
+    quickTxt: { fontSize: 12, fontWeight: '600', color: '#3A3A3C' },
+
+    // Input
+    inputBar: { paddingHorizontal: 20, paddingTop: 10, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#F2F2F7' },
+    inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: 22, paddingHorizontal: 14, paddingVertical: 4 },
+    input: { flex: 1, fontSize: 14, color: '#111', fontWeight: '500', paddingVertical: 10, maxHeight: 80 },
+    sendBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#111', justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
+    sendBtnOff: { backgroundColor: '#C7C7CC', opacity: 0.5 },
 });

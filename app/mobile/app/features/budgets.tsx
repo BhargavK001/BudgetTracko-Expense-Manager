@@ -8,22 +8,16 @@ import {
     TextInput,
     Modal,
     Platform,
+    StatusBar,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown, Layout } from 'react-native-reanimated';
-import {
-    DarkTheme,
-    Spacing,
-    FontSize,
-    BorderRadius,
-    NeoShadowSm,
-} from '@/constants/Theme';
 import { useTransactions, EXPENSE_CATEGORIES, CATEGORY_ICONS, CATEGORY_COLORS, Category } from '@/context/TransactionContext';
 
 const PERIODS = [
-
     { key: 'weekly', label: 'Weekly', icon: 'calendar-outline' },
     { key: 'monthly', label: 'Monthly', icon: 'calendar' },
     { key: 'yearly', label: 'Yearly', icon: 'calendar-number-outline' },
@@ -32,7 +26,7 @@ const PERIODS = [
 export default function BudgetsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { getCategoryBreakdown } = useTransactions();
+    const { budgets, addBudget, updateBudget, deleteBudget, getCategoryBreakdown } = useTransactions();
 
     const [activePeriod, setActivePeriod] = useState('monthly');
     const [showForm, setShowForm] = useState(false);
@@ -41,13 +35,6 @@ export default function BudgetsScreen() {
     // Form State
     const [formCategory, setFormCategory] = useState('');
     const [formAmount, setFormAmount] = useState('');
-
-    // Mock Budgets (Local only for now)
-    const [budgets, setBudgets] = useState([
-        { id: '1', category: 'Food and Dining', amount: 5000, period: 'monthly' },
-        { id: '2', category: 'Transport', amount: 2000, period: 'monthly' },
-        { id: '3', category: 'Shopping', amount: 3000, period: 'monthly' },
-    ]);
 
     const activeMonth = new Date().getMonth();
     const activeYear = new Date().getFullYear();
@@ -78,47 +65,64 @@ export default function BudgetsScreen() {
         setShowForm(true);
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!formCategory || !formAmount) return;
 
-        if (editingBudget) {
-            setBudgets(prev => prev.map(b => b.id === editingBudget.id ? {
-                ...b,
-                category: formCategory as any,
-                amount: Number(formAmount)
-            } : b));
-        } else {
-            setBudgets(prev => [...prev, {
-                id: Date.now().toString(),
-                category: formCategory as any,
-                amount: Number(formAmount),
-                period: activePeriod
-            }]);
+        try {
+            if (editingBudget) {
+                await updateBudget(editingBudget.id, {
+                    category: formCategory as any,
+                    amount: Number(formAmount),
+                    period: activePeriod as any
+                });
+            } else {
+                await addBudget({
+                    category: formCategory as any,
+                    amount: Number(formAmount),
+                    period: activePeriod as any
+                });
+            }
+            setShowForm(false);
+        } catch (e: any) {
+            Alert.alert('Error', e.response?.data?.message || 'Failed to save budget.');
         }
-        setShowForm(false);
     };
 
     const handleDelete = (id: string) => {
-        setBudgets(prev => prev.filter(b => b.id !== id));
+        Alert.alert('Delete Budget', 'Are you sure you want to delete this budget?', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        await deleteBudget(id);
+                    } catch (e: any) {
+                        Alert.alert('Error', e.response?.data?.message || 'Failed to delete budget.');
+                    }
+                }
+            }
+        ]);
     };
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
+            <StatusBar barStyle="dark-content" />
+
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color={DarkTheme.textPrimary} />
+            <Animated.View entering={FadeIn.delay(50)} style={styles.header}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
+                    <Ionicons name="arrow-back" size={20} color="#111" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Budgets</Text>
-                <TouchableOpacity onPress={openAddForm} style={styles.addButton}>
-                    <Ionicons name="add" size={24} color={DarkTheme.brandYellow} />
+                <TouchableOpacity onPress={openAddForm} style={styles.addButton} activeOpacity={0.7}>
+                    <Ionicons name="add" size={24} color="#6366F1" />
                 </TouchableOpacity>
-            </View>
+            </Animated.View>
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-
                 {/* Period Selector */}
-                <View style={styles.periodContainer}>
+                <Animated.View entering={FadeInDown.delay(100).duration(400).springify()} style={styles.periodContainer}>
                     {PERIODS.map(p => (
                         <TouchableOpacity
                             key={p.key}
@@ -127,11 +131,12 @@ export default function BudgetsScreen() {
                                 activePeriod === p.key && styles.periodButtonActive
                             ]}
                             onPress={() => setActivePeriod(p.key)}
+                            activeOpacity={0.8}
                         >
                             <Ionicons
                                 name={p.icon as any}
-                                size={16}
-                                color={activePeriod === p.key ? DarkTheme.brandBlack : DarkTheme.textSecondary}
+                                size={14}
+                                color={activePeriod === p.key ? '#fff' : '#8E8E93'}
                             />
                             <Text style={[
                                 styles.periodLabel,
@@ -139,10 +144,10 @@ export default function BudgetsScreen() {
                             ]}>{p.label}</Text>
                         </TouchableOpacity>
                     ))}
-                </View>
+                </Animated.View>
 
                 {/* Overview Card */}
-                <Animated.View entering={FadeInDown.delay(100)} style={styles.overviewCard}>
+                <Animated.View entering={FadeInDown.delay(150).duration(400).springify()} style={styles.overviewCard}>
                     <View style={styles.overviewHeader}>
                         <View>
                             <Text style={styles.overviewLabel}>Total {activePeriod} Budget</Text>
@@ -152,11 +157,11 @@ export default function BudgetsScreen() {
                         </View>
                         <View style={[
                             styles.badge,
-                            { backgroundColor: totalPercent > 90 ? DarkTheme.spending + '22' : DarkTheme.income + '22' }
+                            { backgroundColor: totalPercent > 90 ? 'rgba(244,63,94,0.1)' : 'rgba(45,202,114,0.1)' }
                         ]}>
                             <Text style={[
                                 styles.badgeText,
-                                { color: totalPercent > 90 ? DarkTheme.spending : DarkTheme.income }
+                                { color: totalPercent > 90 ? '#F43F5E' : '#2DCA72' }
                             ]}>{totalPercent.toFixed(0)}% Used</Text>
                         </View>
                     </View>
@@ -166,7 +171,7 @@ export default function BudgetsScreen() {
                                 styles.progressBarFill,
                                 {
                                     width: `${totalPercent}%`,
-                                    backgroundColor: totalPercent > 90 ? DarkTheme.spending : totalPercent > 70 ? DarkTheme.brandYellow : DarkTheme.income
+                                    backgroundColor: totalPercent > 90 ? '#F43F5E' : totalPercent > 70 ? '#F59E0B' : '#2DCA72'
                                 }
                             ]}
                         />
@@ -178,78 +183,83 @@ export default function BudgetsScreen() {
                     {filteredBudgets.map((budget, index) => (
                         <Animated.View
                             key={budget.id}
-                            entering={FadeInDown.delay(200 + index * 50)}
                             layout={Layout.springify()}
-                            style={styles.budgetCard}
                         >
-                            <View style={styles.budgetHeader}>
-                                <View style={styles.budgetIconContainer}>
-                                    <Ionicons name={CATEGORY_ICONS[budget.category as Category] as any} size={20} color={CATEGORY_COLORS[budget.category as Category]} />
-                                </View>
-                                <View style={styles.budgetInfo}>
-                                    <Text style={styles.budgetCategory}>{budget.category}</Text>
-                                    <View style={styles.row}>
-                                        <Text style={styles.budgetUsed}>₹{budget.spent.toLocaleString()}</Text>
-                                        <Text style={styles.budgetLimit}> / ₹{budget.amount.toLocaleString()}</Text>
+                            <Animated.View
+                                entering={FadeInDown.delay(200 + index * 50).duration(400).springify()}
+                                style={styles.budgetCard}
+                            >
+                                <View style={styles.budgetHeader}>
+                                    <View style={[styles.budgetIconContainer, { backgroundColor: CATEGORY_COLORS[budget.category as Category] + '15' }]}>
+                                        <Ionicons name={CATEGORY_ICONS[budget.category as Category] as any} size={20} color={CATEGORY_COLORS[budget.category as Category]} />
+                                    </View>
+                                    <View style={styles.budgetInfo}>
+                                        <Text style={styles.budgetCategory}>{budget.category}</Text>
+                                        <View style={styles.row}>
+                                            <Text style={styles.budgetUsed}>₹{budget.spent.toLocaleString()}</Text>
+                                            <Text style={styles.budgetLimit}> / ₹{budget.amount.toLocaleString()}</Text>
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.actionButtons}>
+                                        <TouchableOpacity
+                                            style={styles.actionButton}
+                                            onPress={() => {
+                                                setEditingBudget(budget);
+                                                setFormCategory(budget.category);
+                                                setFormAmount(budget.amount.toString());
+                                                setShowForm(true);
+                                            }}
+                                        >
+                                            <Ionicons name="pencil-outline" size={16} color="#8E8E93" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, { marginLeft: 8, backgroundColor: 'rgba(244,63,94,0.05)' }]}
+                                            onPress={() => handleDelete(budget.id)}
+                                        >
+                                            <Ionicons name="trash-outline" size={16} color="#F43F5E" />
+                                        </TouchableOpacity>
                                     </View>
                                 </View>
 
-                                <View style={styles.actionButtons}>
-                                    <TouchableOpacity
-                                        style={styles.actionButton}
-                                        onPress={() => {
-                                            setEditingBudget(budget);
-                                            setFormCategory(budget.category);
-                                            setFormAmount(budget.amount.toString());
-                                            setShowForm(true);
-                                        }}
-                                    >
-                                        <Ionicons name="pencil-outline" size={16} color={DarkTheme.textSecondary} />
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={[styles.actionButton, { marginLeft: 8 }]}
-                                        onPress={() => handleDelete(budget.id)}
-                                    >
-                                        <Ionicons name="trash-outline" size={16} color={DarkTheme.spending} />
-                                    </TouchableOpacity>
+                                <View style={styles.miniProgressBarBg}>
+                                    <View
+                                        style={[
+                                            styles.miniProgressBarFill,
+                                            {
+                                                width: `${Math.min(budget.percent, 100)}%`,
+                                                backgroundColor: budget.percent > 90 ? '#F43F5E' : budget.percent > 70 ? '#F59E0B' : '#2DCA72'
+                                            }
+                                        ]}
+                                    />
                                 </View>
-                            </View>
 
-                            <View style={styles.miniProgressBarBg}>
-                                <View
-                                    style={[
-                                        styles.miniProgressBarFill,
-                                        {
-                                            width: `${Math.min(budget.percent, 100)}%`,
-                                            backgroundColor: budget.percent > 90 ? DarkTheme.spending : budget.percent > 70 ? DarkTheme.brandYellow : DarkTheme.income
-                                        }
-                                    ]}
-                                />
-                            </View>
-
-                            <View style={styles.budgetFooter}>
-                                <Text style={[
-                                    styles.remainingText,
-                                    { color: budget.percent > 100 ? DarkTheme.spending : DarkTheme.textMuted }
-                                ]}>
-                                    {budget.percent > 100 ? 'Over Budget!' : `${(100 - budget.percent).toFixed(0)}% remaining`}
-                                </Text>
-                            </View>
+                                <View style={styles.budgetFooter}>
+                                    <Text style={[
+                                        styles.remainingText,
+                                        { color: budget.percent > 100 ? '#F43F5E' : '#8E8E93' }
+                                    ]}>
+                                        {budget.percent > 100 ? 'Over Budget!' : `${(100 - budget.percent).toFixed(0)}% remaining`}
+                                    </Text>
+                                </View>
+                            </Animated.View>
                         </Animated.View>
                     ))}
 
-                    <TouchableOpacity style={styles.emptyCard} onPress={openAddForm}>
-                        <Ionicons name="add" size={32} color={DarkTheme.textMuted} />
-                        <Text style={styles.emptyCardText}>Add Budget</Text>
-                    </TouchableOpacity>
+                    <Animated.View entering={FadeInDown.delay(200 + filteredBudgets.length * 50).duration(400).springify()}>
+                        <TouchableOpacity style={styles.emptyCard} onPress={openAddForm} activeOpacity={0.7}>
+                            <Ionicons name="add-circle-outline" size={32} color="#C7C7CC" />
+                            <Text style={styles.emptyCardText}>Add New Budget</Text>
+                        </TouchableOpacity>
+                    </Animated.View>
                 </View>
 
                 {filteredBudgets.length === 0 && (
-                    <View style={styles.emptyState}>
-                        <Ionicons name="pie-chart-outline" size={48} color={DarkTheme.textMuted} />
+                    <Animated.View entering={FadeIn.delay(300)} style={styles.emptyState}>
+                        <Ionicons name="pie-chart-outline" size={64} color="#E5E5EA" />
                         <Text style={styles.emptyStateTitle}>No budgets yet</Text>
-                        <Text style={styles.emptyStateDesc}>Set your first budget to start tracking.</Text>
-                    </View>
+                        <Text style={styles.emptyStateDesc}>Set your first budget to start tracking your spending.</Text>
+                    </Animated.View>
                 )}
 
                 <View style={{ height: 100 }} />
@@ -263,11 +273,11 @@ export default function BudgetsScreen() {
                 onRequestClose={() => setShowForm(false)}
             >
                 <View style={styles.modalOverlay}>
-                    <Animated.View entering={FadeInDown} style={styles.modalContent}>
+                    <Animated.View entering={FadeInDown.duration(300).springify()} style={styles.modalContent}>
                         <View style={styles.modalHeader}>
                             <Text style={styles.modalTitle}>{editingBudget ? 'Edit Budget' : 'Add Budget'}</Text>
                             <TouchableOpacity onPress={() => setShowForm(false)}>
-                                <Ionicons name="close" size={24} color={DarkTheme.textPrimary} />
+                                <Ionicons name="close-circle" size={28} color="#C7C7CC" />
                             </TouchableOpacity>
                         </View>
 
@@ -282,6 +292,7 @@ export default function BudgetsScreen() {
                                             formCategory === cat && styles.categoryChipActive
                                         ]}
                                         onPress={() => setFormCategory(cat)}
+                                        activeOpacity={0.8}
                                     >
                                         <Text style={[
                                             styles.categoryChipText,
@@ -296,15 +307,15 @@ export default function BudgetsScreen() {
                             <Text style={styles.label}>Amount (₹)</Text>
                             <TextInput
                                 style={styles.input}
-                                placeholder="5000"
-                                placeholderTextColor={DarkTheme.textMuted}
+                                placeholder="e.g. 5000"
+                                placeholderTextColor="#C7C7CC"
                                 keyboardType="numeric"
                                 value={formAmount}
                                 onChangeText={setFormAmount}
                             />
                         </View>
 
-                        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                        <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.8}>
                             <Text style={styles.saveButtonText}>Save Budget</Text>
                         </TouchableOpacity>
                     </Animated.View>
@@ -317,154 +328,165 @@ export default function BudgetsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: DarkTheme.bg,
+        backgroundColor: '#fff',
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
-        borderBottomWidth: 2,
-        borderBottomColor: DarkTheme.neoBorder,
+        paddingHorizontal: 24,
+        paddingVertical: 14,
     },
     backButton: {
-        padding: 5,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F5F5F5',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     headerTitle: {
-        fontSize: FontSize.lg,
+        fontSize: 18,
         fontWeight: '800',
-        color: DarkTheme.textPrimary,
-        textTransform: 'uppercase',
+        color: '#111',
     },
     addButton: {
-        padding: 5,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(99,102,241,0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        padding: Spacing.lg,
+        padding: 24,
     },
     periodContainer: {
         flexDirection: 'row',
-        backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
+        backgroundColor: '#F5F5F5',
+        borderRadius: 16,
         padding: 4,
-        marginBottom: Spacing.lg,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
+        marginBottom: 24,
     },
     periodButton: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 10,
+        paddingVertical: 12,
         gap: 6,
-        borderRadius: BorderRadius.sm,
+        borderRadius: 12,
     },
     periodButtonActive: {
-        backgroundColor: DarkTheme.brandYellow,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.brandBlack,
-        ...NeoShadowSm,
+        backgroundColor: '#6366F1',
+        shadowColor: '#6366F1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
     },
     periodLabel: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: '700',
-        color: DarkTheme.textSecondary,
-        textTransform: 'uppercase',
+        color: '#8E8E93',
     },
     periodLabelActive: {
-        color: DarkTheme.brandBlack,
+        color: '#FFFFFF',
     },
     overviewCard: {
-        backgroundColor: DarkTheme.brandBlack,
-        borderRadius: BorderRadius.md,
-        padding: Spacing.lg,
-        marginBottom: Spacing.xl,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
-        ...NeoShadowSm,
+        backgroundColor: '#fff',
+        borderRadius: 24,
+        padding: 24,
+        marginBottom: 32,
+        borderWidth: 1,
+        borderColor: '#E2E8F0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.05,
+        shadowRadius: 20,
+        elevation: 2,
     },
     overviewHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: Spacing.md,
+        marginBottom: 20,
     },
     overviewLabel: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: '#666',
+        fontSize: 11,
+        fontWeight: '800',
+        color: '#8E8E93',
         textTransform: 'uppercase',
         letterSpacing: 1,
         marginBottom: 4,
     },
     overviewValue: {
-        fontSize: FontSize.xl,
-        fontWeight: '800',
-        color: '#FFF',
+        fontSize: 28,
+        fontWeight: '900',
+        color: '#111',
     },
     overviewTotal: {
-        fontSize: FontSize.sm,
-        color: '#444',
+        fontSize: 16,
+        color: '#8E8E93',
     },
     badge: {
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 12,
     },
     badgeText: {
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: '800',
     },
     progressBarBg: {
-        height: 12,
-        backgroundColor: '#111',
-        borderRadius: 6,
+        height: 14,
+        backgroundColor: '#F5F5F5',
+        borderRadius: 8,
         overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: '#222',
     },
     progressBarFill: {
         height: '100%',
-        borderRadius: 6,
+        borderRadius: 8,
     },
     grid: {
-        gap: Spacing.md,
+        gap: 16,
     },
     budgetCard: {
-        backgroundColor: DarkTheme.cardBg,
-        borderRadius: BorderRadius.md,
-        padding: Spacing.lg,
-        borderWidth: 1.5,
-        borderColor: DarkTheme.neoBorder,
+        backgroundColor: '#fff',
+        borderRadius: 20,
+        padding: 20,
+        borderWidth: 1,
+        borderColor: '#F2F2F7',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 8,
+        elevation: 1,
     },
     budgetHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: Spacing.md,
+        marginBottom: 16,
     },
     budgetIconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: BorderRadius.sm,
-        backgroundColor: DarkTheme.bg,
+        width: 44,
+        height: 44,
+        borderRadius: 14,
+        backgroundColor: '#F5F5F5',
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: Spacing.md,
-        borderWidth: 1,
-        borderColor: DarkTheme.neoBorder,
+        marginRight: 16,
     },
     budgetInfo: {
         flex: 1,
     },
     budgetCategory: {
-        fontSize: FontSize.md,
+        fontSize: 16,
         fontWeight: '800',
-        color: DarkTheme.textPrimary,
+        color: '#111',
         marginBottom: 2,
     },
     row: {
@@ -472,160 +494,155 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     budgetUsed: {
-        fontSize: FontSize.sm,
+        fontSize: 14,
         fontWeight: '700',
-        color: DarkTheme.textPrimary,
+        color: '#111',
     },
     budgetLimit: {
-        fontSize: FontSize.xs,
-        color: DarkTheme.textSecondary,
+        fontSize: 13,
+        color: '#8E8E93',
+        fontWeight: '500',
     },
     actionButtons: {
         flexDirection: 'row',
     },
     actionButton: {
-        padding: 6,
-        borderRadius: 6,
-        backgroundColor: DarkTheme.bg,
-        borderWidth: 1,
-        borderColor: DarkTheme.neoBorder,
+        padding: 8,
+        borderRadius: 10,
+        backgroundColor: '#F5F5F5',
     },
     miniProgressBarBg: {
-        height: 6,
-        backgroundColor: DarkTheme.bg,
-        borderRadius: 3,
+        height: 8,
+        backgroundColor: '#F5F5F5',
+        borderRadius: 4,
         overflow: 'hidden',
-        marginBottom: Spacing.sm,
+        marginBottom: 12,
     },
     miniProgressBarFill: {
         height: '100%',
-        borderRadius: 3,
+        borderRadius: 4,
     },
     budgetFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
     },
     remainingText: {
-        fontSize: 10,
+        fontSize: 11,
         fontWeight: '700',
     },
     emptyCard: {
-        height: 100,
-        borderRadius: BorderRadius.md,
+        height: 110,
+        borderRadius: 20,
         borderWidth: 2,
-        borderColor: DarkTheme.neoBorder,
+        borderColor: '#E2E8F0',
         borderStyle: 'dashed',
+        backgroundColor: '#FAFAFA',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
     },
     emptyCardText: {
-        fontSize: FontSize.xs,
+        fontSize: 13,
         fontWeight: '700',
-        color: DarkTheme.textMuted,
-        textTransform: 'uppercase',
+        color: '#8E8E93',
     },
     emptyState: {
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 40,
-        gap: 8,
+        paddingVertical: 60,
+        gap: 12,
     },
     emptyStateTitle: {
-        fontSize: FontSize.lg,
+        fontSize: 20,
         fontWeight: '800',
-        color: DarkTheme.textPrimary,
+        color: '#111',
     },
     emptyStateDesc: {
-        fontSize: FontSize.sm,
-        color: DarkTheme.textSecondary,
+        fontSize: 14,
+        color: '#8E8E93',
         textAlign: 'center',
+        paddingHorizontal: 40,
+        lineHeight: 20,
     },
     modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.7)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: DarkTheme.bg,
-        borderTopLeftRadius: BorderRadius.lg,
-        borderTopRightRadius: BorderRadius.lg,
-        padding: Spacing.xl,
-        borderTopWidth: 2,
-        borderTopColor: DarkTheme.brandYellow,
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        padding: 24,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
     },
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: Spacing.xl,
+        marginBottom: 24,
     },
     modalTitle: {
-        fontSize: FontSize.xl,
-        fontWeight: '800',
-        color: DarkTheme.textPrimary,
-        textTransform: 'uppercase',
+        fontSize: 20,
+        fontWeight: '900',
+        color: '#111',
     },
     formGroup: {
-        marginBottom: Spacing.lg,
+        marginBottom: 24,
     },
     label: {
-        fontSize: 10,
-        fontWeight: '700',
-        color: DarkTheme.textSecondary,
+        fontSize: 12,
+        fontWeight: '800',
+        color: '#8E8E93',
         textTransform: 'uppercase',
-        marginBottom: 8,
+        marginBottom: 12,
         letterSpacing: 1,
     },
     categoryScroll: {
-        marginHorizontal: -Spacing.xl,
-        paddingHorizontal: Spacing.xl,
+        marginHorizontal: -24,
+        paddingHorizontal: 24,
     },
     categoryChip: {
         paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: BorderRadius.sm,
-        backgroundColor: DarkTheme.cardBg,
-        borderWidth: 1,
-        borderColor: DarkTheme.neoBorder,
-        marginRight: 8,
+        paddingVertical: 10,
+        borderRadius: 12,
+        backgroundColor: '#F5F5F5',
+        marginRight: 10,
     },
     categoryChipActive: {
-        backgroundColor: DarkTheme.brandYellow,
-        borderColor: DarkTheme.brandBlack,
+        backgroundColor: '#6366F1',
     },
     categoryChipText: {
-        fontSize: FontSize.xs,
+        fontSize: 14,
         fontWeight: '700',
-        color: DarkTheme.textSecondary,
+        color: '#3A3A3C',
     },
     categoryChipTextActive: {
-        color: DarkTheme.brandBlack,
+        color: '#FFFFFF',
     },
     input: {
-        backgroundColor: DarkTheme.cardBg,
-        borderWidth: 2,
-        borderColor: DarkTheme.neoBorder,
-        borderRadius: BorderRadius.sm,
-        padding: Spacing.md,
-        color: DarkTheme.textPrimary,
-        fontSize: FontSize.md,
-        fontWeight: '700',
+        backgroundColor: '#F5F5F5',
+        borderRadius: 16,
+        padding: 18,
+        color: '#111',
+        fontSize: 18,
+        fontWeight: '800',
     },
     saveButton: {
-        backgroundColor: DarkTheme.brandYellow,
-        borderRadius: BorderRadius.sm,
-        paddingVertical: Spacing.lg,
+        backgroundColor: '#6366F1',
+        borderRadius: 16,
+        paddingVertical: 18,
         alignItems: 'center',
-        marginTop: Spacing.md,
-        borderWidth: 2,
-        borderColor: DarkTheme.brandBlack,
-        ...NeoShadowSm,
+        marginTop: 8,
+        shadowColor: '#6366F1',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+        elevation: 4,
     },
     saveButtonText: {
-        fontSize: FontSize.md,
+        fontSize: 16,
         fontWeight: '900',
-        color: DarkTheme.brandBlack,
-        textTransform: 'uppercase',
+        color: '#FFFFFF',
     },
 });
