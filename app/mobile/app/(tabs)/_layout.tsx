@@ -1,13 +1,14 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue, useAnimatedStyle,
   withSpring, withSequence,
 } from 'react-native-reanimated';
 import AddTransactionModal from '@/components/AddTransactionModal';
+import { useQuickAction } from '@/context/QuickActionContext';
 
 type TabIconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -100,12 +101,13 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
 
 // ── Layout ───────────────────────────────────────────────────
 export default function TabLayout() {
-  const [showAddModal, setShowAddModal] = useState(false);
+  const router = useRouter();
+  const { showModal, modalType, scanData, openModal, closeModal } = useQuickAction();
 
   return (
     <>
       <Tabs
-        tabBar={(props) => <CustomTabBar {...props} onFabPress={() => setShowAddModal(true)} />}
+        tabBar={(props) => <CustomTabBar {...props} onFabPress={() => openModal()} />}
         screenOptions={{ headerShown: false }}
       >
         <Tabs.Screen name="index" />
@@ -114,8 +116,10 @@ export default function TabLayout() {
         <Tabs.Screen name="more" />
       </Tabs>
       <AddTransactionModal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
+        visible={showModal}
+        onClose={closeModal}
+        initialType={modalType}
+        scanData={scanData}
       />
     </>
   );
