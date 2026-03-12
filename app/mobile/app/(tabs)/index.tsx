@@ -6,7 +6,8 @@ import {
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTransactions, CATEGORY_ICONS, CATEGORY_COLORS, Category } from '@/context/TransactionContext';
+import { useRouter } from 'expo-router';
+import { useTransactions, CATEGORY_ICONS, CATEGORY_COLORS, Category, mapCategoryIcon } from '@/context/TransactionContext';
 import { useAuth } from '@/context/AuthContext';
 import Animated, {
   FadeInDown, FadeInUp, FadeIn, ZoomIn,
@@ -71,7 +72,8 @@ const BounceButton = React.memo(function BounceButton({ children, onPress, style
 // ─────────────────────────────────────────────────────────────
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const { transactions, getTotalIncome, getTotalExpense, getBalance } = useTransactions();
+  const router = useRouter();
+  const { transactions, getTotalIncome, getTotalExpense, getBalance, getTotalBudget } = useTransactions();
   const { user } = useAuth();
   const [hidden, setHidden] = useState(false);
   const floatStyle = useFloat();
@@ -87,7 +89,7 @@ export default function HomeScreen() {
 
   const dayOfMonth = now.getDate();
   const projectedExpense = dayOfMonth > 0 ? (expense / dayOfMonth) * 30 : 0;
-  const spendTarget = 30000;
+  const spendTarget = getTotalBudget('monthly') || 30000; // Fallback to 30000 if no budgets defined
   const pacePercent = spendTarget > 0 ? Math.min((projectedExpense / spendTarget) * 100, 150) : 0;
   const overPace = pacePercent > 100;
 
@@ -108,7 +110,7 @@ export default function HomeScreen() {
     <Animated.View entering={FadeInDown.delay(440 + i * 40).duration(360)} style={styles.txRow}>
       <View style={[styles.txIconWrap, { backgroundColor: (CATEGORY_COLORS[tx.category as Category] || '#F5F5F5') + '1A' }]}>
         <Ionicons
-          name={(CATEGORY_ICONS[tx.category as Category] || 'receipt-outline') as any}
+          name={(tx.category && CATEGORY_ICONS[tx.category as Category]) ? mapCategoryIcon(CATEGORY_ICONS[tx.category as Category] || '') as any : 'receipt-outline'}
           size={20}
           color={CATEGORY_COLORS[tx.category as Category] || '#111'}
         />
@@ -212,34 +214,6 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* ═══ 4. INCOME & EXPENSE OVERVIEW CARDS ═══ */}
-        <View style={styles.overviewRow}>
-          <Animated.View entering={FadeInUp.delay(260).duration(420)} style={[styles.overviewCard, styles.overviewCardGreen]}>
-            <View style={styles.overviewIconWrap}>
-              <View style={[styles.overviewIconBg, { backgroundColor: 'rgba(45,202,114,0.15)' }]}>
-                <MaterialCommunityIcons name="arrow-bottom-left" size={18} color="#2DCA72" />
-              </View>
-            </View>
-            <Text style={styles.overviewLabel}>Income</Text>
-            <Text style={styles.overviewAmt}>{fmt(income)}</Text>
-            <View style={styles.overviewTag}>
-              <Text style={[styles.overviewTagText, { color: '#2DCA72' }]}>This month</Text>
-            </View>
-          </Animated.View>
-
-          <Animated.View entering={FadeInUp.delay(340).duration(420)} style={[styles.overviewCard, styles.overviewCardRed]}>
-            <View style={styles.overviewIconWrap}>
-              <View style={[styles.overviewIconBg, { backgroundColor: 'rgba(244,63,94,0.12)' }]}>
-                <MaterialCommunityIcons name="arrow-top-right" size={18} color="#F43F5E" />
-              </View>
-            </View>
-            <Text style={styles.overviewLabel}>Expense</Text>
-            <Text style={styles.overviewAmt}>{fmt(expense)}</Text>
-            <View style={styles.overviewTag}>
-              <Text style={[styles.overviewTagText, { color: '#F43F5E' }]}>This month</Text>
-            </View>
-          </Animated.View>
-        </View>
 
         {/* ═══ 5. SPENDING PACE ═══ */}
         <Animated.View entering={FadeInUp.delay(380).duration(420)} style={styles.paceCard}>
@@ -269,7 +243,9 @@ export default function HomeScreen() {
         {/* ═══ 6. RECENT ACTIVITY ═══ */}
         <Animated.View entering={FadeIn.delay(420).duration(400)} style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
-          <TouchableOpacity><Text style={styles.seeAll}>See all</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/features/transactions')}>
+            <Text style={styles.seeAll}>See all</Text>
+          </TouchableOpacity>
         </Animated.View>
 
         <View style={styles.txList}>

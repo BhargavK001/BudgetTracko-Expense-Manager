@@ -45,8 +45,9 @@ Everything you need to take full control of your finances.
 
 *   **🌓 Dark & Light Mode**: Seamless theme switching for day or night usage.
 *   **🏦 Multi-Account Support**: Track Cash, Bank Accounts, UPI, and Digital Wallets in one place.
-*   **asd Advanced Analytics**: Interactive charts showing spending trends and category breakdowns.
-*   **🔐 Secure Authentication**: Enterprise-grade OAuth 2.0 (Google/GitHub) and JWT protection.
+*   **📊 Advanced Analytics**: Interactive charts showing daily/weekly spending trends and customizable category breakdowns.
+*   **📸 Profile Customization**: Seamlessly upload avatars to the cloud and map them across your devices via Cloudinary.
+*   **🔐 Secure Authentication**: Enterprise-grade OAuth 2.0 (Google/GitHub) and 30-day persistent JWT protection.
 *   **☁️ Cloud Sync**: Automatic cloud backup ensures you never lose your data.
 *   **🚨 Budget Alerts**: Set limits and get notified before you overspend.
 *   **🔄 Recurring Transactions**: Automate rent, subscriptions, and salary entries.

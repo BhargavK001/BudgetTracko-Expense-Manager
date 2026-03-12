@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@/context/AuthContext';
+import api from '@/services/api';
 import Animated, { FadeInDown, FadeIn, ZoomIn } from 'react-native-reanimated';
 
 const PLANS = [
@@ -24,7 +26,7 @@ const PLANS = [
     {
         id: 'pro',
         name: 'Pro',
-        price: '₹149',
+        price: '₹49',
         period: '/month',
         desc: 'Advanced tools for serious savers.',
         features: [
@@ -37,13 +39,13 @@ const PLANS = [
         isPopular: true,
     },
     {
-        id: 'lifetime',
-        name: 'Lifetime',
-        price: '₹3,499',
-        period: 'once',
-        desc: 'One-time payment for endless value.',
+        id: 'squad',
+        name: 'Squad',
+        price: '₹99',
+        period: '/month',
+        desc: 'Team plan for families & groups.',
         features: [
-            'All Pro features forever',
+            'All Pro features',
             'Family sharing (up to 4)',
             'Early access to new features',
             'Direct line to developers',
@@ -57,12 +59,56 @@ export default function PremiumScreen() {
     const insets = useSafeAreaInsets();
     const { width } = useWindowDimensions();
 
+    const { user, refreshUser } = useAuth();
+
     const isCompact = width < 360;
     const isTablet = width >= 768;
     const horizontalPadding = isTablet ? 32 : isCompact ? 16 : 24;
 
     const [activePlan, setActivePlan] = useState('pro');
+    const [loading, setLoading] = useState(false);
+    const currentPlan = user?.subscription?.plan || 'free';
+    const isActive = user?.subscription?.status === 'active' || user?.subscription?.status === 'authenticated';
 
+    const handleUpgrade = async () => {
+        if (activePlan === 'free') {
+            router.back();
+            return;
+        }
+        if (isActive && currentPlan === activePlan) {
+            Alert.alert('Already Subscribed', `You are already on the ${activePlan.toUpperCase()} plan.`);
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const planKey = activePlan;
+            const res = await api.post('/api/payments/create-order', { plan: planKey });
+            const data = res.data;
+
+            if (data.success && data.key && data.subscription_id) {
+                // Navigate to in-app Razorpay WebView checkout
+                router.push({
+                    pathname: '/features/razorpay-checkout',
+                    params: {
+                        subscriptionId: data.subscription_id,
+                        key: data.key,
+                        planName: activePlan.toUpperCase(),
+                        amount: String(data.amount || ''),
+                        email: user?.email || '',
+                        name: user?.displayName || '',
+                    },
+                });
+            } else {
+                Alert.alert('Error', 'Could not initiate payment. Please try again.');
+            }
+        } catch (e: any) {
+            const msg = e.response?.data?.message || 'Payment failed. Please try again.';
+            Alert.alert('Error', msg);
+        } finally {
+            setLoading(false);
+        }
+    };
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <StatusBar barStyle="dark-content" />
@@ -131,13 +177,22 @@ export default function PremiumScreen() {
                                             )}
 
                                             <View style={styles.planHeader}>
-                                                <View>
+                                                <View style={{ flex: 1 }}>
                                                     <Text style={[styles.planName, plan.isPopular && { color: '#fff' }]}>{plan.name}</Text>
                                                     <Text style={[styles.planDesc, plan.isPopular && { color: 'rgba(255,255,255,0.7)' }]}>{plan.desc}</Text>
                                                 </View>
-                                                <View style={styles.priceWrap}>
-                                                    <Text style={[styles.planPrice, plan.isPopular && { color: '#fff' }]}>{plan.price}</Text>
-                                                    <Text style={[styles.planPeriod, plan.isPopular && { color: 'rgba(255,255,255,0.5)' }]}>{plan.period}</Text>
+                                                <View style={styles.priceRow}>
+                                                    <View style={styles.priceWrap}>
+                                                        <Text style={[styles.planPrice, plan.isPopular && { color: '#fff' }]}>{plan.price}</Text>
+                                                        <Text style={[styles.planPeriod, plan.isPopular && { color: 'rgba(255,255,255,0.5)' }]}>{plan.period}</Text>
+                                                    </View>
+                                                    <View style={[
+                                                        styles.radioBtn,
+                                                        isSelected && styles.radioBtnActive,
+                                                        plan.isPopular && isSelected && { borderColor: '#6366F1' }
+                                                    ]}>
+                                                        {isSelected && <View style={[styles.radioDot, plan.isPopular && { backgroundColor: '#6366F1' }]} />}
+                                                    </View>
                                                 </View>
                                             </View>
 
@@ -155,14 +210,6 @@ export default function PremiumScreen() {
                                                     </View>
                                                 ))}
                                             </View>
-
-                                            <View style={[
-                                                styles.radioBtn,
-                                                isSelected && styles.radioBtnActive,
-                                                plan.isPopular && isSelected && { borderColor: '#6366F1' }
-                                            ]}>
-                                                {isSelected && <View style={[styles.radioDot, plan.isPopular && { backgroundColor: '#6366F1' }]} />}
-                                            </View>
                                         </LinearGradient>
                                     </TouchableOpacity>
                                 </Animated.View>
@@ -174,17 +221,23 @@ export default function PremiumScreen() {
 
             {/* Bottom CTA */}
             <Animated.View entering={FadeInDown.delay(500).duration(400)} style={[styles.bottomCard, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-                <TouchableOpacity style={styles.ctaButton} activeOpacity={0.9}>
+                <TouchableOpacity style={styles.ctaButton} activeOpacity={0.9} onPress={handleUpgrade} disabled={loading}>
                     <LinearGradient
                         colors={['#6366F1', '#4F46E5']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.ctaGradient}
                     >
-                        <Text style={styles.ctaText}>
-                            {activePlan === 'free' ? 'Continue with Basic' : 'Upgrade Now'}
-                        </Text>
-                        <Ionicons name="arrow-forward" size={20} color="#fff" />
+                        {loading ? (
+                            <ActivityIndicator color="#fff" size="small" />
+                        ) : (
+                            <>
+                                <Text style={styles.ctaText}>
+                                    {activePlan === 'free' ? 'Continue with Basic' : (isActive && currentPlan !== 'free' ? 'Change Plan' : 'Upgrade Now')}
+                                </Text>
+                                <Ionicons name="arrow-forward" size={20} color="#fff" />
+                            </>
+                        )}
                     </LinearGradient>
                 </TouchableOpacity>
                 <Text style={styles.termsText}>
@@ -316,7 +369,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 24,
+        marginBottom: 20,
     },
     planName: {
         fontSize: 22,
@@ -327,8 +380,12 @@ const styles = StyleSheet.create({
     planDesc: {
         fontSize: 13,
         color: '#8E8E93',
-        maxWidth: 200,
+        maxWidth: 180,
         lineHeight: 18,
+    },
+    priceRow: {
+        alignItems: 'flex-end',
+        gap: 10,
     },
     priceWrap: {
         alignItems: 'flex-end',
@@ -361,9 +418,6 @@ const styles = StyleSheet.create({
         lineHeight: 20,
     },
     radioBtn: {
-        position: 'absolute',
-        top: 24,
-        right: 24,
         width: 24,
         height: 24,
         borderRadius: 12,

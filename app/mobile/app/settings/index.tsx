@@ -1,31 +1,83 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, useWindowDimensions, StatusBar } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, useWindowDimensions, StatusBar, Alert, Modal, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '@/context/AuthContext';
+import api from '@/services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
 export default function SettingsScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { width } = useWindowDimensions();
+    const { isBiometricSupported, hasBiometricKey, enableBiometricLogin, disableBiometricLogin } = useAuth();
     const isCompact = width < 360;
     const isTablet = width >= 768;
     const horizontalPadding = isTablet ? 32 : isCompact ? 16 : 24;
 
     const [darkMode, setDarkMode] = React.useState(false);
-    const [biometrics, setBiometrics] = React.useState(false);
+
+    // Persisted general settings
+    const CURRENCIES = ['INR (₹)', 'USD ($)', 'EUR (€)', 'GBP (£)', 'JPY (¥)', 'AUD (A$)', 'CAD (C$)'];
+    const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const LANGUAGES = ['English', 'Hindi', 'Spanish', 'French', 'German', 'Japanese', 'Chinese'];
+
+    const [currency, setCurrency] = useState('INR (₹)');
+    const [firstDay, setFirstDay] = useState('Monday');
+    const [language, setLanguage] = useState('English');
+    const [pickerVisible, setPickerVisible] = useState(false);
+    const [pickerTitle, setPickerTitle] = useState('');
+    const [pickerOptions, setPickerOptions] = useState<string[]>([]);
+    const [pickerOnSelect, setPickerOnSelect] = useState<(v: string) => void>(() => () => { });
+
+    useEffect(() => {
+        (async () => {
+            const c = await AsyncStorage.getItem('setting_currency');
+            const d = await AsyncStorage.getItem('setting_firstDay');
+            const l = await AsyncStorage.getItem('setting_language');
+            if (c) setCurrency(c);
+            if (d) setFirstDay(d);
+            if (l) setLanguage(l);
+        })();
+    }, []);
+
+    const openPicker = (title: string, options: string[], onSelect: (v: string) => void) => {
+        setPickerTitle(title);
+        setPickerOptions(options);
+        setPickerOnSelect(() => onSelect);
+        setPickerVisible(true);
+    };
+
+    const handleClearData = () => {
+        Alert.alert('⚠️ Clear All Data', 'This will permanently delete ALL your transactions, accounts, categories, and budgets.', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Clear Everything', style: 'destructive', onPress: async () => {
+                    try {
+                        const res = await api.delete('/api/user/data');
+                        if (res.data?.success) {
+                            const d = res.data.deleted;
+                            Alert.alert('Done', `Cleared ${d.transactions} transactions, ${d.accounts} accounts, ${d.categories} categories, ${d.budgets} budgets.`);
+                        }
+                    } catch (e: any) {
+                        Alert.alert('Error', e.response?.data?.message || 'Failed to clear data.');
+                    }
+                }
+            },
+        ]);
+    };
 
     const generalSettings = [
-        { icon: 'cash-outline', label: 'Currency', value: 'INR (₹)' },
-        { icon: 'calendar-outline', label: 'First Day of Week', value: 'Monday' },
-        { icon: 'language-outline', label: 'Language', value: 'English' },
+        { icon: 'cash-outline', label: 'Currency', value: currency, onPress: () => openPicker('Currency', CURRENCIES, async (v) => { setCurrency(v); await AsyncStorage.setItem('setting_currency', v); }) },
+        { icon: 'calendar-outline', label: 'First Day of Week', value: firstDay, onPress: () => openPicker('First Day of Week', DAYS, async (v) => { setFirstDay(v); await AsyncStorage.setItem('setting_firstDay', v); }) },
+        { icon: 'language-outline', label: 'Language', value: language, onPress: () => openPicker('Language', LANGUAGES, async (v) => { setLanguage(v); await AsyncStorage.setItem('setting_language', v); }) },
     ];
 
     const dataSettings = [
-        { icon: 'cloud-upload-outline', label: 'Backup Data' },
-        { icon: 'trash-outline', label: 'Clear All Data', color: '#F43F5E' },
+        { icon: 'trash-outline', label: 'Clear All Data', color: '#F43F5E', onPress: handleClearData },
     ];
 
     return (
@@ -77,7 +129,7 @@ export default function SettingsScreen() {
                                     icon={item.icon}
                                     label={item.label}
                                     value={item.value}
-                                    onPress={() => { }}
+                                    onPress={item.onPress}
                                     isLast={index === generalSettings.length - 1}
                                 />
                             ))}
@@ -100,8 +152,21 @@ export default function SettingsScreen() {
                                 iconColor="#2DCA72"
                                 iconTint="rgba(45,202,114,0.12)"
                                 label="Biometric Lock"
-                                value={biometrics}
-                                onValueChange={setBiometrics}
+                                value={hasBiometricKey}
+                                onValueChange={async (v) => {
+                                    if (!isBiometricSupported) {
+                                        Alert.alert('Not Available', 'Your device does not support biometric authentication.');
+                                        return;
+                                    }
+                                    if (v) {
+                                        const success = await enableBiometricLogin();
+                                        if (!success) {
+                                            Alert.alert('Failed', 'Could not enable biometric lock. Please try again.');
+                                        }
+                                    } else {
+                                        await disableBiometricLogin();
+                                    }
+                                }}
                                 isLast
                             />
                         </View>
@@ -130,7 +195,7 @@ export default function SettingsScreen() {
                                     icon={item.icon}
                                     label={item.label}
                                     color={item.color}
-                                    onPress={() => { }}
+                                    onPress={item.onPress}
                                     isLast={index === dataSettings.length - 1}
                                 />
                             ))}
@@ -138,6 +203,34 @@ export default function SettingsScreen() {
                     </Animated.View>
                 </View>
             </ScrollView>
+
+            {/* Picker Modal */}
+            <Modal visible={pickerVisible} transparent animationType="fade">
+                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setPickerVisible(false)}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>{pickerTitle}</Text>
+                        <FlatList
+                            data={pickerOptions}
+                            keyExtractor={(item) => item}
+                            renderItem={({ item }) => {
+                                const isSelected = (
+                                    pickerTitle === 'Currency' ? currency :
+                                        pickerTitle === 'First Day of Week' ? firstDay : language
+                                ) === item;
+                                return (
+                                    <TouchableOpacity
+                                        style={[styles.pickerItem, isSelected && styles.pickerItemActive]}
+                                        onPress={() => { pickerOnSelect(item); setPickerVisible(false); }}
+                                    >
+                                        <Text style={[styles.pickerItemText, isSelected && { color: '#6366F1', fontWeight: '800' }]}>{item}</Text>
+                                        {isSelected && <Ionicons name="checkmark-circle" size={20} color="#6366F1" />}
+                                    </TouchableOpacity>
+                                );
+                            }}
+                        />
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 }
@@ -347,5 +440,31 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#8E8E93',
         fontWeight: '500',
+    },
+    modalOverlay: {
+        flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: '#fff', borderTopLeftRadius: 28,
+        borderTopRightRadius: 28, padding: 24,
+        maxHeight: '60%',
+    },
+    modalTitle: {
+        fontSize: 18, fontWeight: '900', color: '#111',
+        marginBottom: 16, textAlign: 'center',
+    },
+    pickerItem: {
+        flexDirection: 'row', justifyContent: 'space-between',
+        alignItems: 'center', paddingVertical: 16,
+        paddingHorizontal: 8, borderBottomWidth: 1,
+        borderBottomColor: '#F2F2F7',
+    },
+    pickerItemActive: {
+        backgroundColor: 'rgba(99,102,241,0.06)',
+        borderRadius: 12,
+    },
+    pickerItemText: {
+        fontSize: 16, fontWeight: '600', color: '#111',
     },
 });

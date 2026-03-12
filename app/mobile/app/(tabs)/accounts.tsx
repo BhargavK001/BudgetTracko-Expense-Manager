@@ -1,12 +1,12 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, Modal, TextInput, Alert, Platform, FlatList,
+  StatusBar, Modal, TextInput, Alert, Platform, FlatList, ActivityIndicator,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTransactions } from '@/context/TransactionContext';
+import api from '@/services/api';
 import AccountCard, { ACCOUNT_TYPE_META } from '@/components/AccountCard';
 import Animated, {
   FadeInDown, FadeInUp, FadeIn, ZoomIn,
@@ -337,45 +337,54 @@ const hm = StyleSheet.create({
   emptyTxt: { fontSize: 13, color: '#C7C7CC', fontWeight: '500' },
 });
 
-// ═══════════════════════════════════════════════════════════
-// Main Accounts Screen
-// ═══════════════════════════════════════════════════════════
 export default function AccountsScreen() {
   const insets = useSafeAreaInsets();
   const [showBalance, setShowBalance] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
   const [historyTarget, setHistoryTarget] = useState<any>(null);
-  const { transactions, getBalance } = useTransactions();
+  const [allAccounts, setAllAccounts] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const floatStyle = useFloat();
 
-  const balance = useMemo(() => getBalance(), [getBalance]);
+  const fetchData = useCallback(async () => {
+    try {
+      const [accRes, txnRes] = await Promise.all([
+        api.get('/api/accounts'),
+        api.get('/api/transactions'),
+      ]);
+      const accRaw = accRes.data;
+      const accs = Array.isArray(accRaw) ? accRaw : Array.isArray(accRaw?.data) ? accRaw.data : [];
+      setAllAccounts(accs);
 
-  // Build per-account
-  const accountBalances = useMemo(() => {
-    const map = new Map<string, number>();
-    transactions.forEach(tx => {
-      const cur = map.get(tx.account) || 0;
-      map.set(tx.account, cur + (tx.type === 'income' ? tx.amount : -tx.amount));
-    });
-    return map;
-  }, [transactions]);
+      const txnRaw = txnRes.data;
+      const txns = Array.isArray(txnRaw) ? txnRaw : Array.isArray(txnRaw?.data) ? txnRaw.data : [];
+      setTransactions(txns);
+    } catch (e) {
+      console.log('Failed to fetch accounts:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  // Unified account list — defaults + user-added, all editable/deletable
-  const [allAccounts, setAllAccounts] = useState<{ name: string; type: string; initBalance: number; color: string; creditLimit?: number }[]>([
-    { name: 'Cash', type: 'cash', initBalance: 0, color: '#FF9500' },
-    { name: 'Bank Account', type: 'bank', initBalance: 0, color: '#007AFF' },
-    { name: 'Slice', type: 'credit', initBalance: 0, color: '#F43F5E', creditLimit: 50000 },
-  ]);
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Map backend type to form type (credit_card -> credit)
+  const toFormType = (t: string) => t === 'credit_card' ? 'credit' : t;
+  const toBackendType = (t: string) => t === 'credit' ? 'credit_card' : t;
 
   const accounts = useMemo(() => {
+    if (!Array.isArray(allAccounts)) return [];
     return allAccounts.map(a => ({
       ...a,
-      balance: (accountBalances.get(a.name) || 0) + a.initBalance,
-      creditLimit: a.creditLimit,
+      type: toFormType(a.type),
+      balance: a.balance || 0,
     }));
-  }, [accountBalances, allAccounts]);
+  }, [allAccounts]);
 
+  const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
   const totalAssets = accounts.reduce((s, a) => s + Math.max(a.balance, 0), 0);
   const totalLiabilities = accounts.reduce((s, a) => s + Math.abs(Math.min(a.balance, 0)), 0);
 
@@ -389,74 +398,82 @@ export default function AccountsScreen() {
     setShowForm(true);
   }, []);
 
-  const handleFormSubmit = useCallback((data: AccountFormData) => {
-    const accData = {
-      name: data.name, type: data.type,
-      initBalance: parseFloat(data.balance) || 0,
+  const handleFormSubmit = useCallback(async (data: AccountFormData) => {
+    setSaving(true);
+    const payload = {
+      name: data.name,
+      type: toBackendType(data.type),
+      balance: parseFloat(data.balance) || 0,
       color: data.color,
       ...(data.type === 'credit' ? { creditLimit: parseFloat(data.creditLimit) || 0 } : {}),
     };
-    if (editTarget) {
-      setAllAccounts(prev => prev.map(a =>
-        a.name === editTarget.name ? accData : a
-      ));
-    } else {
-      setAllAccounts(prev => [...prev, accData]);
+
+    try {
+      if (editTarget?._id) {
+        await api.put(`/api/accounts/${editTarget._id}`, payload);
+      } else {
+        await api.post('/api/accounts', payload);
+      }
+      setShowForm(false); setEditTarget(null);
+      await fetchData();
+    } catch (e: any) {
+      Alert.alert('Error', e.response?.data?.message || 'Failed to save account.');
+    } finally {
+      setSaving(false);
     }
-    setShowForm(false); setEditTarget(null);
-    Alert.alert('Success', editTarget ? 'Account updated!' : `"${data.name}" added!`);
-  }, [editTarget]);
+  }, [editTarget, fetchData]);
 
   const handleDelete = useCallback(() => {
-    if (!editTarget) return;
-    Alert.alert('Delete Account', `Are you sure you want to delete "${editTarget.name}"? All related transactions will remain.`, [
+    if (!editTarget?._id) return;
+    Alert.alert('Delete Account', `Are you sure you want to delete "${editTarget.name}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
-        text: 'Delete', style: 'destructive', onPress: () => {
-          setAllAccounts(prev => prev.filter(a => a.name !== editTarget.name));
-          setShowForm(false); setEditTarget(null);
+        text: 'Delete', style: 'destructive', onPress: async () => {
+          try {
+            await api.delete(`/api/accounts/${editTarget._id}`);
+            setShowForm(false); setEditTarget(null);
+            await fetchData();
+          } catch (e: any) {
+            Alert.alert('Error', e.response?.data?.message || 'Failed to delete account.');
+          }
         }
       },
     ]);
-  }, [editTarget]);
-
-  const handleMoveUp = useCallback((acc: any) => {
-    setAllAccounts(prev => {
-      const idx = prev.findIndex(a => a.name === acc.name);
-      if (idx <= 0) return prev;
-      const next = [...prev];
-      [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-      return next;
-    });
-  }, []);
-
-  const handleMoveDown = useCallback((acc: any) => {
-    setAllAccounts(prev => {
-      const idx = prev.findIndex(a => a.name === acc.name);
-      if (idx < 0 || idx >= prev.length - 1) return prev;
-      const next = [...prev];
-      [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
-      return next;
-    });
-  }, []);
+  }, [editTarget, fetchData]);
 
   const handleLongPress = (acc: any, index: number) => {
     const buttons: any[] = [
       { text: 'Edit', onPress: () => handleOpenEdit(acc) },
+      {
+        text: 'Delete', style: 'destructive', onPress: () => {
+          Alert.alert('Delete?', `Remove "${acc.name}"?`, [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Delete', style: 'destructive', onPress: async () => {
+                try {
+                  await api.delete(`/api/accounts/${acc._id}`);
+                  await fetchData();
+                } catch (e: any) {
+                  Alert.alert('Error', e.response?.data?.message || 'Failed to delete.');
+                }
+              }
+            },
+          ]);
+        }
+      },
+      { text: 'Cancel', style: 'cancel' },
     ];
-    if (index > 0) buttons.push({ text: '↑ Move Up', onPress: () => handleMoveUp(acc) });
-    if (index < accounts.length - 1) buttons.push({ text: '↓ Move Down', onPress: () => handleMoveDown(acc) });
-    buttons.push({
-      text: 'Delete', style: 'destructive', onPress: () => {
-        Alert.alert('Delete?', `Remove "${acc.name}"? Transactions will remain.`, [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: () => setAllAccounts(prev => prev.filter(a => a.name !== acc.name)) },
-        ]);
-      }
-    });
-    buttons.push({ text: 'Cancel', style: 'cancel' });
     Alert.alert(acc.name, 'What would you like to do?', buttons);
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
+        <StatusBar barStyle="dark-content" />
+        <ActivityIndicator size="large" color="#6366F1" />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -487,7 +504,7 @@ export default function AccountsScreen() {
               <View>
                 <Text style={styles.heroLabel}>Net Worth</Text>
                 <Animated.Text entering={ZoomIn.delay(250).duration(380)} style={styles.heroAmount}>
-                  {showBalance ? fmt(balance) : '₹ ••••••'}
+                  {showBalance ? fmt(totalBalance) : '₹ ••••••'}
                 </Animated.Text>
                 <Text style={styles.heroSub}>Across {accounts.length} accounts</Text>
               </View>
@@ -518,7 +535,7 @@ export default function AccountsScreen() {
               <Ionicons name="wallet-outline" size={18} color="#2DCA72" />
             </View>
             <Text style={styles.statLabel}>Available</Text>
-            <Text style={styles.statAmt}>{showBalance ? fmt(balance) : '••••'}</Text>
+            <Text style={styles.statAmt}>{showBalance ? fmt(totalBalance) : '••••'}</Text>
           </Animated.View>
           <Animated.View entering={FadeInUp.delay(280).duration(400)} style={[styles.statCard, { borderColor: 'rgba(0,122,255,0.15)' }]}>
             <View style={[styles.statIcon, { backgroundColor: 'rgba(0,122,255,0.1)' }]}>
@@ -537,8 +554,16 @@ export default function AccountsScreen() {
           </TouchableOpacity>
         </Animated.View>
 
+        {accounts.length === 0 && (
+          <View style={{ alignItems: 'center', paddingVertical: 40, gap: 12 }}>
+            <MaterialCommunityIcons name="bank-off-outline" size={48} color="#E5E5EA" />
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#8E8E93' }}>No accounts yet</Text>
+            <Text style={{ fontSize: 13, color: '#C7C7CC', textAlign: 'center' }}>Add your first account to start tracking balances.</Text>
+          </View>
+        )}
+
         {accounts.map((acc, i) => (
-          <Animated.View key={acc.name} entering={FadeInDown.delay(360 + i * 50).duration(360)}>
+          <Animated.View key={acc._id || acc.name} entering={FadeInDown.delay(360 + i * 50).duration(360)}>
             <AccountCard
               name={acc.name}
               type={acc.type}
@@ -562,7 +587,7 @@ export default function AccountsScreen() {
         </Animated.View>
 
         <Text style={styles.footNote}>
-          Balances are calculated from your transactions. Long-press any account to edit, delete, or reorder.
+          Balances synced from your account. Long-press any account to edit or delete.
         </Text>
 
         <View style={{ height: 120 }} />
@@ -573,7 +598,7 @@ export default function AccountsScreen() {
         visible={showForm}
         editMode={!!editTarget}
         initial={editTarget
-          ? { name: editTarget.name, type: editTarget.type, balance: String(editTarget.initBalance ?? editTarget.balance ?? 0), color: editTarget.color, creditLimit: String(editTarget.creditLimit ?? '') }
+          ? { name: editTarget.name, type: editTarget.type, balance: String(editTarget.balance ?? 0), color: editTarget.color || '#007AFF', creditLimit: String(editTarget.creditLimit ?? '') }
           : defaultForm
         }
         onClose={() => { setShowForm(false); setEditTarget(null); }}

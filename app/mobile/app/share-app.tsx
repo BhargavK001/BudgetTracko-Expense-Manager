@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Share, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Share, StatusBar, Linking, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -21,10 +21,10 @@ export default function ShareAppScreen() {
     };
 
     const socials = [
-        { icon: 'logo-twitter', color: '#1DA1F2', name: 'Twitter' },
-        { icon: 'logo-facebook', color: '#4267B2', name: 'Facebook' },
-        { icon: 'logo-instagram', color: '#E1306C', name: 'Instagram' },
-        { icon: 'logo-whatsapp', color: '#25D366', name: 'WhatsApp' },
+        { icon: 'close', color: '#000000', name: 'X', url: 'https://x.com/intent/tweet?text=I%20use%20BudgetTracko%20to%20manage%20finances!%20Check%20it%20out%20https://budgettracko.com' },
+        { icon: 'logo-facebook', color: '#1877F2', name: 'Facebook', url: 'https://www.facebook.com/sharer/sharer.php?u=https://budgettracko.com' },
+        { icon: 'logo-instagram', color: '#E1306C', name: 'Instagram', url: 'https://instagram.com/budgettracko' },
+        { icon: 'logo-whatsapp', color: '#25D366', name: 'WhatsApp', url: 'https://wa.me/?text=I%20use%20BudgetTracko%20to%20manage%20my%20expenses.%20Check%20it%20out%20at%20https://budgettracko.com' },
     ];
 
     return (
@@ -66,8 +66,8 @@ export default function ShareAppScreen() {
                     <Text style={styles.sectionTitle}>Follow Us</Text>
                     <View style={styles.socialGrid}>
                         {socials.map((social, index) => (
-                            <Animated.View key={social.name} entering={FadeInDown.delay(250 + (index * 50)).duration(400).springify()}>
-                                <TouchableOpacity style={styles.socialBtn} activeOpacity={0.7}>
+                            <Animated.View key={social.name} entering={FadeInDown.delay(250 + (index * 50)).duration(400).springify()} style={styles.socialBtnWrap}>
+                                <TouchableOpacity style={styles.socialBtn} activeOpacity={0.7} onPress={() => Linking.openURL(social.url)}>
                                     <View style={[styles.socialIconWrap, { backgroundColor: social.color + '15' }]}>
                                         <Ionicons name={social.icon as any} size={28} color={social.color} />
                                     </View>
@@ -80,14 +80,21 @@ export default function ShareAppScreen() {
 
                 <Animated.View entering={FadeInDown.delay(400).duration(400)}>
                     <View style={styles.rateCard}>
-                        <View style={styles.rateIconWrap}>
-                            <Ionicons name="star" size={24} color="#F59E0B" />
-                        </View>
-                        <View style={{ flex: 1 }}>
-                            <Text style={styles.rateTitle}>Rate us on App Store</Text>
-                            <Text style={styles.rateDesc}>Your feedback helps us improve.</Text>
-                        </View>
-                        <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+                        <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 16 }} activeOpacity={0.7} onPress={() => {
+                            const storeUrl = Platform.OS === 'ios'
+                                ? 'https://apps.apple.com/app/budgettracko/id000000'
+                                : 'https://play.google.com/store/apps/details?id=com.budgettracko.app';
+                            Linking.openURL(storeUrl);
+                        }}>
+                            <View style={styles.rateIconWrap}>
+                                <Ionicons name="star" size={24} color="#F59E0B" />
+                            </View>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.rateTitle}>Rate us on {Platform.OS === 'ios' ? 'App Store' : 'Play Store'}</Text>
+                                <Text style={styles.rateDesc}>Your feedback helps us improve.</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />
+                        </TouchableOpacity>
                     </View>
                 </Animated.View>
             </ScrollView>
@@ -181,11 +188,14 @@ const styles = StyleSheet.create({
     socialGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
+        justifyContent: 'space-between',
         marginBottom: 32,
+        rowGap: 12,
+    },
+    socialBtnWrap: {
+        width: '48%',
     },
     socialBtn: {
-        width: '48%',
         backgroundColor: '#fff',
         borderRadius: 20,
         padding: 16,
