@@ -318,9 +318,10 @@ interface Props {
     onClose: () => void;
     editingTransaction?: any;
     onEditSuccess?: () => void;
+    initialType?: TxType;
 }
 
-export default function AddTransactionModal({ visible, onClose, editingTransaction, onEditSuccess }: Props) {
+export default function AddTransactionModal({ visible, onClose, editingTransaction, onEditSuccess, initialType }: Props) {
     const { deleteTransaction } = useTransactions();
 
     // ── State ──
@@ -443,8 +444,8 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
     const accentColor = PILL_TYPES.find(p => p.key === type)?.color || '#F43F5E';
 
     // ── Handlers ──
-    const reset = () => {
-        setType('expense'); setTitle(''); setAmount('');
+    const reset = useCallback(() => {
+        setType(initialType || 'expense'); setTitle(''); setAmount('');
         setCategory(null); setNotes(''); setImages([]);
         setDate(new Date());
         if (accounts.length > 0) {
@@ -452,7 +453,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
             setFromAccountId(accounts[0]._id);
             if (accounts.length > 1) setToAccountId(accounts[1]._id);
         }
-    };
+    }, [initialType, accounts]);
 
     const pickImage = async () => {
         if (images.length >= 3) {

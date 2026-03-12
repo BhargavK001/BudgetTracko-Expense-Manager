@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTransactions, CATEGORY_ICONS, CATEGORY_COLORS, Category, mapCategoryIcon } from '@/context/TransactionContext';
 import { useAuth } from '@/context/AuthContext';
+import { useQuickAction } from '@/context/QuickActionContext';
 import Animated, {
   FadeInDown, FadeInUp, FadeIn, ZoomIn,
   useSharedValue, useAnimatedStyle,
@@ -75,6 +76,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { transactions, getTotalIncome, getTotalExpense, getBalance, getTotalBudget } = useTransactions();
   const { user } = useAuth();
+  const { openModal } = useQuickAction();
   const [hidden, setHidden] = useState(false);
   const floatStyle = useFloat();
 
@@ -96,11 +98,11 @@ export default function HomeScreen() {
   const recentTxs = useMemo(() => transactions.slice(0, 6), [transactions]);
 
   const actions = useMemo(() => [
-    { icon: 'arrow-top-right', label: 'Send', msg: 'Send Money' },
-    { icon: 'arrow-bottom-left', label: 'Receive', msg: 'Receive Money' },
-    { icon: 'qrcode-scan', label: 'Scan', msg: 'Scan QR Code' },
-    { icon: 'file-document-outline', label: 'Bills', msg: 'Pay Bills' },
-    { icon: 'bank-transfer', label: 'Transfer', msg: 'Transfer Funds' },
+    { icon: 'arrow-top-right', label: 'Send', type: 'expense' as const },
+    { icon: 'arrow-bottom-left', label: 'Receive', type: 'income' as const },
+    { icon: 'qrcode-scan', label: 'Scan', route: '/features/scan' },
+    { icon: 'file-document-outline', label: 'Bills', route: '/features/recurring-bills' },
+    { icon: 'bank-transfer', label: 'Transfer', type: 'transfer' as const },
   ], []);
 
   const toggleHidden = useCallback(() => setHidden(h => !h), []);
@@ -140,10 +142,18 @@ export default function HomeScreen() {
         <Animated.View entering={FadeIn.delay(50).duration(400)} style={styles.header}>
           <View style={styles.headerLeft}>
             <View>
-              <Image
-                source={{ uri: (user as any)?.photoURL || 'https://i.pravatar.cc/150?img=11' }}
-                style={styles.avatar}
-              />
+              {user?.avatar ? (
+                <Image
+                  source={{ uri: user.avatar }}
+                  style={styles.avatar}
+                />
+              ) : (
+                <View style={[styles.avatar, { backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0' }]}>
+                  <Text style={{ fontSize: 16, fontWeight: '800', color: '#6366F1' }}>
+                    {user?.displayName ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '?'}
+                  </Text>
+                </View>
+              )}
               <View style={styles.onlineDot} />
             </View>
             <View>
@@ -204,9 +214,18 @@ export default function HomeScreen() {
 
         {/* ═══ 3. QUICK ACTIONS ═══ */}
         <View style={styles.actionsRow}>
-          {actions.map((a, i) => (
+          {actions.map((a: any, i) => (
             <Animated.View key={a.label} entering={FadeInDown.delay(140 + i * 55).duration(380)} style={styles.actionItem}>
-              <BounceButton onPress={() => Alert.alert(a.msg, 'Coming soon!')} style={styles.actionCircle}>
+              <BounceButton
+                onPress={() => {
+                  if (a.route) {
+                    router.push(a.route as any);
+                  } else if (a.type) {
+                    openModal(a.type);
+                  }
+                }}
+                style={styles.actionCircle}
+              >
                 <MaterialCommunityIcons name={a.icon as any} size={22} color="#111" />
               </BounceButton>
               <Text style={styles.actionLabel}>{a.label}</Text>

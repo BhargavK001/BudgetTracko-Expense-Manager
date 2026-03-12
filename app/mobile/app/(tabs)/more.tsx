@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, StatusBar, Switch, TextInput, Modal, Platform, Linking,
+  Alert, StatusBar, Switch, TextInput, Modal, Platform, Linking, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -274,7 +274,11 @@ export default function MoreScreen() {
         <Animated.View entering={FadeInDown.delay(80).duration(500).springify()}>
           <TouchableOpacity style={s.userCard} activeOpacity={0.8} onPress={() => router.push('/profile' as any)}>
             <View style={s.avatarWrap}>
-              <Ionicons name="person" size={22} color="#6366F1" />
+              {user?.avatar ? (
+                <Image source={{ uri: user.avatar }} style={s.avatarImage} />
+              ) : (
+                <Ionicons name="person" size={22} color="#6366F1" />
+              )}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.userName}>{user?.displayName || 'BudgetTracko User'}</Text>
@@ -425,6 +429,10 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(99,102,241,0.08)',
     justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderColor: 'rgba(99,102,241,0.15)',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%', height: '100%', resizeMode: 'cover',
   },
   userName: { fontSize: 14, fontWeight: '800', color: '#111', marginBottom: 2 },
   userEmail: { fontSize: 10, color: '#8E8E93', fontWeight: '500' },

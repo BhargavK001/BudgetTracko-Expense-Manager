@@ -9,7 +9,10 @@ import 'react-native-reanimated';
 import AnimatedSplash from '../components/AnimatedSplash';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TransactionProvider } from '@/context/TransactionContext';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { QuickActionProvider } from '@/context/QuickActionContext';
+import { AppState, AppStateStatus } from 'react-native';
+import LockScreen from '../components/LockScreen';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -56,7 +59,11 @@ export default function RootLayout() {
     return <AnimatedSplash onComplete={handleSplashComplete} />;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <AuthProvider>
+      <RootLayoutNav />
+    </AuthProvider>
+  );
 }
 
 const CustomDarkTheme = {
@@ -72,9 +79,23 @@ const CustomDarkTheme = {
 };
 
 function RootLayoutNav() {
+  const { isLocked, lockApp, user, hasBiometricKey } = useAuth();
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'background' || nextAppState === 'inactive') {
+        lockApp();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [lockApp]);
+
   return (
-    <AuthProvider>
-      <TransactionProvider>
+    <TransactionProvider>
+      <QuickActionProvider>
         <SafeAreaProvider>
           <ThemeProvider value={CustomDarkTheme}>
             <View style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -100,10 +121,18 @@ function RootLayoutNav() {
                 <Stack.Screen name="privacy-security" options={{ headerShown: false }} />
                 <Stack.Screen name="settings" options={{ headerShown: false }} />
               </Stack>
+
+              {/* Lock Screen Overlay */}
+              {user && hasBiometricKey && isLocked && (
+                <View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]}>
+                  <LockScreen />
+                </View>
+              )}
             </View>
           </ThemeProvider>
         </SafeAreaProvider>
-      </TransactionProvider>
-    </AuthProvider>
+      </QuickActionProvider>
+    </TransactionProvider>
   );
 }
+import { StyleSheet } from 'react-native';
