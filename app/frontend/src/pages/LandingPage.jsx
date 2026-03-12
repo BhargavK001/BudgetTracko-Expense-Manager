@@ -751,7 +751,7 @@ const LandingPage = () => {
                                 </div>
                             </button>
                             <a
-                                href="https://github.com/BhargavK001/BudgetTracko-Expense-Manager/releases/download/v1.0.0-mobile-3/Budget.Tracko.apk"
+                                href="https://github.com/BhargavK001/BudgetTracko-Expense-Manager/releases/download/v1.0.0-mobile-9/Budget_Tracko.apk"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="bg-transparent text-white px-8 py-4 rounded-xl font-bold border-2 border-white/30 hover:bg-white/10 transition-colors flex items-center justify-center gap-2 text-center"
