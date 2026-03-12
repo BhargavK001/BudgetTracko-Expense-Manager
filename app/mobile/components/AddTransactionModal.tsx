@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import api from '@/services/api';
 import { CATEGORY_ICONS as CTX_ICONS, CATEGORY_COLORS as CTX_COLORS, mapCategoryIcon, useTransactions } from '@/context/TransactionContext';
+import { ScanData } from '@/context/QuickActionContext';
 
 // ─── Types ───────────────────────────────────────────────
 type TxType = 'expense' | 'income' | 'transfer';
@@ -319,9 +320,10 @@ interface Props {
     editingTransaction?: any;
     onEditSuccess?: () => void;
     initialType?: TxType;
+    scanData?: ScanData | null;
 }
 
-export default function AddTransactionModal({ visible, onClose, editingTransaction, onEditSuccess, initialType }: Props) {
+export default function AddTransactionModal({ visible, onClose, editingTransaction, onEditSuccess, initialType, scanData }: Props) {
     const { deleteTransaction } = useTransactions();
 
     // ── State ──
@@ -417,6 +419,18 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
             reset();
         }
     }, [visible, editingTransaction]);
+
+    // ── Pre-fill from Scan Data ──
+    useEffect(() => {
+        if (visible && scanData && !editingTransaction) {
+            setType('expense');
+            setTitle(scanData.title || '');
+            setAmount(scanData.amount || '');
+            setNotes(scanData.notes || '');
+            if (scanData.date) setDate(new Date(scanData.date));
+            if (scanData.attachments?.length > 0) setImages(scanData.attachments.slice(0, 3));
+        }
+    }, [visible, scanData]);
 
     // ── Derived ──
     const getDisplayCategories = () => {

@@ -79,13 +79,18 @@ type MenuGroup = { title: string; items: MenuItem[]; delay: number };
 export default function MoreScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
   const [recurringCount, setRecurringCount] = useState<string | undefined>(undefined);
+
+  // Refresh user data on mount to get latest subscription status
+  useEffect(() => {
+    refreshUser?.();
+  }, []);
 
   // Fetch recurring bills count
   useEffect(() => {
@@ -97,8 +102,10 @@ export default function MoreScreen() {
     })();
   }, []);
 
-  const userPlan = user?.subscription?.status === 'active' || user?.subscription?.status === 'authenticated'
-    ? (user?.subscription?.plan || 'Pro') : 'Free';
+  const userPlan = user?.subscription?.plan
+    ? (user.subscription.plan.charAt(0).toUpperCase() + user.subscription.plan.slice(1))
+    : 'Free';
+  const isPaid = userPlan !== 'Free' && userPlan !== 'free';
 
   // ── Handlers ────────────────────────────────────────────
   const handleMenuPress = useCallback((item: MenuItem) => {
@@ -284,8 +291,8 @@ export default function MoreScreen() {
               <Text style={s.userName}>{user?.displayName || 'BudgetTracko User'}</Text>
               <Text style={s.userEmail} numberOfLines={1}>{user?.email || 'Authenticated mode'}</Text>
             </View>
-            <View style={[s.planChip, userPlan !== 'Free' && { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
-              <Text style={[s.planText, userPlan !== 'Free' && { color: '#F59E0B' }]}>{userPlan}</Text>
+            <View style={[s.planChip, isPaid && { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
+              <Text style={[s.planText, isPaid && { color: '#F59E0B' }]}>{userPlan}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
           </TouchableOpacity>

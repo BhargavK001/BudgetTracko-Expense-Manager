@@ -102,7 +102,7 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
 // ── Layout ───────────────────────────────────────────────────
 export default function TabLayout() {
   const router = useRouter();
-  const { showModal, modalType, openModal, closeModal } = useQuickAction();
+  const { showModal, modalType, scanData, openModal, closeModal } = useQuickAction();
 
   return (
     <>
@@ -119,6 +119,7 @@ export default function TabLayout() {
         visible={showModal}
         onClose={closeModal}
         initialType={modalType}
+        scanData={scanData}
       />
     </>
   );
