@@ -9,6 +9,7 @@ interface User {
     displayName: string;
     email: string;
     avatar?: string;
+    photoURL?: string; // Add for compatibility
     createdAt?: string;
     subscription?: {
         plan: string;
@@ -23,6 +24,7 @@ interface AuthContextType {
     loading: boolean;
     isBiometricSupported: boolean;
     hasBiometricKey: boolean;
+    isLocked: boolean;
     login: (email: string, password: string) => Promise<void>;
     signup: (name: string, email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
@@ -33,6 +35,8 @@ interface AuthContextType {
     enableBiometricLogin: () => Promise<boolean>;
     disableBiometricLogin: () => Promise<void>;
     loginWithBiometrics: () => Promise<void>;
+    lockApp: () => void;
+    unlockApp: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [isBiometricSupported, setIsBiometricSupported] = useState(false);
     const [hasBiometricKey, setHasBiometricKey] = useState(false);
+    const [isLocked, setIsLocked] = useState(false);
 
     const BIOMETRIC_STORAGE_KEY = 'budgettracko_biometric_token';
 
@@ -76,6 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 } catch (e) {
                     // If /me fails, token might be invalid
                     await logout();
+                }
+                // Check if we should lock
+                const compatible = await LocalAuthentication.hasHardwareAsync();
+                const enrolled = await LocalAuthentication.isEnrolledAsync();
+                if (compatible && enrolled) {
+                    const storedKey = await SecureStore.getItemAsync(BIOMETRIC_STORAGE_KEY);
+                    if (storedKey) setIsLocked(true);
                 }
             }
         } catch (error) {
@@ -206,19 +218,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const storedBiometricToken = await SecureStore.getItemAsync(BIOMETRIC_STORAGE_KEY);
 
                 if (storedBiometricToken) {
-                    // Pre-emptively set token so api calls work
                     setToken(storedBiometricToken);
                     await AsyncStorage.setItem('token', storedBiometricToken);
 
                     try {
-                        // Fetch latest user data
                         const response = await api.get('/auth/me');
                         if (response.data.user) {
                             setUser(response.data.user);
                             await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
                         }
                     } catch (e) {
-                        // Token might be revoked/expired.
                         await logout();
                         throw new Error('Biometric session expired. Please log in normally.');
                     }
@@ -226,14 +235,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     throw new Error('No biometric key found');
                 }
             } else {
-                // User cancelled or failed
                 throw new Error('Biometric authentication failed or was cancelled.');
             }
         } catch (error: any) {
-            // Throw to the UI so it can show the error
             throw new Error(error.message || 'Biometric login failed');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const lockApp = () => {
+        if (hasBiometricKey) setIsLocked(true);
+    };
+
+    const unlockApp = async (): Promise<boolean> => {
+        if (!hasBiometricKey) {
+            setIsLocked(false);
+            return true;
+        }
+
+        try {
+            const result = await LocalAuthentication.authenticateAsync({
+                promptMessage: 'Unlock BudgetTracko',
+                fallbackLabel: 'Use Passcode',
+            });
+
+            if (result.success) {
+                setIsLocked(false);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Unlock failed', error);
+            return false;
         }
     };
 
@@ -246,6 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 loading,
                 isBiometricSupported,
                 hasBiometricKey,
+                isLocked,
                 login,
                 signup,
                 logout,
@@ -256,6 +291,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 enableBiometricLogin,
                 disableBiometricLogin,
                 loginWithBiometrics,
+                lockApp,
+                unlockApp,
             }}
         >
             {children}

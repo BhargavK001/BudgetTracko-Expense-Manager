@@ -12,6 +12,7 @@ jobs:
     env:
       BACKEND_URL: ${{ secrets.BACKEND_URL }}
       EXPO_PUBLIC_BACKEND_URL: ${{ secrets.BACKEND_URL }}
+      EXPO_PUBLIC_GOOGLE_VISION_KEY: ${{ secrets.GOOGLE_VISION_KEY }}
 
     steps:
       - name: Checkout Code
@@ -56,6 +57,7 @@ jobs:
           ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
           BACKEND_URL: ${{ secrets.BACKEND_URL }}
           EXPO_PUBLIC_BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          EXPO_PUBLIC_GOOGLE_VISION_KEY: ${{ secrets.GOOGLE_VISION_KEY }}
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease \

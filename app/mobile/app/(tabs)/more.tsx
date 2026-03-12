@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, StatusBar, Switch, TextInput, Modal, Platform, Linking,
+  Alert, StatusBar, Switch, TextInput, Modal, Platform, Linking, Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -79,13 +79,18 @@ type MenuGroup = { title: string; items: MenuItem[]; delay: number };
 export default function MoreScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
 
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
   const [recurringCount, setRecurringCount] = useState<string | undefined>(undefined);
+
+  // Refresh user data on mount to get latest subscription status
+  useEffect(() => {
+    refreshUser?.();
+  }, []);
 
   // Fetch recurring bills count
   useEffect(() => {
@@ -97,8 +102,10 @@ export default function MoreScreen() {
     })();
   }, []);
 
-  const userPlan = user?.subscription?.status === 'active' || user?.subscription?.status === 'authenticated'
-    ? (user?.subscription?.plan || 'Pro') : 'Free';
+  const userPlan = user?.subscription?.plan
+    ? (user.subscription.plan.charAt(0).toUpperCase() + user.subscription.plan.slice(1))
+    : 'Free';
+  const isPaid = userPlan !== 'Free' && userPlan !== 'free';
 
   // ── Handlers ────────────────────────────────────────────
   const handleMenuPress = useCallback((item: MenuItem) => {
@@ -274,14 +281,18 @@ export default function MoreScreen() {
         <Animated.View entering={FadeInDown.delay(80).duration(500).springify()}>
           <TouchableOpacity style={s.userCard} activeOpacity={0.8} onPress={() => router.push('/profile' as any)}>
             <View style={s.avatarWrap}>
-              <Ionicons name="person" size={22} color="#6366F1" />
+              {user?.avatar ? (
+                <Image source={{ uri: user.avatar }} style={s.avatarImage} />
+              ) : (
+                <Ionicons name="person" size={22} color="#6366F1" />
+              )}
             </View>
             <View style={{ flex: 1 }}>
               <Text style={s.userName}>{user?.displayName || 'BudgetTracko User'}</Text>
               <Text style={s.userEmail} numberOfLines={1}>{user?.email || 'Authenticated mode'}</Text>
             </View>
-            <View style={[s.planChip, userPlan !== 'Free' && { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
-              <Text style={[s.planText, userPlan !== 'Free' && { color: '#F59E0B' }]}>{userPlan}</Text>
+            <View style={[s.planChip, isPaid && { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
+              <Text style={[s.planText, isPaid && { color: '#F59E0B' }]}>{userPlan}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
           </TouchableOpacity>
@@ -425,6 +436,10 @@ const s = StyleSheet.create({
     backgroundColor: 'rgba(99,102,241,0.08)',
     justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderColor: 'rgba(99,102,241,0.15)',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%', height: '100%', resizeMode: 'cover',
   },
   userName: { fontSize: 14, fontWeight: '800', color: '#111', marginBottom: 2 },
   userEmail: { fontSize: 10, color: '#8E8E93', fontWeight: '500' },

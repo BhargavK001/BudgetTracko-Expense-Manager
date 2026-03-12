@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import api from '@/services/api';
 import { CATEGORY_ICONS as CTX_ICONS, CATEGORY_COLORS as CTX_COLORS, mapCategoryIcon, useTransactions } from '@/context/TransactionContext';
+import { ScanData } from '@/context/QuickActionContext';
 
 // ─── Types ───────────────────────────────────────────────
 type TxType = 'expense' | 'income' | 'transfer';
@@ -318,9 +319,11 @@ interface Props {
     onClose: () => void;
     editingTransaction?: any;
     onEditSuccess?: () => void;
+    initialType?: TxType;
+    scanData?: ScanData | null;
 }
 
-export default function AddTransactionModal({ visible, onClose, editingTransaction, onEditSuccess }: Props) {
+export default function AddTransactionModal({ visible, onClose, editingTransaction, onEditSuccess, initialType, scanData }: Props) {
     const { deleteTransaction } = useTransactions();
 
     // ── State ──
@@ -417,6 +420,18 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
         }
     }, [visible, editingTransaction]);
 
+    // ── Pre-fill from Scan Data ──
+    useEffect(() => {
+        if (visible && scanData && !editingTransaction) {
+            setType('expense');
+            setTitle(scanData.title || '');
+            setAmount(scanData.amount || '');
+            setNotes(scanData.notes || '');
+            if (scanData.date) setDate(new Date(scanData.date));
+            if (scanData.attachments?.length > 0) setImages(scanData.attachments.slice(0, 3));
+        }
+    }, [visible, scanData]);
+
     // ── Derived ──
     const getDisplayCategories = () => {
         const backendCats = categories.filter(c => {
@@ -443,8 +458,8 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
     const accentColor = PILL_TYPES.find(p => p.key === type)?.color || '#F43F5E';
 
     // ── Handlers ──
-    const reset = () => {
-        setType('expense'); setTitle(''); setAmount('');
+    const reset = useCallback(() => {
+        setType(initialType || 'expense'); setTitle(''); setAmount('');
         setCategory(null); setNotes(''); setImages([]);
         setDate(new Date());
         if (accounts.length > 0) {
@@ -452,7 +467,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
             setFromAccountId(accounts[0]._id);
             if (accounts.length > 1) setToAccountId(accounts[1]._id);
         }
-    };
+    }, [initialType, accounts]);
 
     const pickImage = async () => {
         if (images.length >= 3) {
