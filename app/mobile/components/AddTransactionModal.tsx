@@ -15,6 +15,7 @@ import Animated, {
 import api from '@/services/api';
 import { CATEGORY_ICONS as CTX_ICONS, CATEGORY_COLORS as CTX_COLORS, mapCategoryIcon, useTransactions } from '@/context/TransactionContext';
 import { ScanData } from '@/context/QuickActionContext';
+import { useSettings } from '@/context/SettingsContext';
 
 // ─── Types ───────────────────────────────────────────────
 type TxType = 'expense' | 'income' | 'transfer';
@@ -325,6 +326,7 @@ interface Props {
 
 export default function AddTransactionModal({ visible, onClose, editingTransaction, onEditSuccess, initialType, scanData }: Props) {
     const { deleteTransaction } = useTransactions();
+    const { formatCurrency, currency } = useSettings();
 
     // ── State ──
     const [type, setType] = useState<TxType>('expense');
@@ -427,6 +429,9 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
             setTitle(scanData.title || '');
             setAmount(scanData.amount || '');
             setNotes(scanData.notes || '');
+            if (scanData.category) {
+                setCategory(scanData.category);
+            }
             if (scanData.date) setDate(new Date(scanData.date));
             if (scanData.attachments?.length > 0) setImages(scanData.attachments.slice(0, 3));
         }
@@ -680,7 +685,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
 
                             {/* ─── Amount ─── */}
                             <Animated.View entering={ZoomIn.delay(100).duration(400)} style={styles.amountWrap}>
-                                <Text style={[styles.amountCurr, { color: accentColor }]}>₹</Text>
+                                <Text style={[styles.amountCurr, { color: accentColor }]}>{currency}</Text>
                                 <TextInput
                                     style={[styles.amountInput, { color: accentColor }]}
                                     placeholder="0"

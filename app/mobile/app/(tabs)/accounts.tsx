@@ -14,9 +14,7 @@ import Animated, {
   withRepeat, withTiming, withSequence, withSpring, Easing,
 } from 'react-native-reanimated';
 
-function fmt(n: number): string {
-  return (n < 0 ? '-' : '') + '₹' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
+import { useSettings } from '@/context/SettingsContext';
 
 // ── Floating glow ────────────────────────────────────────
 function useFloat() {
@@ -63,12 +61,13 @@ type FormModalProps = {
   visible: boolean;
   editMode: boolean;
   initial: AccountFormData;
+  formatCurrency: (n: number) => string;
   onClose: () => void;
   onSubmit: (data: AccountFormData) => void;
   onDelete?: () => void;
 };
 
-function AccountFormModal({ visible, editMode, initial, onClose, onSubmit, onDelete }: FormModalProps) {
+function AccountFormModal({ visible, editMode, initial, formatCurrency, onClose, onSubmit, onDelete }: FormModalProps) {
   const [name, setName] = useState(initial.name);
   const [type, setType] = useState(initial.type);
   const [balance, setBalance] = useState(initial.balance);
@@ -133,10 +132,9 @@ function AccountFormModal({ visible, editMode, initial, onClose, onSubmit, onDel
               />
             </View>
 
-            {/* ✅ Feature 1: Initial Balance field */}
-            <Text style={fm.label}>Initial Balance (₹)</Text>
+            <Text style={fm.label}>Initial Balance ({formatCurrency(0).charAt(0)})</Text>
             <View style={fm.inputRow}>
-              <Text style={{ fontSize: 16, fontWeight: '800', color: '#2DCA72', marginRight: 8 }}>₹</Text>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: '#2DCA72', marginRight: 8 }}>{formatCurrency(0).charAt(0)}</Text>
               <TextInput
                 style={fm.input}
                 placeholder="0"
@@ -149,7 +147,7 @@ function AccountFormModal({ visible, editMode, initial, onClose, onSubmit, onDel
             {/* Credit Limit (only for credit cards) */}
             {type === 'credit' && (
               <>
-                <Text style={fm.label}>Credit Limit (₹)</Text>
+                <Text style={fm.label}>Credit Limit ({formatCurrency(0).charAt(0)})</Text>
                 <View style={fm.inputRow}>
                   <Ionicons name="card-outline" size={16} color="#F43F5E" style={{ marginRight: 8 }} />
                   <TextInput
@@ -227,9 +225,10 @@ type HistoryProps = {
   account: { name: string; type: string; balance: number; color: string } | null;
   transactions: any[];
   onClose: () => void;
+  formatCurrency: (n: number) => string;
 };
 
-function AccountHistoryModal({ visible, account, transactions, onClose }: HistoryProps) {
+function AccountHistoryModal({ visible, account, transactions, onClose, formatCurrency }: HistoryProps) {
   if (!account) return null;
   const meta = ACCOUNT_TYPE_META[account.type] || ACCOUNT_TYPE_META['bank'];
   const accentColor = account.color || meta.defaultColor;
@@ -252,7 +251,7 @@ function AccountHistoryModal({ visible, account, transactions, onClose }: Histor
           <Text style={hm.txDate}>{new Date(tx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
         </View>
         <Text style={[hm.txAmt, { color: isIncome ? '#2DCA72' : '#111' }]}>
-          {isIncome ? '+' : '\u2212'}{fmt(tx.amount)}
+          {isIncome ? '+' : '\u2212'}{Math.abs(tx.amount).toLocaleString('en-IN')}
         </Text>
       </View>
     );
@@ -279,7 +278,7 @@ function AccountHistoryModal({ visible, account, transactions, onClose }: Histor
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={hm.balLabel}>Balance</Text>
               <Text style={[hm.balAmt, balAmtStyle]}>
-                {fmt(account.balance)}
+                {formatCurrency(account.balance)}
               </Text>
             </View>
           </View>
@@ -347,6 +346,7 @@ export default function AccountsScreen() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { formatCurrency } = useSettings();
   const floatStyle = useFloat();
 
   const fetchData = useCallback(async () => {
@@ -504,7 +504,7 @@ export default function AccountsScreen() {
               <View>
                 <Text style={styles.heroLabel}>Net Worth</Text>
                 <Animated.Text entering={ZoomIn.delay(250).duration(380)} style={styles.heroAmount}>
-                  {showBalance ? fmt(totalBalance) : '₹ ••••••'}
+                  {showBalance ? formatCurrency(totalBalance) : `${formatCurrency(0).charAt(0)} ••••••`}
                 </Animated.Text>
                 <Text style={styles.heroSub}>Across {accounts.length} accounts</Text>
               </View>
@@ -517,12 +517,12 @@ export default function AccountsScreen() {
               <View style={styles.heroPillGreen}>
                 <Ionicons name="trending-up" size={14} color="#2DCA72" />
                 <Text style={styles.heroPillLabel}>Assets</Text>
-                <Text style={styles.heroPillGreenAmt}>{showBalance ? fmt(totalAssets) : '••••'}</Text>
+                <Text style={styles.heroPillGreenAmt}>{showBalance ? formatCurrency(totalAssets) : '••••'}</Text>
               </View>
               <View style={styles.heroPillRed}>
                 <Ionicons name="trending-down" size={14} color="#F43F5E" />
                 <Text style={styles.heroPillLabel}>Liabilities</Text>
-                <Text style={styles.heroPillRedAmt}>{showBalance ? fmt(totalLiabilities) : '••••'}</Text>
+                <Text style={styles.heroPillRedAmt}>{showBalance ? formatCurrency(totalLiabilities) : '••••'}</Text>
               </View>
             </Animated.View>
           </LinearGradient>
@@ -535,7 +535,7 @@ export default function AccountsScreen() {
               <Ionicons name="wallet-outline" size={18} color="#2DCA72" />
             </View>
             <Text style={styles.statLabel}>Available</Text>
-            <Text style={styles.statAmt}>{showBalance ? fmt(totalBalance) : '••••'}</Text>
+            <Text style={styles.statAmt}>{showBalance ? formatCurrency(totalBalance) : '••••'}</Text>
           </Animated.View>
           <Animated.View entering={FadeInUp.delay(280).duration(400)} style={[styles.statCard, { borderColor: 'rgba(0,122,255,0.15)' }]}>
             <View style={[styles.statIcon, { backgroundColor: 'rgba(0,122,255,0.1)' }]}>
@@ -567,7 +567,7 @@ export default function AccountsScreen() {
             <AccountCard
               name={acc.name}
               type={acc.type}
-              balance={fmt(acc.balance)}
+              balance={formatCurrency(acc.balance)}
               balanceNum={acc.balance}
               color={acc.color}
               masked={!showBalance}
@@ -597,6 +597,7 @@ export default function AccountsScreen() {
       <AccountFormModal
         visible={showForm}
         editMode={!!editTarget}
+        formatCurrency={formatCurrency}
         initial={editTarget
           ? { name: editTarget.name, type: editTarget.type, balance: String(editTarget.balance ?? 0), color: editTarget.color || '#007AFF', creditLimit: String(editTarget.creditLimit ?? '') }
           : defaultForm
@@ -605,12 +606,12 @@ export default function AccountsScreen() {
         onSubmit={handleFormSubmit}
         onDelete={editTarget ? handleDelete : undefined}
       />
-
       {/* History Modal */}
       <AccountHistoryModal
         visible={!!historyTarget}
         account={historyTarget}
         transactions={transactions}
+        formatCurrency={formatCurrency}
         onClose={() => setHistoryTarget(null)}
       />
     </View>

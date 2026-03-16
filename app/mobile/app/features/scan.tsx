@@ -19,6 +19,7 @@ import {
     formatLineItemsAsNotes, BillParseResult,
 } from '@/services/ocrService';
 import { useQuickAction, ScanData } from '@/context/QuickActionContext';
+import { useSettings } from '@/context/SettingsContext';
 
 type ScanPhase = 'idle' | 'processing' | 'result';
 
@@ -30,6 +31,7 @@ export default function ScanScreen() {
     const [phase, setPhase] = useState<ScanPhase>('idle');
     const [capturedUri, setCapturedUri] = useState<string | null>(null);
     const [ocrResult, setOcrResult] = useState<BillParseResult | null>(null);
+    const { formatCurrency } = useSettings();
     const [processingText, setProcessingText] = useState('Analyzing bill…');
 
     // Scan line animation for idle state
@@ -103,8 +105,9 @@ export default function ScanScreen() {
         const scan: ScanData = {
             title: ocrResult.merchantName || '',
             amount: ocrResult.totalAmount > 0 ? String(ocrResult.totalAmount) : '',
-            notes: formatLineItemsAsNotes(ocrResult.lineItems),
+            notes: formatLineItemsAsNotes(ocrResult.lineItems, formatCurrency(0).charAt(0)),
             date: ocrResult.date || new Date(),
+            category: ocrResult.detectedCategory,
             attachments: [capturedUri],
         };
 
@@ -227,7 +230,7 @@ export default function ScanScreen() {
                         <Text style={styles.resultLabel}>Total Amount</Text>
                     </View>
                     <Text style={[styles.resultValue, styles.resultAmount]}>
-                        ₹{ocrResult?.totalAmount?.toFixed(2) || '0.00'}
+                        {formatCurrency(ocrResult?.totalAmount || 0)}
                     </Text>
                 </View>
 
@@ -244,6 +247,22 @@ export default function ScanScreen() {
                             : 'Today'}
                     </Text>
                 </View>
+
+                {ocrResult?.detectedCategory && (
+                    <>
+                        <View style={styles.resultDivider} />
+                        <View style={styles.resultRow}>
+                            <View style={styles.resultLabelWrap}>
+                                <Ionicons name="pricetag-outline" size={16} color="#8E8E93" />
+                                <Text style={styles.resultLabel}>Category</Text>
+                            </View>
+                            <Text style={[styles.resultValue, { color: '#06B6D4' }]}>
+                                {ocrResult.detectedCategory}
+                            </Text>
+                        </View>
+                    </>
+                )}
+
             </Animated.View>
 
             {/* Line Items */}
@@ -253,7 +272,7 @@ export default function ScanScreen() {
                     {ocrResult.lineItems.map((item, i) => (
                         <View key={i} style={[styles.itemRow, i > 0 && { borderTopWidth: 1, borderTopColor: '#F2F2F7' }]}>
                             <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-                            <Text style={styles.itemPrice}>₹{item.price.toFixed(2)}</Text>
+                            <Text style={styles.itemPrice}>{formatCurrency(item.price)}</Text>
                         </View>
                     ))}
                 </Animated.View>

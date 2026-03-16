@@ -5,17 +5,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DarkTheme, Spacing, FontSize, BorderRadius } from '@/constants/Theme';
 import StatCard from '@/components/StatCard';
 import DonutChart from '@/components/DonutChart';
-import { useTransactions, Category, CATEGORY_COLORS, CATEGORY_ICONS } from '@/context/TransactionContext';
+import { useTransactions, Category, CATEGORY_COLORS, CATEGORY_ICONS, mapCategoryIcon } from '@/context/TransactionContext';
 import Svg, { Rect, G, Text as SvgText } from 'react-native-svg';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring, FadeInDown } from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const { width } = Dimensions.get('window');
 
-function formatCurrency(n: number): string {
-    return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
+import { useSettings } from '@/context/SettingsContext';
 
 type TimeFilter = 'Week' | 'Month' | 'Year' | 'Custom';
 
@@ -70,9 +69,39 @@ const SimpleBarChart = React.memo(({ data, height = 150 }: { data: { label: stri
     );
 });
 
+// ── Transaction Row (Dark Theme) ──────────────────────────────────
+const TransactionRow = React.memo(({ tx, index, formatCurrency }: { tx: any; index: number; formatCurrency: (amount: number) => string }) => {
+    const rawIcon = CATEGORY_ICONS[tx.category as Category] || 'receipt-outline';
+    const iconName = rawIcon ? mapCategoryIcon(rawIcon) : 'receipt-outline';
+    const iconColor = CATEGORY_COLORS[tx.category as Category] || '#111';
+
+    return (
+        <Animated.View entering={FadeInDown.delay(100 + index * 50).duration(400)}>
+            <TouchableOpacity style={styles.txRow} activeOpacity={0.7} onPress={() => { }}>
+                <View style={[styles.txIconWrap, { backgroundColor: iconColor + '20' }]}>
+                    <Ionicons name={iconName as any} size={20} color={iconColor} />
+                </View>
+                <View style={styles.txMid}>
+                    <Text style={styles.txTitle} numberOfLines={1}>{tx.title}</Text>
+                    <View style={styles.txMeta}>
+                        <Text style={styles.txCat}>{tx.category || 'General'}</Text>
+                        <Text style={styles.txDot}>·</Text>
+                        <Text style={styles.txDate}>{new Date(tx.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</Text>
+                    </View>
+                </View>
+                <Text style={[styles.txAmt, { color: tx.type === 'income' ? DarkTheme.income : DarkTheme.textPrimary }]}>
+                    {tx.type === 'income' ? '+' : '−'}{formatCurrency(tx.amount)}
+                </Text>
+            </TouchableOpacity>
+        </Animated.View>
+    );
+});
+
 export default function AnalysisScreen() {
     const insets = useSafeAreaInsets();
+    const router = useRouter();
     const { transactions } = useTransactions();
+    const { formatCurrency } = useSettings();
 
     // Defer heavy UI rendering until navigation completes
     const [isReady, setIsReady] = useState(false);
@@ -161,6 +190,11 @@ export default function AnalysisScreen() {
         [filteredTxs]);
 
     const monthlyBalance = monthlyIncome - monthlyExpense;
+
+    // Filtered & Sorted Transactions for Recent List
+    const sortedFilteredTransactions = useMemo(() => {
+        return [...filteredTxs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [filteredTxs]);
 
     const categoryData = useMemo(() => {
         const expenses = filteredTxs.filter(t => t.type === 'expense');
@@ -457,6 +491,34 @@ export default function AnalysisScreen() {
                     </View>
                 </View>
 
+                {/* ═══ Recent Transactions ═══ */}
+                <View style={styles.sectionContainer}>
+                    <Text style={styles.sectionTitle}>Recent Transactions</Text>
+                    <View style={styles.card}>
+                        {sortedFilteredTransactions.length === 0 ? (
+                            <View style={styles.emptyCategory}>
+                                <Ionicons name="receipt-outline" size={32} color={DarkTheme.textMuted} />
+                                <Text style={styles.emptyCategoryText}>No transactions found</Text>
+                            </View>
+                        ) : (
+                            <View>
+                                {sortedFilteredTransactions.slice(0, 5).map((tx, i) => (
+                                    <TransactionRow key={tx.id || tx._id || i} tx={tx} index={i} formatCurrency={formatCurrency} />
+                                ))}
+                                {sortedFilteredTransactions.length > 5 && (
+                                    <TouchableOpacity
+                                        style={styles.showAllBtn}
+                                        onPress={() => router.push('/features/transactions')}
+                                    >
+                                        <Text style={styles.showAllTxt}>View all transactions in this view</Text>
+                                        <Ionicons name="arrow-forward" size={14} color={DarkTheme.brandYellow} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        )}
+                    </View>
+                </View>
+
                 <View style={{ height: 100 }} />
             </ScrollView>
         </View>
@@ -747,4 +809,17 @@ const styles = StyleSheet.create({
         color: DarkTheme.textMuted,
         fontWeight: '700',
     },
+
+    // Transaction Row (Dark Theme)
+    txRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: DarkTheme.separator },
+    txIconWrap: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+    txMid: { flex: 1 },
+    txTitle: { fontSize: FontSize.md, fontWeight: '700', color: DarkTheme.textPrimary, marginBottom: 4 },
+    txMeta: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    txCat: { fontSize: FontSize.xs, color: DarkTheme.textMuted, fontWeight: '600' },
+    txDot: { fontSize: FontSize.xs, color: DarkTheme.textMuted },
+    txDate: { fontSize: 11, color: DarkTheme.textMuted, fontWeight: '500' },
+    txAmt: { fontSize: 16, fontWeight: '800', letterSpacing: -0.5 },
+    showAllBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 18, borderTopWidth: 1, borderTopColor: DarkTheme.separator, marginTop: 4 },
+    showAllTxt: { fontSize: 13, fontWeight: '700', color: DarkTheme.brandYellow },
 });

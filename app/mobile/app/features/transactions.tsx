@@ -15,15 +15,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useTransactions, CATEGORY_ICONS, CATEGORY_COLORS, Category, mapCategoryIcon } from '@/context/TransactionContext';
 import AddTransactionModal from '@/components/AddTransactionModal';
+import { useSettings } from '@/context/SettingsContext';
 
-function fmt(n: number): string {
-    return '₹' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+function fmt(n: number, formatCurrency: (n: number) => string): string {
+    return formatCurrency(Math.abs(n));
 }
 
-function fmtDate(iso: string): string {
-    const d = new Date(iso);
+function fmtDate(day: number, month: number, year: number): string {
     const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return `${d.getDate()} ${m[d.getMonth()]} ${d.getFullYear()}`;
+    return `${day} ${m[month]} ${year}`;
 }
 
 const FILTERS = [
@@ -33,7 +33,7 @@ const FILTERS = [
     { key: 'transfer', label: 'Transfer' },
 ];
 
-const TransactionRow = React.memo(({ tx, index, onPress }: { tx: any; index: number; onPress: () => void }) => {
+const TransactionRow = React.memo(({ tx, index, onPress, formatCurrency }: { tx: any; index: number; onPress: () => void; formatCurrency: (n: number) => string }) => {
     const rawIcon = CATEGORY_ICONS[tx.category as Category] || 'receipt-outline';
     const iconName = rawIcon ? mapCategoryIcon(rawIcon) : 'receipt-outline';
     const iconColor = CATEGORY_COLORS[tx.category as Category] || '#111';
@@ -58,11 +58,11 @@ const TransactionRow = React.memo(({ tx, index, onPress }: { tx: any; index: num
                     <View style={styles.txMeta}>
                         <Text style={styles.txCat}>{tx.category || 'General'}</Text>
                         <Text style={styles.txDot}>·</Text>
-                        <Text style={styles.txDate}>{fmtDate(tx.date)}</Text>
+                        <Text style={styles.txDate}>{fmtDate(tx.day, tx.month, tx.year)}</Text>
                     </View>
                 </View>
                 <Text style={[styles.txAmt, { color: tx.type === 'income' ? '#2DCA72' : '#111' }]}>
-                    {tx.type === 'income' ? '+' : '−'}{fmt(tx.amount)}
+                    {tx.type === 'income' ? '+' : '−'}{fmt(tx.amount, formatCurrency)}
                 </Text>
             </TouchableOpacity>
         </Animated.View>
@@ -72,6 +72,7 @@ const TransactionRow = React.memo(({ tx, index, onPress }: { tx: any; index: num
 export default function TransactionsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { formatCurrency } = useSettings();
     const { transactions, refreshTransactions } = useTransactions();
     const [filter, setFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
@@ -100,12 +101,12 @@ export default function TransactionsScreen() {
 
         // 3. Date Filter (Match Day)
         if (dateFilter) {
-            result = result.filter(t => {
-                const txDate = new Date(t.date);
-                return txDate.getFullYear() === dateFilter.getFullYear() &&
-                    txDate.getMonth() === dateFilter.getMonth() &&
-                    txDate.getDate() === dateFilter.getDate();
-            });
+            const dfDay = dateFilter.getDate();
+            const dfMonth = dateFilter.getMonth();
+            const dfYear = dateFilter.getFullYear();
+            result = result.filter(t =>
+                t.day === dfDay && t.month === dfMonth && t.year === dfYear
+            );
         }
 
         return result;
@@ -117,8 +118,8 @@ export default function TransactionsScreen() {
     }, []);
 
     const renderItem = useCallback(({ item: tx, index: i }: { item: any; index: number }) => {
-        return <TransactionRow tx={tx} index={i} onPress={() => handleRowPress(tx)} />;
-    }, [handleRowPress]);
+        return <TransactionRow tx={tx} index={i} onPress={() => handleRowPress(tx)} formatCurrency={formatCurrency} />;
+    }, [handleRowPress, formatCurrency]);
 
     const keyExtractor = useCallback((item: any) => item.id || item._id, []);
 

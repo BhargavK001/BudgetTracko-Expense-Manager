@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import * as QuickActions from 'expo-quick-actions';
 
 type ModalType = 'expense' | 'income' | 'transfer' | undefined;
 
@@ -7,6 +8,7 @@ export interface ScanData {
     amount: string;
     notes: string;
     date: Date;
+    category?: string; // OCR detected category
     attachments: string[];  // image URIs
 }
 
@@ -36,6 +38,45 @@ export function QuickActionProvider({ children }: { children: ReactNode }) {
         setModalType(undefined);
         setScanData(null);
     }, []);
+
+    useEffect(() => {
+        // Set static quick actions (fallback if app.json config isn't picked up immediately)
+        QuickActions.setItems([
+            {
+                type: 'add_expense',
+                title: 'Add Expense',
+                subtitle: 'Record a new expense',
+                icon: 'add',
+                params: { type: 'expense' }
+            },
+            {
+                type: 'add_income',
+                title: 'Add Income',
+                subtitle: 'Record a new income',
+                icon: 'add',
+                params: { type: 'income' }
+            }
+        ]);
+
+        const subscription = QuickActions.addListener((action) => {
+            if (action.type === 'add_expense') {
+                openModal('expense');
+            } else if (action.type === 'add_income') {
+                openModal('income');
+            }
+        });
+
+        // Handle initial action if app was opened via quick action
+        QuickActions.getInitialAction().then((action) => {
+            if (action?.type === 'add_expense') {
+                openModal('expense');
+            } else if (action?.type === 'add_income') {
+                openModal('income');
+            }
+        });
+
+        return () => subscription.remove();
+    }, [openModal]);
 
     return (
         <QuickActionContext.Provider value={{ showModal, modalType, scanData, openModal, closeModal }}>

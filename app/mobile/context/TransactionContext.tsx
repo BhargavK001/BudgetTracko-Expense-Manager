@@ -79,6 +79,9 @@ export interface Transaction {
     type: TransactionType;
     category: Category | string;
     date: string;
+    month: number;
+    year: number;
+    day: number;
     time?: string;
     account: string;
     accountId?: any;
@@ -168,6 +171,9 @@ function normalizeTransaction(tx: any): Transaction {
         type: tx.type || 'expense',
         category: tx.category || 'Other',
         date: tx.date || new Date().toISOString(),
+        month: new Date(tx.date || Date.now()).getMonth(),
+        year: new Date(tx.date || Date.now()).getFullYear(),
+        day: new Date(tx.date || Date.now()).getDate(),
         time: tx.time,
         account: tx.accountId?.name || tx.account || '',
         accountId: tx.accountId,
@@ -271,10 +277,7 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
 
     const getTransactionsForMonth = useCallback(
         (month: number, year: number) => {
-            return transactions.filter(t => {
-                const d = new Date(t.date);
-                return d.getMonth() === month && d.getFullYear() === year;
-            });
+            return transactions.filter(t => t.month === month && t.year === year);
         },
         [transactions]
     );

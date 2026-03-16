@@ -201,9 +201,9 @@ export default function MoreScreen() {
     {
       title: 'Account', delay: 100,
       items: [
-        { icon: 'person-outline', label: 'Profile', subtitle: 'Edit your info', color: '#6366F1', route: '/profile' },
-        { icon: 'settings-outline', label: 'Settings', subtitle: 'App preferences', color: '#8E8E93', route: '/settings' },
-        { icon: 'shield-checkmark-outline', label: 'Privacy & Security', subtitle: 'Keep your data safe', color: '#8B5CF6', route: '/privacy-security' },
+        { icon: 'person-outline', label: 'Profile', subtitle: 'Edit your info', color: '#6366F1', route: '/features/edit-profile' },
+        { icon: 'settings-outline', label: 'Settings', subtitle: 'App preferences', color: '#8E8E93', route: '/features/settings' },
+        { icon: 'shield-checkmark-outline', label: 'Privacy & Security', subtitle: 'Keep your data safe', color: '#8B5CF6', route: '/features/security' },
       ],
     },
     {
@@ -250,9 +250,9 @@ export default function MoreScreen() {
     {
       title: 'App', delay: 500,
       items: [
-        { icon: 'help-circle-outline', label: 'Help & Support', subtitle: 'FAQs & contact', color: '#06B6D4', route: '/help-support' },
+        { icon: 'help-circle-outline', label: 'Help & Support', subtitle: 'FAQs & contact', color: '#06B6D4', route: '/features/help-support' },
         { icon: 'star-outline', label: 'Rate Us', subtitle: 'Share your feedback', color: '#FBBF24', onPress: () => { const url = Platform.OS === 'ios' ? 'https://apps.apple.com/app/budgettracko/id000000' : 'https://play.google.com/store/apps/details?id=com.budgettracko.app'; Linking.openURL(url); } },
-        { icon: 'share-social-outline', label: 'Share App', subtitle: 'Invite friends', color: '#EC4899', route: '/share-app' },
+        { icon: 'share-social-outline', label: 'Share App', subtitle: 'Invite friends', color: '#EC4899', route: '/features/share-app' },
       ],
     },
     {
@@ -279,7 +279,7 @@ export default function MoreScreen() {
 
         {/* ─── User Card ─── */}
         <Animated.View entering={FadeInDown.delay(80).duration(500).springify()}>
-          <TouchableOpacity style={s.userCard} activeOpacity={0.8} onPress={() => router.push('/profile' as any)}>
+          <TouchableOpacity style={s.userCard} activeOpacity={0.8} onPress={() => router.push('/features/edit-profile')}>
             <View style={s.avatarWrap}>
               {user?.avatar ? (
                 <Image source={{ uri: user.avatar }} style={s.avatarImage} />

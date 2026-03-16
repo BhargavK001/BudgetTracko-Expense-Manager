@@ -14,8 +14,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeIn, FadeInDown, Layout } from 'react-native-reanimated';
 import { useTransactions, EXPENSE_CATEGORIES, CATEGORY_ICONS, CATEGORY_COLORS, Category } from '@/context/TransactionContext';
+import { useSettings } from '@/context/SettingsContext';
 
 const PERIODS = [
     { key: 'weekly', label: 'Weekly', icon: 'calendar-outline' },
@@ -27,6 +27,7 @@ export default function BudgetsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { budgets, addBudget, updateBudget, deleteBudget, getCategoryBreakdown } = useTransactions();
+    const { formatCurrency } = useSettings();
 
     const [activePeriod, setActivePeriod] = useState('monthly');
     const [showForm, setShowForm] = useState(false);
@@ -152,7 +153,7 @@ export default function BudgetsScreen() {
                         <View>
                             <Text style={styles.overviewLabel}>Total {activePeriod} Budget</Text>
                             <Text style={styles.overviewValue}>
-                                ₹{totalSpent.toLocaleString()} <Text style={styles.overviewTotal}>/ ₹{totalBudget.toLocaleString()}</Text>
+                                {formatCurrency(totalSpent)} <Text style={styles.overviewTotal}>/ {formatCurrency(totalBudget)}</Text>
                             </Text>
                         </View>
                         <View style={[
@@ -196,8 +197,8 @@ export default function BudgetsScreen() {
                                     <View style={styles.budgetInfo}>
                                         <Text style={styles.budgetCategory}>{budget.category}</Text>
                                         <View style={styles.row}>
-                                            <Text style={styles.budgetUsed}>₹{budget.spent.toLocaleString()}</Text>
-                                            <Text style={styles.budgetLimit}> / ₹{budget.amount.toLocaleString()}</Text>
+                                            <Text style={styles.budgetUsed}>{formatCurrency(budget.spent)}</Text>
+                                            <Text style={styles.budgetLimit}> / {formatCurrency(budget.amount)}</Text>
                                         </View>
                                     </View>
 
@@ -304,7 +305,7 @@ export default function BudgetsScreen() {
                         </View>
 
                         <View style={styles.formGroup}>
-                            <Text style={styles.label}>Amount (₹)</Text>
+                            <Text style={styles.label}>Amount ({formatCurrency(0).charAt(0)})</Text>
                             <TextInput
                                 style={styles.input}
                                 placeholder="e.g. 5000"

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, G } from 'react-native-svg';
 import Animated, { useAnimatedProps, withTiming, useSharedValue, withDelay } from 'react-native-reanimated';
 import { DarkTheme, Spacing, FontSize, BorderRadius } from '@/constants/Theme';
+import { useSettings } from '@/context/SettingsContext';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -85,11 +86,10 @@ export const SpendingVelocityWidget = React.memo(({
   projected,
   target,
 }: {
-  percent: number;
-  projected: number;
   target: number;
 }) => {
   const { width } = useWindowDimensions();
+  const { formatCurrency } = useSettings();
   const isCompact = width < 360;
 
   const over = percent > 100;
@@ -117,11 +117,11 @@ export const SpendingVelocityWidget = React.memo(({
         <Text style={styles.velLabel}>
           Projected:{' '}
           <Text style={{ color: DarkTheme.textPrimary, fontWeight: '800' }}>
-            ₹{Math.round(projected).toLocaleString('en-IN')}
+            {formatCurrency(Math.round(projected))}
           </Text>
         </Text>
         <Text style={styles.velLabel}>
-          Target: <Text style={{ color: DarkTheme.textSecondary }}>₹{target.toLocaleString('en-IN')}</Text>
+          Target: <Text style={{ color: DarkTheme.textSecondary }}>{formatCurrency(target)}</Text>
         </Text>
       </View>
     </View>
@@ -130,6 +130,7 @@ export const SpendingVelocityWidget = React.memo(({
 
 export const UpcomingBillsWidget = React.memo(() => {
   const { width } = useWindowDimensions();
+  const { formatCurrency } = useSettings();
   const isCompact = width < 360;
 
   const bills = [
@@ -159,7 +160,7 @@ export const UpcomingBillsWidget = React.memo(() => {
             <Text style={styles.billName}>{bill.name}</Text>
             <Text style={styles.billDate}>{bill.date}</Text>
           </View>
-          <Text style={styles.billAmount}>₹{bill.amount.toLocaleString('en-IN')}</Text>
+          <Text style={styles.billAmount}>{formatCurrency(bill.amount)}</Text>
         </View>
       ))}
     </View>
