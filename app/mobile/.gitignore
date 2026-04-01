@@ -46,3 +46,4 @@ yarn-error.*
 
 # temp output files
 *.txt
+temp_ocr*.js
