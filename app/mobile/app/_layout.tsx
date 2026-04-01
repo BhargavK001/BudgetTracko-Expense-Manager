@@ -11,8 +11,10 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TransactionProvider } from '@/context/TransactionContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { QuickActionProvider } from '@/context/QuickActionContext';
+import { SecurityProvider } from '@/context/SecurityContext';
+import { SettingsProvider } from '@/context/SettingsContext';
+import { DebtProvider } from '@/context/DebtContext';
 import { AppState, AppStateStatus } from 'react-native';
-import LockScreen from '../components/LockScreen';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -61,7 +63,9 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <SecurityProvider>
+        <RootLayoutNav />
+      </SecurityProvider>
     </AuthProvider>
   );
 }
@@ -94,45 +98,42 @@ function RootLayoutNav() {
   }, [lockApp]);
 
   return (
-    <TransactionProvider>
-      <QuickActionProvider>
-        <SafeAreaProvider>
-          <ThemeProvider value={CustomDarkTheme}>
-            <View style={{ flex: 1, backgroundColor: '#fff' }}>
-              <Stack
-                initialRouteName="index"
-                screenOptions={{
-                  animation: 'slide_from_right',
-                  gestureEnabled: true,
-                  fullScreenGestureEnabled: true,
-                  headerShown: false,
-                  contentStyle: { backgroundColor: '#fff' },
-                }}
-              >
-                <Stack.Screen name="index" options={{ headerShown: false }} />
-                <Stack.Screen name="welcome" options={{ headerShown: false }} />
-                <Stack.Screen name="features" options={{ headerShown: false }} />
-                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="help-support" options={{ headerShown: false }} />
-                <Stack.Screen name="share-app" options={{ headerShown: false }} />
-                <Stack.Screen name="premium" options={{ headerShown: false }} />
-                <Stack.Screen name="profile" options={{ headerShown: false }} />
-                <Stack.Screen name="privacy-security" options={{ headerShown: false }} />
-                <Stack.Screen name="settings" options={{ headerShown: false }} />
-              </Stack>
-
-              {/* Lock Screen Overlay */}
-              {user && hasBiometricKey && isLocked && (
-                <View style={[StyleSheet.absoluteFill, { zIndex: 9999 }]}>
-                  <LockScreen />
-                </View>
-              )}
-            </View>
-          </ThemeProvider>
-        </SafeAreaProvider>
-      </QuickActionProvider>
-    </TransactionProvider>
+    <SettingsProvider>
+      <DebtProvider>
+        <TransactionProvider>
+          <QuickActionProvider>
+          <SafeAreaProvider>
+            <ThemeProvider value={CustomDarkTheme}>
+              <View style={{ flex: 1, backgroundColor: '#fff' }}>
+                <Stack
+                  initialRouteName="index"
+                  screenOptions={{
+                    animation: 'slide_from_right',
+                    gestureEnabled: true,
+                    fullScreenGestureEnabled: true,
+                    headerShown: false,
+                    contentStyle: { backgroundColor: '#fff' },
+                  }}
+                >
+                  <Stack.Screen name="index" options={{ headerShown: false }} />
+                  <Stack.Screen name="welcome" options={{ headerShown: false }} />
+                  <Stack.Screen name="features" options={{ headerShown: false }} />
+                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="help-support" options={{ headerShown: false }} />
+                  <Stack.Screen name="share-app" options={{ headerShown: false }} />
+                  <Stack.Screen name="premium" options={{ headerShown: false }} />
+                  <Stack.Screen name="profile" options={{ headerShown: false }} />
+                  <Stack.Screen name="privacy-security" options={{ headerShown: false }} />
+                  <Stack.Screen name="settings" options={{ headerShown: false }} />
+                </Stack>
+              </View>
+            </ThemeProvider>
+          </SafeAreaProvider>
+        </QuickActionProvider>
+      </TransactionProvider>
+      </DebtProvider>
+    </SettingsProvider>
   );
 }
 import { StyleSheet } from 'react-native';

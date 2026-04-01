@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import AddTransactionModal from '@/components/AddTransactionModal';
 import { useQuickAction } from '@/context/QuickActionContext';
+import { useSettings } from '@/context/SettingsContext';
 
 type TabIconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -69,7 +70,7 @@ const FabButton = React.memo(function FabButton({ onPress }: { onPress: () => vo
 });
 
 // ── Custom Tab Bar ───────────────────────────────────────────
-function CustomTabBar({ state, navigation, onFabPress }: any) {
+function CustomTabBar({ state, navigation, onFabPress, triggerHaptic }: any) {
   const insets = useSafeAreaInsets();
   const fabIndex = 2; // FAB between Pulse and Accounts
 
@@ -83,6 +84,7 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
           const tabArrayIndex = TABS.findIndex((t) => t.name === route.name);
 
           const onPress = () => {
+            triggerHaptic();
             const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
             if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name);
           };
@@ -103,11 +105,12 @@ function CustomTabBar({ state, navigation, onFabPress }: any) {
 export default function TabLayout() {
   const router = useRouter();
   const { showModal, modalType, scanData, openModal, closeModal } = useQuickAction();
+  const { triggerHaptic } = useSettings();
 
   return (
     <>
       <Tabs
-        tabBar={(props) => <CustomTabBar {...props} onFabPress={() => openModal()} />}
+        tabBar={(props) => <CustomTabBar {...props} triggerHaptic={triggerHaptic} onFabPress={() => { triggerHaptic(); openModal(); }} />}
         screenOptions={{ headerShown: false }}
       >
         <Tabs.Screen name="index" />

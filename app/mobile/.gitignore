@@ -43,4 +43,6 @@ yarn-error.*
 
 # keystore
 *.keystore
-keystore_base64.txt
+
+# temp output files
+*.txt

@@ -10,6 +10,7 @@ import Animated, {
     withRepeat, withTiming, withSequence, withSpring,
     Easing,
 } from 'react-native-reanimated';
+import { useSettings } from '@/context/SettingsContext';
 
 const { width } = Dimensions.get('window');
 
@@ -78,6 +79,7 @@ export default function Welcome() {
     const insets = useSafeAreaInsets();
     const floatStyle = useFloat();
     const pulseStyle = usePulse();
+    const { currency } = useSettings();
 
     // Jump to a page INSTANTLY (no mid-flight animation conflict)
     // Animations fire on content mount AFTER the snap
@@ -126,7 +128,7 @@ export default function Welcome() {
                             <Animated.View style={[styles.cardGlow, floatStyle]} />
                             <Animated.Text entering={FadeIn.delay(280).duration(400)} style={styles.cardLbl}>Total Balance</Animated.Text>
                             <Animated.Text entering={FadeInDown.delay(320).duration(450)} style={styles.cardAmt}>
-                                <Text style={styles.cardAmtSm}>₹ </Text>2,48,500
+                                <Text style={styles.cardAmtSm}>{currency} </Text>2,48,500
                             </Animated.Text>
                             <View style={styles.bars}>
                                 {[32, 46, 62, 38, 50, 44, 36].map((h, i) => (
@@ -138,7 +140,7 @@ export default function Welcome() {
                             </View>
                             <Animated.View entering={ZoomIn.delay(680).duration(380)} style={styles.pill}>
                                 <Text style={styles.pillL}>Monthly savings</Text>
-                                <Text style={styles.pillR}>+₹ 12,400</Text>
+                                <Text style={styles.pillR}>+{currency} 12,400</Text>
                             </Animated.View>
                         </Animated.View>
 
@@ -170,12 +172,12 @@ export default function Welcome() {
                                             <Text style={styles.ecMonth}>March 2025</Text>
                                         </View>
                                         <Animated.Text entering={FadeInDown.delay(60).duration(380)} style={styles.ecTotal}>
-                                            <Text style={styles.ecTotalSm}>₹ </Text>18,240
+                                            <Text style={styles.ecTotalSm}>{currency} </Text>18,240
                                         </Animated.Text>
                                         {[
-                                            { icon: 'pizza', color: '#FF9800', name: 'Swiggy Order', cat: 'Food · Today', amt: '−₹420', exp: true },
-                                            { icon: 'taxi', color: '#FFC107', name: 'Ola Cab', cat: 'Transport · Yesterday', amt: '−₹180', exp: true },
-                                            { icon: 'briefcase', color: '#795548', name: 'Salary Credit', cat: 'Income · Mar 1', amt: '+₹55,000', exp: false },
+                                            { icon: 'pizza', color: '#FF9800', name: 'Swiggy Order', cat: 'Food · Today', amt: `−${currency}420`, exp: true },
+                                            { icon: 'taxi', color: '#FFC107', name: 'Ola Cab', cat: 'Transport · Yesterday', amt: `−${currency}180`, exp: true },
+                                            { icon: 'briefcase', color: '#795548', name: 'Salary Credit', cat: 'Income · Mar 1', amt: `+${currency}55,000`, exp: false },
                                         ].map((r, i) => (
                                             <Animated.View key={i} entering={FadeInDown.delay(100 + i * 90).duration(360)}
                                                 style={[styles.ecRow, i === 2 && { borderBottomWidth: 0 }]}>
@@ -217,9 +219,9 @@ export default function Welcome() {
                                             <Text style={styles.gcAdd}>+ Add</Text>
                                         </View>
                                         {[
-                                            { icon: 'beach', color: '#00BCD4', name: 'Goa Vacation', pct: '68%', sub: '₹34,000 of ₹50,000', bw: '68%', bc: '#2DCA72' },
-                                            { icon: 'home-variant', color: '#4CAF50', name: 'Emergency Fund', pct: '42%', sub: '₹84,000 of ₹2,00,000', bw: '42%', bc: '#007AFF' },
-                                            { icon: 'cellphone', color: '#9C27B0', name: 'New Phone', pct: '91%', sub: '₹63,700 of ₹70,000', bw: '91%', bc: '#2DCA72' },
+                                            { icon: 'beach', color: '#00BCD4', name: 'Goa Vacation', pct: '68%', sub: `${currency}34,000 of ${currency}50,000`, bw: '68%', bc: '#2DCA72' },
+                                            { icon: 'home-variant', color: '#4CAF50', name: 'Emergency Fund', pct: '42%', sub: `${currency}84,000 of ${currency}2,00,000`, bw: '42%', bc: '#007AFF' },
+                                            { icon: 'cellphone', color: '#9C27B0', name: 'New Phone', pct: '91%', sub: `${currency}63,700 of ${currency}70,000`, bw: '91%', bc: '#2DCA72' },
                                         ].map((g, i) => (
                                             <Animated.View key={i} entering={FadeInDown.delay(80 + i * 100).duration(360)}
                                                 style={[styles.gbox, i === 2 && { marginBottom: 0 }]}>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '@/services/api';
+import { useAuth } from './AuthContext';
 
 // ─── Types ───────────────────────────────────────────────
 export type TransactionType = 'income' | 'expense' | 'transfer';
@@ -79,6 +80,9 @@ export interface Transaction {
     type: TransactionType;
     category: Category | string;
     date: string;
+    month: number;
+    year: number;
+    day: number;
     time?: string;
     account: string;
     accountId?: any;
@@ -168,6 +172,9 @@ function normalizeTransaction(tx: any): Transaction {
         type: tx.type || 'expense',
         category: tx.category || 'Other',
         date: tx.date || new Date().toISOString(),
+        month: new Date(tx.date || Date.now()).getMonth(),
+        year: new Date(tx.date || Date.now()).getFullYear(),
+        day: new Date(tx.date || Date.now()).getDate(),
         time: tx.time,
         account: tx.accountId?.name || tx.account || '',
         accountId: tx.accountId,
@@ -180,6 +187,7 @@ function normalizeTransaction(tx: any): Transaction {
 
 // ─── Provider ────────────────────────────────────────────
 export function TransactionProvider({ children }: { children: React.ReactNode }) {
+    const { isAuthenticated } = useAuth();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [budgets, setBudgets] = useState<Budget[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -215,9 +223,15 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     }, []);
 
     useEffect(() => {
-        refreshTransactions();
-        refreshBudgets();
-    }, [refreshTransactions, refreshBudgets]);
+        if (isAuthenticated) {
+            refreshTransactions();
+            refreshBudgets();
+        } else {
+            setTransactions([]);
+            setBudgets([]);
+            setIsLoading(false);
+        }
+    }, [isAuthenticated, refreshTransactions, refreshBudgets]);
 
     const addTransaction = useCallback(async (tx: Omit<Transaction, 'id'>) => {
         // The AddTransactionModal now handles the API call directly.
@@ -271,10 +285,7 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
 
     const getTransactionsForMonth = useCallback(
         (month: number, year: number) => {
-            return transactions.filter(t => {
-                const d = new Date(t.date);
-                return d.getMonth() === month && d.getFullYear() === year;
-            });
+            return transactions.filter(t => t.month === month && t.year === year);
         },
         [transactions]
     );

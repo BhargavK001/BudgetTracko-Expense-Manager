@@ -10,8 +10,9 @@ import Animated, {
     FadeIn, FadeInDown, SlideInLeft, SlideInRight,
     useSharedValue, useAnimatedStyle,
     withRepeat, withSequence, withTiming, Easing,
-    type SharedValue,
 } from 'react-native-reanimated';
+import { useTransactions } from '@/context/TransactionContext';
+import { useSettings } from '@/context/SettingsContext';
 
 const LOADING_PHRASES = [
     "Calculating how much you spent on Momo's...",
@@ -34,7 +35,7 @@ function TypingDots() {
     const d2 = useSharedValue(0);
     const d3 = useSharedValue(0);
     useEffect(() => {
-        const anim = (v: SharedValue<number>, delay: number) => {
+        const anim = (v: any, delay: number) => {
             setTimeout(() => {
                 v.value = withRepeat(
                     withSequence(
@@ -70,6 +71,8 @@ export default function AskTrackoScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const scrollRef = useRef<ScrollView>(null);
+    const { formatCurrency } = useSettings();
+    const { transactions, getTotalExpense, getBalance } = useTransactions();
 
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -113,10 +116,42 @@ export default function AskTrackoScreen() {
 
     const getMock = (input: string) => {
         const l = input.toLowerCase();
-        if (l.includes('budget')) return "You've used 65% of your food budget this week. Maybe skip that extra Starbucks?";
-        if (l.includes('afford')) return "Technically yes, but your savings goal will take a hit. Is it worth it?";
-        if (l.includes('spent')) return "You spent ₹4,200 on 'Eating Out' this month — that's 15% more than last month.";
-        return "I'm in mock mode right now. Once connected to the backend, I'll give you real financial insights!";
+
+        // 1. Spending logic
+        if (l.includes('spent') || l.includes('spending')) {
+            const currentMonthExpense = getTotalExpense(new Date().getMonth(), new Date().getFullYear());
+            const lastMonth = new Date().getMonth() === 0 ? 11 : new Date().getMonth() - 1;
+            const lastYear = new Date().getMonth() === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear();
+            const lastMonthExpense = getTotalExpense(lastMonth, lastYear);
+
+            if (lastMonthExpense === 0) {
+                return `You've spent ${formatCurrency(currentMonthExpense)} so far this month. Keep an eye on it!`;
+            }
+
+            const diff = currentMonthExpense - lastMonthExpense;
+            if (diff > 0) {
+                return `You've spent ${formatCurrency(currentMonthExpense)} this month. That's ${formatCurrency(diff)} more than last month. Slow down!`;
+            } else {
+                return `You've spent ${formatCurrency(currentMonthExpense)} this month. That's ${formatCurrency(Math.abs(diff))} less than last month. Great job saving!`;
+            }
+        }
+
+        // 2. Balance logic
+        if (l.includes('balance') || l.includes('left')) {
+            const balance = getBalance();
+            if (balance > 10000) return `Your overall balance is a healthy ${formatCurrency(balance)}. Looking good!`;
+            if (balance > 0) return `Your balance is ${formatCurrency(balance)}. A bit low, probably shouldn't splurge.`;
+            return `Your balance is ${formatCurrency(balance)}. You're currently operating at a deficit. Time to cut costs.`;
+        }
+
+        // 3. Afford logic
+        if (l.includes('afford')) {
+            const balance = getBalance();
+            return `Given your current total balance of ${formatCurrency(balance)}, technically maybe. But remember your long term savings goals! Use the "Budget & Goals" tab to plan better.`;
+        }
+
+        // 4. Default dynamic fallback
+        return `I track your ${transactions.length} transactions. Try asking me "How much have I spent this month?", or "What is my balance?".`;
     };
 
     const quickActions = [

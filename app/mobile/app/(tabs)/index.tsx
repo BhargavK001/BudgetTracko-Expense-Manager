@@ -10,6 +10,7 @@ import { useRouter } from 'expo-router';
 import { useTransactions, CATEGORY_ICONS, CATEGORY_COLORS, Category, mapCategoryIcon } from '@/context/TransactionContext';
 import { useAuth } from '@/context/AuthContext';
 import { useQuickAction } from '@/context/QuickActionContext';
+import { useSettings } from '@/context/SettingsContext';
 import Animated, {
   FadeInDown, FadeInUp, FadeIn, ZoomIn,
   useSharedValue, useAnimatedStyle,
@@ -18,13 +19,12 @@ import Animated, {
 } from 'react-native-reanimated';
 
 // ── Helpers ──────────────────────────────────────────────────
-function fmt(n: number): string {
-  return '₹' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+function fmt(n: number, formatCurrency: (n: number) => string): string {
+  return formatCurrency(Math.abs(n));
 }
-function fmtDate(iso: string): string {
-  const d = new Date(iso);
+function fmtDate(day: number, month: number): string {
   const m = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${d.getDate()} ${m[d.getMonth()]}`;
+  return `${day} ${m[month]}`;
 }
 function greeting(): string {
   const h = new Date().getHours();
@@ -77,6 +77,7 @@ export default function HomeScreen() {
   const { transactions, getTotalIncome, getTotalExpense, getBalance, getTotalBudget } = useTransactions();
   const { user } = useAuth();
   const { openModal } = useQuickAction();
+  const { formatCurrency } = useSettings();
   const [hidden, setHidden] = useState(false);
   const floatStyle = useFloat();
 
@@ -122,11 +123,11 @@ export default function HomeScreen() {
         <View style={styles.txMeta}>
           <Text style={styles.txCat}>{tx.category || 'General'}</Text>
           <Text style={styles.txDot}>·</Text>
-          <Text style={styles.txDate}>{fmtDate(tx.date)}</Text>
+          <Text style={styles.txDate}>{fmtDate(tx.day, tx.month)}</Text>
         </View>
       </View>
       <Text style={[styles.txAmt, { color: tx.type === 'income' ? '#2DCA72' : '#111' }]}>
-        {tx.type === 'income' ? '+' : '−'}{fmt(tx.amount)}
+        {tx.type === 'income' ? '+' : '−'}{formatCurrency(tx.amount)}
       </Text>
     </Animated.View>
   ), []);
@@ -180,7 +181,7 @@ export default function HomeScreen() {
               <View>
                 <Text style={styles.heroLabel}>Total Balance</Text>
                 <Animated.Text entering={ZoomIn.delay(300).duration(400)} style={styles.heroAmount}>
-                  {hidden ? '₹ ••••••' : fmt(balance)}
+                  {hidden ? `${formatCurrency(0).charAt(0)} ••••••` : fmt(balance, formatCurrency)}
                 </Animated.Text>
               </View>
               <TouchableOpacity onPress={toggleHidden}>
@@ -201,12 +202,12 @@ export default function HomeScreen() {
               <View style={styles.heroPillGreen}>
                 <MaterialCommunityIcons name="arrow-down-left" size={14} color="#2DCA72" />
                 <Text style={styles.heroPillGreenText}>Income</Text>
-                <Text style={styles.heroPillGreenAmt}>{hidden ? '••••' : fmt(income)}</Text>
+                <Text style={styles.heroPillGreenAmt}>{hidden ? '••••' : fmt(income, formatCurrency)}</Text>
               </View>
               <View style={styles.heroPillRed}>
                 <MaterialCommunityIcons name="arrow-up-right" size={14} color="#F43F5E" />
                 <Text style={styles.heroPillRedText}>Expense</Text>
-                <Text style={styles.heroPillRedAmt}>{hidden ? '••••' : fmt(expense)}</Text>
+                <Text style={styles.heroPillRedAmt}>{hidden ? '••••' : fmt(expense, formatCurrency)}</Text>
               </View>
             </Animated.View>
           </LinearGradient>
@@ -254,8 +255,8 @@ export default function HomeScreen() {
             }]} />
           </View>
           <View style={styles.paceFooter}>
-            <Text style={styles.paceSub}>Projected: {fmt(projectedExpense)}</Text>
-            <Text style={styles.paceSub}>Target: {fmt(spendTarget)}/mo</Text>
+            <Text style={styles.paceSub}>Projected: {fmt(projectedExpense, formatCurrency)}</Text>
+            <Text style={styles.paceSub}>Target: {fmt(spendTarget, formatCurrency)}/mo</Text>
           </View>
         </Animated.View>
 
