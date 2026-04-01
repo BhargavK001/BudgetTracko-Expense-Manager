@@ -28,7 +28,7 @@ type Bill = {
     autoPay: boolean;
 };
 
-export default function RecurringBillsScreen() {
+function RecurringBillsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
@@ -456,3 +456,5 @@ const styles = StyleSheet.create({
     },
     saveButtonText: { fontSize: 16, fontWeight: '900', color: '#FFFFFF' },
 });
+
+export default RecurringBillsScreen;

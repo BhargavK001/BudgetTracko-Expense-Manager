@@ -10,10 +10,23 @@ router.post('/login', authController.login);
 router.post('/forgotpassword', authController.forgotPassword);
 router.put('/resetpassword/:resettoken', authController.resetPassword);
 
-// Google Auth
+// Helper: parse state param (JSON or plain string)
+const parseOAuthState = (stateStr) => {
+    if (!stateStr) return { platform: 'web', redirect: null };
+    try {
+        return JSON.parse(stateStr);
+    } catch {
+        return { platform: stateStr, redirect: null };
+    }
+};
+
 // Google Auth
 router.get('/google', (req, res, next) => {
-    const state = req.query.state || 'web';
+    const stateObj = {
+        platform: req.query.state || 'web',
+        redirect: req.query.redirect || null,
+    };
+    const state = JSON.stringify(stateObj);
     passport.authenticate('google', { scope: ['profile', 'email'], state })(req, res, next);
 });
 
@@ -24,14 +37,16 @@ router.get(
         const token = generateToken(req.user);
         res.cookie('token', token, getCookieOptions());
 
-        // Handle mobile redirection
-        if (req.query.state === 'mobile' || req.cookies?.platform === 'mobile') {
+        const state = parseOAuthState(req.query.state);
+
+        if (state.platform === 'mobile' && state.redirect) {
             const userData = encodeURIComponent(JSON.stringify({
                 id: req.user._id,
                 displayName: req.user.displayName,
                 email: req.user.email
             }));
-            return res.redirect(`budgettracko://auth/callback?token=${token}&user=${userData}`);
+            const sep = state.redirect.includes('?') ? '&' : '?';
+            return res.redirect(`${state.redirect}${sep}token=${token}&user=${userData}`);
         }
 
         res.redirect(`${process.env.FRONTEND_URL}/auth/callback`);
@@ -39,9 +54,12 @@ router.get(
 );
 
 // GitHub Auth
-// GitHub Auth
 router.get('/github', (req, res, next) => {
-    const state = req.query.state || 'web';
+    const stateObj = {
+        platform: req.query.state || 'web',
+        redirect: req.query.redirect || null,
+    };
+    const state = JSON.stringify(stateObj);
     passport.authenticate('github', { scope: ['user:email'], state })(req, res, next);
 });
 
@@ -52,14 +70,16 @@ router.get(
         const token = generateToken(req.user);
         res.cookie('token', token, getCookieOptions());
 
-        // Handle mobile redirection
-        if (req.query.state === 'mobile' || req.cookies?.platform === 'mobile') {
+        const state = parseOAuthState(req.query.state);
+
+        if (state.platform === 'mobile' && state.redirect) {
             const userData = encodeURIComponent(JSON.stringify({
                 id: req.user._id,
                 displayName: req.user.displayName,
                 email: req.user.email
             }));
-            return res.redirect(`budgettracko://auth/callback?token=${token}&user=${userData}`);
+            const sep = state.redirect.includes('?') ? '&' : '?';
+            return res.redirect(`${state.redirect}${sep}token=${token}&user=${userData}`);
         }
 
         res.redirect(`${process.env.FRONTEND_URL}/auth/callback`);

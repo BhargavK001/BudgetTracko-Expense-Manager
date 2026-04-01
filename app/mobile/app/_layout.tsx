@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { QuickActionProvider } from '@/context/QuickActionContext';
 import { SecurityProvider } from '@/context/SecurityContext';
 import { SettingsProvider } from '@/context/SettingsContext';
+import { DebtProvider } from '@/context/DebtContext';
 import { AppState, AppStateStatus } from 'react-native';
 
 export {
@@ -98,8 +99,9 @@ function RootLayoutNav() {
 
   return (
     <SettingsProvider>
-      <TransactionProvider>
-        <QuickActionProvider>
+      <DebtProvider>
+        <TransactionProvider>
+          <QuickActionProvider>
           <SafeAreaProvider>
             <ThemeProvider value={CustomDarkTheme}>
               <View style={{ flex: 1, backgroundColor: '#fff' }}>
@@ -130,6 +132,7 @@ function RootLayoutNav() {
           </SafeAreaProvider>
         </QuickActionProvider>
       </TransactionProvider>
+      </DebtProvider>
     </SettingsProvider>
   );
 }

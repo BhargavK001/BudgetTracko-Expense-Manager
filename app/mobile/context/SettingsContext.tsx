@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 
 export type CurrencySymbol = '₹' | '$' | '€' | '£' | '¥';
 
@@ -7,12 +8,16 @@ interface SettingsContextType {
     currency: CurrencySymbol;
     setCurrency: (symbol: CurrencySymbol) => Promise<void>;
     formatCurrency: (amount: number, showDecimals?: boolean) => string;
+    hapticEnabled: boolean;
+    setHapticEnabled: (enabled: boolean) => Promise<void>;
+    triggerHaptic: (style?: Haptics.ImpactFeedbackStyle) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const [currency, setCurrencyState] = useState<CurrencySymbol>('₹');
+    const [hapticEnabled, setHapticEnabledState] = useState(true);
 
     useEffect(() => {
         const loadSettings = async () => {
@@ -20,6 +25,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                 const storedCurrency = await AsyncStorage.getItem('preferredCurrency');
                 if (storedCurrency) {
                     setCurrencyState(storedCurrency as CurrencySymbol);
+                }
+                const storedHaptic = await AsyncStorage.getItem('hapticEnabled');
+                if (storedHaptic !== null) {
+                    setHapticEnabledState(storedHaptic === 'true');
                 }
             } catch (error) {
                 console.error('Failed to load settings', error);
@@ -34,6 +43,21 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
             setCurrencyState(symbol);
         } catch (error) {
             console.error('Failed to save currency', error);
+        }
+    };
+
+    const setHapticEnabled = async (enabled: boolean) => {
+        try {
+            await AsyncStorage.setItem('hapticEnabled', String(enabled));
+            setHapticEnabledState(enabled);
+        } catch (error) {
+            console.error('Failed to save haptic settings', error);
+        }
+    };
+
+    const triggerHaptic = (style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Light) => {
+        if (hapticEnabled) {
+            Haptics.impactAsync(style);
         }
     };
 
@@ -56,7 +80,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <SettingsContext.Provider value={{ currency, setCurrency, formatCurrency }}>
+            <SettingsContext.Provider value={{ currency, setCurrency, formatCurrency, hapticEnabled, setHapticEnabled, triggerHaptic }}>
             {children}
         </SettingsContext.Provider>
     );

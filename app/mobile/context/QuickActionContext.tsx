@@ -41,41 +41,61 @@ export function QuickActionProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         // Set static quick actions (fallback if app.json config isn't picked up immediately)
-        QuickActions.setItems([
-            {
-                type: 'add_expense',
-                title: 'Add Expense',
-                subtitle: 'Record a new expense',
-                icon: 'add',
-                params: { type: 'expense' }
-            },
-            {
-                type: 'add_income',
-                title: 'Add Income',
-                subtitle: 'Record a new income',
-                icon: 'add',
-                params: { type: 'income' }
+        try {
+            if (typeof QuickActions.setItems === 'function') {
+                QuickActions.setItems([
+                    {
+                        id: 'add_expense',
+                        title: 'Add Expense',
+                        subtitle: 'Record a new expense',
+                        icon: 'add',
+                        params: { type: 'expense' }
+                    },
+                    {
+                        id: 'add_income',
+                        title: 'Add Income',
+                        subtitle: 'Record a new income',
+                        icon: 'add',
+                        params: { type: 'income' }
+                    }
+                ]);
             }
-        ]);
+        } catch (e) {
+            console.warn('QuickActions.setItems failed:', e);
+        }
 
-        const subscription = QuickActions.addListener((action) => {
-            if (action.type === 'add_expense') {
-                openModal('expense');
-            } else if (action.type === 'add_income') {
-                openModal('income');
+        let subscription: { remove: () => void } | undefined;
+        try {
+            if (typeof QuickActions.addListener === 'function') {
+                subscription = QuickActions.addListener((action) => {
+                    if (action.id === 'add_expense') {
+                        openModal('expense');
+                    } else if (action.id === 'add_income') {
+                        openModal('income');
+                    }
+                });
             }
-        });
+        } catch (e) {
+            console.warn('QuickActions.addListener failed:', e);
+        }
 
         // Handle initial action if app was opened via quick action
-        QuickActions.getInitialAction().then((action) => {
-            if (action?.type === 'add_expense') {
+        try {
+            const initialAction = QuickActions.initial;
+            if (initialAction?.id === 'add_expense') {
                 openModal('expense');
-            } else if (action?.type === 'add_income') {
+            } else if (initialAction?.id === 'add_income') {
                 openModal('income');
             }
-        });
+        } catch (e) {
+            console.warn('Handling QuickActions.initial failed:', e);
+        }
 
-        return () => subscription.remove();
+        return () => {
+            if (subscription && typeof subscription.remove === 'function') {
+                subscription.remove();
+            }
+        };
     }, [openModal]);
 
     return (

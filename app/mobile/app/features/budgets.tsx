@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTransactions, EXPENSE_CATEGORIES, CATEGORY_ICONS, CATEGORY_COLORS, Category } from '@/context/TransactionContext';
 import { useSettings } from '@/context/SettingsContext';
+import Animated, { FadeIn, FadeInDown, Layout } from 'react-native-reanimated';
 
 const PERIODS = [
     { key: 'weekly', label: 'Weekly', icon: 'calendar-outline' },
@@ -27,7 +28,7 @@ export default function BudgetsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { budgets, addBudget, updateBudget, deleteBudget, getCategoryBreakdown } = useTransactions();
-    const { formatCurrency } = useSettings();
+    const { formatCurrency, triggerHaptic } = useSettings();
 
     const [activePeriod, setActivePeriod] = useState('monthly');
     const [showForm, setShowForm] = useState(false);
@@ -67,6 +68,7 @@ export default function BudgetsScreen() {
     };
 
     const handleSave = async () => {
+        triggerHaptic();
         if (!formCategory || !formAmount) return;
 
         try {
@@ -96,6 +98,7 @@ export default function BudgetsScreen() {
                 text: 'Delete',
                 style: 'destructive',
                 onPress: async () => {
+                    triggerHaptic();
                     try {
                         await deleteBudget(id);
                     } catch (e: any) {

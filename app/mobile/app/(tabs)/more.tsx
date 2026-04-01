@@ -113,37 +113,7 @@ export default function MoreScreen() {
     if (item.route) router.push(item.route as any);
   }, [router]);
 
-  const handleExportCSV = useCallback(async () => {
-    Alert.alert('Export CSV', 'Your transactions will be exported as a CSV spreadsheet.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Export', onPress: async () => {
-          try {
-            const token = (await import('@react-native-async-storage/async-storage')).default;
-            const storedToken = await token.getItem('token');
-            const fileUri = FileSystem.documentDirectory + `budgettracko_export_${new Date().toISOString().split('T')[0]}.csv`;
-            const downloadResult = await FileSystem.downloadAsync(
-              `${API_BASE_URL}/api/user/export/csv`,
-              fileUri,
-              { headers: { Authorization: `Bearer ${storedToken}` } }
-            );
-            if (downloadResult.status === 200) {
-              const canShare = await Sharing.isAvailableAsync();
-              if (canShare) {
-                await Sharing.shareAsync(downloadResult.uri, { mimeType: 'text/csv', dialogTitle: 'Export Transactions' });
-              } else {
-                Alert.alert('Success', `CSV saved to ${downloadResult.uri}`);
-              }
-            } else {
-              Alert.alert('Error', 'Failed to download CSV.');
-            }
-          } catch (e: any) {
-            Alert.alert('Error', e.message || 'Export failed.');
-          }
-        }
-      },
-    ]);
-  }, []);
+
 
   const handleClearData = useCallback(() => {
     Alert.alert(
@@ -238,12 +208,13 @@ export default function MoreScreen() {
       items: [
         { icon: 'pie-chart-outline', label: 'Budgets', subtitle: 'Track spending limits', color: '#10B981', route: '/features/budgets' },
         { icon: 'calendar-outline', label: 'Recurring Bills', subtitle: 'Subscriptions & more', color: '#EC4899', route: '/features/recurring-bills', badge: recurringCount },
+        { icon: 'people-outline', label: 'Debts & Loans', subtitle: 'Track who owes you and what you owe', color: '#8B5CF6', route: '/features/debts' },
       ],
     },
     {
       title: 'Data', delay: 400,
       items: [
-        { icon: 'document-text-outline', label: 'Export CSV', subtitle: 'Spreadsheet compatible', color: '#06B6D4', onPress: handleExportCSV },
+        { icon: 'document-text-outline', label: 'Export Data', subtitle: 'CSV & PDF Reports', color: '#06B6D4', route: '/features/export' },
         { icon: 'trash-outline', label: 'Clear All Data', subtitle: 'Delete all transactions & budgets', color: '#F43F5E', danger: true, onPress: handleClearData },
       ],
     },
@@ -261,7 +232,7 @@ export default function MoreScreen() {
         { icon: 'person-remove-outline', label: 'Delete Account', subtitle: 'Permanently delete your account & data', color: '#EF4444', danger: true, onPress: handleDeleteAccount },
       ],
     },
-  ], [darkModeEnabled, notificationsEnabled, handleExportCSV, handleClearData, handleDeleteAccount]);
+  ], [darkModeEnabled, notificationsEnabled, handleClearData, handleDeleteAccount]);
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>

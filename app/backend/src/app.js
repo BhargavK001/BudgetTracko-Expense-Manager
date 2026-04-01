@@ -77,8 +77,8 @@ app.use(cors({
 }));
 
 app.use(cookieParser()); // Parse cookies
-app.use(express.json({ limit: '1mb' })); // Parse JSON with size limit
-app.use(express.urlencoded({ extended: true, limit: '1mb' })); // Parse form data with size limit
+app.use(express.json({ limit: '10mb' })); // Parse JSON with size limit
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Parse form data with size limit
 
 // ─── Input Sanitization (Express 5 compatible) ───
 // Recursively strip keys starting with '$' or containing '.' (MongoDB injection)

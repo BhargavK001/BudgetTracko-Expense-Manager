@@ -74,33 +74,33 @@ export default function HelpSupportScreen() {
                     {FAQS.map((faq, idx) => {
                         const isOpen = openId === idx;
                         return (
-                            <Animated.View
-                                key={idx}
-                                entering={FadeInDown.delay(150 + idx * 50).duration(300)}
-                                layout={Layout.springify().damping(18)}
-                                style={[styles.faqItem, isOpen && styles.faqOpenItem]}
-                            >
-                                <TouchableOpacity
-                                    style={styles.faqHeader}
-                                    activeOpacity={0.6}
-                                    onPress={() => setOpenId(isOpen ? null : idx)}
+                            <Animated.View key={idx} layout={Layout.springify().damping(18)}>
+                                <Animated.View
+                                    entering={FadeInDown.delay(150 + idx * 50).duration(300)}
+                                    style={[styles.faqItem, isOpen && styles.faqOpenItem]}
                                 >
-                                    <Text style={[styles.faqQ, isOpen && { color: '#06B6D4' }]}>{faq.q}</Text>
-                                    <View style={[styles.faqIcon, isOpen && styles.faqIconOpen]}>
-                                        <Ionicons
-                                            name="chevron-down"
-                                            size={16}
-                                            color={isOpen ? '#06B6D4' : DarkTheme.textMuted}
-                                            style={{ transform: [{ rotate: isOpen ? '180deg' : '0deg' }] }}
-                                        />
-                                    </View>
-                                </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={styles.faqHeader}
+                                        activeOpacity={0.6}
+                                        onPress={() => setOpenId(isOpen ? null : idx)}
+                                    >
+                                        <Text style={[styles.faqQ, isOpen && { color: '#06B6D4' }]}>{faq.q}</Text>
+                                        <View style={[styles.faqIcon, isOpen && styles.faqIconOpen]}>
+                                            <Ionicons
+                                                name="chevron-down"
+                                                size={16}
+                                                color={isOpen ? '#06B6D4' : DarkTheme.textMuted}
+                                                style={{ transform: [{ rotate: isOpen ? '180deg' : '0deg' }] }}
+                                            />
+                                        </View>
+                                    </TouchableOpacity>
 
-                                {isOpen && (
-                                    <Animated.Text entering={FadeInDown.duration(200)} style={styles.faqA}>
-                                        {faq.a}
-                                    </Animated.Text>
-                                )}
+                                    {isOpen && (
+                                        <Animated.Text entering={FadeInDown.duration(200)} style={styles.faqA}>
+                                            {faq.a}
+                                        </Animated.Text>
+                                    )}
+                                </Animated.View>
                             </Animated.View>
                         );
                     })}

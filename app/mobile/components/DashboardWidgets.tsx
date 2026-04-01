@@ -86,6 +86,8 @@ export const SpendingVelocityWidget = React.memo(({
   projected,
   target,
 }: {
+  percent: number;
+  projected: number;
   target: number;
 }) => {
   const { width } = useWindowDimensions();

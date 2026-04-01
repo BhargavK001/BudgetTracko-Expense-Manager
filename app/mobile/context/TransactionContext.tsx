@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '@/services/api';
+import { useAuth } from './AuthContext';
 
 // ─── Types ───────────────────────────────────────────────
 export type TransactionType = 'income' | 'expense' | 'transfer';
@@ -186,6 +187,7 @@ function normalizeTransaction(tx: any): Transaction {
 
 // ─── Provider ────────────────────────────────────────────
 export function TransactionProvider({ children }: { children: React.ReactNode }) {
+    const { isAuthenticated } = useAuth();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [budgets, setBudgets] = useState<Budget[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -221,9 +223,15 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     }, []);
 
     useEffect(() => {
-        refreshTransactions();
-        refreshBudgets();
-    }, [refreshTransactions, refreshBudgets]);
+        if (isAuthenticated) {
+            refreshTransactions();
+            refreshBudgets();
+        } else {
+            setTransactions([]);
+            setBudgets([]);
+            setIsLoading(false);
+        }
+    }, [isAuthenticated, refreshTransactions, refreshBudgets]);
 
     const addTransaction = useCallback(async (tx: Omit<Transaction, 'id'>) => {
         // The AddTransactionModal now handles the API call directly.

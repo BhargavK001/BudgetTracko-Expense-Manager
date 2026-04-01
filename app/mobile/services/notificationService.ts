@@ -1,18 +1,43 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-// ── Configuration ──
-Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-        shouldShowBanner: true,
-        shouldShowList: true
-    }),
-});
+type NotificationsModule = typeof import('expo-notifications');
+
+const isExpoGoAndroid = Constants.appOwnership === 'expo' && Platform.OS === 'android';
+let notificationsModule: NotificationsModule | null = null;
+
+const getNotificationsModule = async () => {
+    if (isExpoGoAndroid) {
+        return null;
+    }
+
+    if (!notificationsModule) {
+        const Notifications = await import('expo-notifications');
+        Notifications.setNotificationHandler({
+            handleNotification: async () => ({
+                shouldShowAlert: true,
+                shouldPlaySound: true,
+                shouldSetBadge: false,
+                shouldShowBanner: true,
+                shouldShowList: true,
+            }),
+        });
+        notificationsModule = Notifications;
+    }
+
+    return notificationsModule;
+};
 
 export const requestNotificationPermissions = async () => {
+    if (isExpoGoAndroid) {
+        // Remote push notifications are not supported in Expo Go on Android SDK 53+
+        console.warn('Push notifications are not supported in Expo Go on Android. Use a development build.');
+        return false;
+    }
+
+    const Notifications = await getNotificationsModule();
+    if (!Notifications) return false;
+
     let { status } = await Notifications.getPermissionsAsync();
 
     if (status !== 'granted') {
@@ -25,6 +50,12 @@ export const requestNotificationPermissions = async () => {
 
 export const scheduleRecurringBillReminder = async (billName: string, amount: number, dueDate: Date, currencySymbol: string = '₹') => {
     try {
+        const Notifications = await getNotificationsModule();
+        if (!Notifications) {
+            console.warn('Notifications unavailable in this runtime. Skipping reminder scheduling.');
+            return null;
+        }
+
         const hasPermission = await requestNotificationPermissions();
         if (!hasPermission) return null;
 
@@ -60,6 +91,9 @@ export const scheduleRecurringBillReminder = async (billName: string, amount: nu
 
 export const cancelNotification = async (notificationId: string) => {
     try {
+        const Notifications = await getNotificationsModule();
+        if (!Notifications) return;
+
         await Notifications.cancelScheduledNotificationAsync(notificationId);
     } catch (error) {
         console.error('Failed to cancel notification:', error);
@@ -68,6 +102,9 @@ export const cancelNotification = async (notificationId: string) => {
 
 export const cancelAllNotifications = async () => {
     try {
+        const Notifications = await getNotificationsModule();
+        if (!Notifications) return;
+
         await Notifications.cancelAllScheduledNotificationsAsync();
     } catch (error) {
         console.error('Failed to cancel all notifications:', error);
