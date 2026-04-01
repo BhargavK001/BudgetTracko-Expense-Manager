@@ -7,12 +7,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
 import Animated, { FadeInDown, FadeIn, ZoomIn } from 'react-native-reanimated';
+import { useSettings } from '@/context/SettingsContext';
 
 const PLANS = [
     {
         id: 'free',
         name: 'Basic',
-        price: 'Free',
+        price: 0,
         period: 'forever',
         desc: 'Essential tracking for everyday needs.',
         features: [
@@ -26,7 +27,7 @@ const PLANS = [
     {
         id: 'pro',
         name: 'Pro',
-        price: '₹49',
+        price: 49,
         period: '/month',
         desc: 'Advanced tools for serious savers.',
         features: [
@@ -41,7 +42,7 @@ const PLANS = [
     {
         id: 'squad',
         name: 'Squad',
-        price: '₹99',
+        price: 99,
         period: '/month',
         desc: 'Team plan for families & groups.',
         features: [
@@ -60,6 +61,7 @@ export default function PremiumScreen() {
     const { width } = useWindowDimensions();
 
     const { user, refreshUser } = useAuth();
+    const { formatCurrency } = useSettings();
 
     const isCompact = width < 360;
     const isTablet = width >= 768;
@@ -183,7 +185,9 @@ export default function PremiumScreen() {
                                                 </View>
                                                 <View style={styles.priceRow}>
                                                     <View style={styles.priceWrap}>
-                                                        <Text style={[styles.planPrice, plan.isPopular && { color: '#fff' }]}>{plan.price}</Text>
+                                                        <Text style={[styles.planPrice, plan.isPopular && { color: '#fff' }]}>
+                                                            {plan.price === 0 ? 'Free' : formatCurrency(plan.price as number)}
+                                                        </Text>
                                                         <Text style={[styles.planPeriod, plan.isPopular && { color: 'rgba(255,255,255,0.5)' }]}>{plan.period}</Text>
                                                     </View>
                                                     <View style={[

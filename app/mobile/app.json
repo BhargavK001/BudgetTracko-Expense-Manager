@@ -38,7 +38,26 @@
     },
     "plugins": [
       "expo-router",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow BudgetTracko to use your camera to scan bills."
+        }
+      ],
+      [
+        "expo-quick-actions",
+        {
+          "androidIcons": {
+            "add_expense": {
+              "foregroundImage": "./assets/images/logo512.png"
+            },
+            "add_income": {
+              "foregroundImage": "./assets/images/logo512.png"
+            }
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

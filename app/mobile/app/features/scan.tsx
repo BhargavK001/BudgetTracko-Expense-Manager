@@ -1,11 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, StatusBar,
-    Image, ActivityIndicator, Alert, ScrollView, Platform,
+    Image, ActivityIndicator, Alert, ScrollView,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import Animated, {
     FadeIn, FadeInDown, FadeInUp,
     useSharedValue, useAnimatedStyle,
@@ -19,6 +20,8 @@ import {
     formatLineItemsAsNotes, BillParseResult,
 } from '@/services/ocrService';
 import { useQuickAction, ScanData } from '@/context/QuickActionContext';
+import { useSettings } from '@/context/SettingsContext';
+import { compressImage } from '@/utils/imageCompressor';
 
 type ScanPhase = 'idle' | 'processing' | 'result';
 
@@ -26,18 +29,22 @@ export default function ScanScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { openModal } = useQuickAction();
+    const cameraRef = useRef<CameraView | null>(null);
+    const [permission, requestPermission] = useCameraPermissions();
 
     const [phase, setPhase] = useState<ScanPhase>('idle');
     const [capturedUri, setCapturedUri] = useState<string | null>(null);
     const [ocrResult, setOcrResult] = useState<BillParseResult | null>(null);
+    const { formatCurrency } = useSettings();
     const [processingText, setProcessingText] = useState('Analyzing bill…');
+    const [flashEnabled, setFlashEnabled] = useState(false);
 
     // Scan line animation for idle state
     const scanLineY = useSharedValue(0);
     React.useEffect(() => {
         scanLineY.value = withRepeat(
             withSequence(
-                withTiming(260, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
+                withTiming(320, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
                 withTiming(0, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
             ), -1, false,
         );
@@ -48,19 +55,32 @@ export default function ScanScreen() {
 
     // ── Capture / Pick ──────────────────────────────────────
     const captureFromCamera = useCallback(async () => {
-        const { status } = await ImagePicker.requestCameraPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert('Permission Denied', 'Camera access is required to scan bills.');
+        if (!permission?.granted) {
+            const res = await requestPermission();
+            if (!res.granted) {
+                Alert.alert('Permission Denied', 'Camera access is required to scan bills.');
+                return;
+            }
+        }
+
+        if (!cameraRef.current) {
+            Alert.alert('Camera not ready', 'Please wait a moment and try again.');
             return;
         }
-        const result = await ImagePicker.launchCameraAsync({
-            quality: 0.85,
-            allowsEditing: false,
-        });
-        if (!result.canceled && result.assets?.[0]) {
-            processImage(result.assets[0].uri);
+
+        try {
+            const photo = await cameraRef.current.takePictureAsync({
+                quality: 0.85,
+                skipProcessing: false,
+            });
+            if (photo?.uri) {
+                const compressedUri = await compressImage(photo.uri);
+                processImage(compressedUri);
+            }
+        } catch {
+            Alert.alert('Capture failed', 'Could not capture image. Please try again.');
         }
-    }, []);
+    }, [permission?.granted, requestPermission]);
 
     const pickFromGallery = useCallback(async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -73,7 +93,8 @@ export default function ScanScreen() {
             allowsEditing: false,
         });
         if (!result.canceled && result.assets?.[0]) {
-            processImage(result.assets[0].uri);
+            const compressedUri = await compressImage(result.assets[0].uri);
+            processImage(compressedUri);
         }
     }, []);
 
@@ -103,8 +124,9 @@ export default function ScanScreen() {
         const scan: ScanData = {
             title: ocrResult.merchantName || '',
             amount: ocrResult.totalAmount > 0 ? String(ocrResult.totalAmount) : '',
-            notes: formatLineItemsAsNotes(ocrResult.lineItems),
+            notes: formatLineItemsAsNotes(ocrResult.lineItems, formatCurrency(0).charAt(0)),
             date: ocrResult.date || new Date(),
+            category: ocrResult.detectedCategory,
             attachments: [capturedUri],
         };
 
@@ -121,51 +143,65 @@ export default function ScanScreen() {
     // ── Render: Idle ────────────────────────────────────────
     const renderIdle = () => (
         <>
-            {/* Camera Preview Placeholder */}
-            <View style={styles.cameraPlaceholder}>
-                <LinearGradient
-                    colors={['rgba(0,0,0,0.3)', 'transparent', 'rgba(0,0,0,0.7)']}
-                    style={StyleSheet.absoluteFill}
-                />
-                <View style={styles.scanFrameContainer}>
-                    <View style={styles.scanFrame}>
-                        <View style={[styles.bracket, styles.topLeft]} />
-                        <View style={[styles.bracket, styles.topRight]} />
-                        <View style={[styles.bracket, styles.bottomLeft]} />
-                        <View style={[styles.bracket, styles.bottomRight]} />
-                        <Animated.View style={[styles.scanLine, scanLineStyle]} />
+            <View style={styles.cameraShell}>
+                {permission?.granted ? (
+                    <CameraView
+                        ref={cameraRef}
+                        style={StyleSheet.absoluteFillObject}
+                        facing="back"
+                        enableTorch={flashEnabled}
+                    />
+                ) : (
+                    <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#000' }]} />
+                )}
+
+                <View style={styles.scanMaskWrap} pointerEvents="none">
+                    <View style={styles.maskTop} />
+                    <View style={styles.maskCenterRow}>
+                        <View style={styles.maskSide} />
+                        <View style={styles.scanFrame}>
+                            <View style={[styles.bracket, styles.topLeft]} />
+                            <View style={[styles.bracket, styles.topRight]} />
+                            <View style={[styles.bracket, styles.bottomLeft]} />
+                            <View style={[styles.bracket, styles.bottomRight]} />
+                            <Animated.View style={[styles.scanLine, scanLineStyle]} />
+                            <View style={styles.receiptIconBadge}>
+                                <MaterialCommunityIcons name="receipt-text" size={24} color="#2DCA72" />
+                            </View>
+                        </View>
+                        <View style={styles.maskSide} />
+                    </View>
+                    <View style={styles.maskBottom}>
+                        <Animated.View entering={FadeIn.delay(250)} style={styles.overlayTextContainer}>
+                            <Text style={styles.overlayTitle}>Scan Your Bill</Text>
+                            <Text style={styles.overlaySubTitle}>
+                                Take a photo or pick from gallery to{'\n'}auto-extract expense details
+                            </Text>
+                        </Animated.View>
                     </View>
                 </View>
-
-                <Animated.View entering={FadeIn.delay(500)} style={styles.overlayTextContainer}>
-                    <MaterialCommunityIcons name="receipt-text-outline" size={32} color="#2DCA72" style={{ marginBottom: 12 }} />
-                    <Text style={styles.overlayTitle}>Scan Your Bill</Text>
-                    <Text style={styles.overlaySubTitle}>
-                        Take a photo or pick from gallery to auto-extract expense details
-                    </Text>
-                </Animated.View>
             </View>
 
             {/* Bottom Controls */}
             <Animated.View entering={FadeInDown.delay(300)} style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
                 <TouchableOpacity style={styles.controlBtn} onPress={pickFromGallery}>
                     <View style={styles.controlIconWrap}>
-                        <MaterialCommunityIcons name="image-outline" size={22} color="#fff" />
+                        <MaterialCommunityIcons name="image-outline" size={24} color="#111" />
                     </View>
                     <Text style={styles.controlText}>Gallery</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.mainScanBtn} onPress={captureFromCamera} activeOpacity={0.85}>
                     <View style={styles.mainScanBtnInner}>
-                        <MaterialCommunityIcons name="camera" size={30} color="#111" />
+                        <MaterialCommunityIcons name="camera" size={32} color="#fff" />
                     </View>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.controlBtn} onPress={captureFromCamera}>
-                    <View style={styles.controlIconWrap}>
-                        <MaterialCommunityIcons name="flashlight" size={22} color="#fff" />
+                <TouchableOpacity style={styles.controlBtn} onPress={() => setFlashEnabled(prev => !prev)}>
+                    <View style={[styles.controlIconWrap, flashEnabled && { backgroundColor: 'rgba(245,158,11,0.15)' }]}>
+                        <MaterialCommunityIcons name={flashEnabled ? 'flashlight' : 'flashlight-off'} size={24} color={flashEnabled ? '#F59E0B' : '#111'} />
                     </View>
-                    <Text style={styles.controlText}>Flash</Text>
+                    <Text style={[styles.controlText, flashEnabled && { color: '#F59E0B' }]}>Flash</Text>
                 </TouchableOpacity>
             </Animated.View>
         </>
@@ -227,7 +263,7 @@ export default function ScanScreen() {
                         <Text style={styles.resultLabel}>Total Amount</Text>
                     </View>
                     <Text style={[styles.resultValue, styles.resultAmount]}>
-                        ₹{ocrResult?.totalAmount?.toFixed(2) || '0.00'}
+                        {formatCurrency(ocrResult?.totalAmount || 0)}
                     </Text>
                 </View>
 
@@ -244,6 +280,22 @@ export default function ScanScreen() {
                             : 'Today'}
                     </Text>
                 </View>
+
+                {ocrResult?.detectedCategory && (
+                    <>
+                        <View style={styles.resultDivider} />
+                        <View style={styles.resultRow}>
+                            <View style={styles.resultLabelWrap}>
+                                <Ionicons name="pricetag-outline" size={16} color="#8E8E93" />
+                                <Text style={styles.resultLabel}>Category</Text>
+                            </View>
+                            <Text style={[styles.resultValue, { color: '#06B6D4' }]}>
+                                {ocrResult.detectedCategory}
+                            </Text>
+                        </View>
+                    </>
+                )}
+
             </Animated.View>
 
             {/* Line Items */}
@@ -253,7 +305,7 @@ export default function ScanScreen() {
                     {ocrResult.lineItems.map((item, i) => (
                         <View key={i} style={[styles.itemRow, i > 0 && { borderTopWidth: 1, borderTopColor: '#F2F2F7' }]}>
                             <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-                            <Text style={styles.itemPrice}>₹{item.price.toFixed(2)}</Text>
+                            <Text style={styles.itemPrice}>{formatCurrency(item.price)}</Text>
                         </View>
                     ))}
                 </Animated.View>
@@ -262,7 +314,7 @@ export default function ScanScreen() {
             {/* Actions */}
             <Animated.View entering={FadeInDown.delay(400)} style={styles.resultActions}>
                 <TouchableOpacity style={styles.useBtn} onPress={useResult} activeOpacity={0.85}>
-                    <LinearGradient colors={['#111', '#1a1a2e']} style={styles.useBtnGradient}>
+                    <LinearGradient colors={['#6366F1', '#4F46E5']} style={styles.useBtnGradient}>
                         <Ionicons name="add-circle-outline" size={20} color="#fff" />
                         <Text style={styles.useBtnText}>Add as Expense</Text>
                     </LinearGradient>
@@ -279,6 +331,19 @@ export default function ScanScreen() {
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" />
+
+            {permission && !permission.granted && phase === 'idle' && (
+                <View style={styles.permissionCardWrap}>
+                    <View style={styles.permissionCard}>
+                        <MaterialCommunityIcons name="camera-lock-outline" size={26} color="#2DCA72" />
+                        <Text style={styles.permissionTitle}>Camera Permission Needed</Text>
+                        <Text style={styles.permissionSub}>Allow camera access to scan bills directly from this screen.</Text>
+                        <TouchableOpacity style={styles.permissionBtn} onPress={requestPermission}>
+                            <Text style={styles.permissionBtnText}>Enable Camera</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
 
             {/* Header */}
             <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
@@ -302,25 +367,40 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#000' },
     header: {
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
         paddingHorizontal: 20,
     },
     backButton: {
+        position: 'absolute', left: 20,
         width: 44, height: 44, borderRadius: 22,
         backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center',
     },
-    headerTitle: { fontSize: 16, fontWeight: '800', color: '#fff' },
+    headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
 
     // ── Idle ──
-    cameraPlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    scanFrameContainer: { width: 280, height: 280, position: 'relative' },
+    cameraShell: { flex: 1 },
+    scanMaskWrap: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+    },
+    maskTop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)' },
+    maskCenterRow: { height: 320, flexDirection: 'row' },
+    maskSide: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)' },
+    maskBottom: { flex: 1.2, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', paddingTop: 60 },
     scanFrame: {
-        flex: 1, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
-        position: 'relative', overflow: 'hidden',
+        width: 320, height: 320,
+        position: 'relative', overflow: 'visible',
     },
     bracket: {
-        position: 'absolute', width: 28, height: 28,
-        borderColor: '#2DCA72', borderTopWidth: 4, borderLeftWidth: 4,
+        position: 'absolute', width: 36, height: 36,
+        borderColor: '#2DCA72', borderTopWidth: 5, borderLeftWidth: 5,
+    },
+    receiptIconBadge: {
+        position: 'absolute', bottom: -18, alignSelf: 'center', left: '50%',
+        marginLeft: -13, // center offset for icon
+        justifyContent: 'center', alignItems: 'center',
+        backgroundColor: '#000', borderRadius: 4,
+        paddingHorizontal: 4,
     },
     topLeft: { top: 0, left: 0 },
     topRight: { top: 0, right: 0, transform: [{ rotate: '90deg' }] },
@@ -329,98 +409,132 @@ const styles = StyleSheet.create({
     scanLine: {
         height: 2, backgroundColor: '#2DCA72', width: '100%',
         shadowColor: '#2DCA72', shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.8, shadowRadius: 10,
+        shadowOpacity: 1, shadowRadius: 8, elevation: 4,
     },
     overlayTextContainer: {
-        position: 'absolute', top: '68%', alignItems: 'center', width: '100%', paddingHorizontal: 40,
+        alignItems: 'center', width: '100%', paddingHorizontal: 40,
     },
-    overlayTitle: { fontSize: 22, fontWeight: '900', color: '#fff', marginBottom: 8 },
-    overlaySubTitle: { fontSize: 14, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 20 },
+    overlayTitle: { fontSize: 24, fontWeight: '900', color: '#fff', marginBottom: 12 },
+    overlaySubTitle: { fontSize: 15, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 22 },
 
     footer: {
         position: 'absolute', bottom: 0, left: 0, right: 0,
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around',
-        paddingHorizontal: 20,
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 36, borderTopRightRadius: 36,
+        paddingTop: 30,
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        paddingHorizontal: 40,
+        shadowColor: '#000', shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.05, shadowRadius: 20, elevation: 15,
     },
-    controlBtn: { alignItems: 'center', gap: 6 },
+    controlBtn: { alignItems: 'center', gap: 10, width: 70 },
     controlIconWrap: {
-        width: 48, height: 48, borderRadius: 24,
-        backgroundColor: 'rgba(255,255,255,0.12)',
+        width: 58, height: 58, borderRadius: 29,
+        backgroundColor: '#F2F2F7',
         justifyContent: 'center', alignItems: 'center',
     },
-    controlText: { fontSize: 11, color: '#fff', fontWeight: '600' },
+    controlText: { fontSize: 13, color: '#8E8E93', fontWeight: '700' },
     mainScanBtn: {
-        width: 76, height: 76, borderRadius: 38,
-        backgroundColor: 'rgba(255,255,255,0.2)', padding: 6,
+        width: 90, height: 90, borderRadius: 45,
+        backgroundColor: '#F9F9FB', padding: 8,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1, shadowRadius: 10, elevation: 5,
     },
     mainScanBtnInner: {
-        flex: 1, borderRadius: 32, backgroundColor: '#fff',
+        flex: 1, borderRadius: 40, backgroundColor: '#6366F1',
         justifyContent: 'center', alignItems: 'center',
     },
+    permissionCardWrap: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 30,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        backgroundColor: '#F9F9FB',
+    },
+    permissionCard: {
+        width: '100%',
+        maxWidth: 360,
+        borderRadius: 24,
+        backgroundColor: '#fff',
+        padding: 30,
+        alignItems: 'center',
+        shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.08, shadowRadius: 16, elevation: 5,
+    },
+    permissionTitle: { fontSize: 20, fontWeight: '800', color: '#111', marginTop: 16, marginBottom: 8, textAlign: 'center' },
+    permissionSub: { fontSize: 15, color: '#666', textAlign: 'center', marginBottom: 24, lineHeight: 22 },
+    permissionBtn: {
+        backgroundColor: '#6366F1', paddingVertical: 14, paddingHorizontal: 30,
+        borderRadius: 16, width: '100%', alignItems: 'center',
+    },
+    permissionBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 
     // ── Processing ──
-    processingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    processingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9F9FB' },
     previewWrap: { ...StyleSheet.absoluteFillObject },
     previewImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-    previewOverlay: { ...StyleSheet.absoluteFillObject },
+    previewOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.7)' },
     processingCard: {
-        backgroundColor: 'rgba(0,0,0,0.85)', borderRadius: 24, padding: 36,
-        alignItems: 'center', gap: 14, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: '#fff', borderRadius: 24, padding: 36,
+        alignItems: 'center', gap: 16,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.08, shadowRadius: 24, elevation: 10,
     },
-    processingTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
-    processingSub: { fontSize: 13, color: 'rgba(255,255,255,0.5)' },
+    processingTitle: { fontSize: 18, fontWeight: '800', color: '#111', marginTop: 8 },
+    processingSub: { fontSize: 14, color: '#8E8E93' },
 
     // ── Result ──
     resultScroll: { flex: 1, backgroundColor: '#F9F9FB', marginTop: 90 },
     resultImageWrap: {
-        width: '100%', height: 200, borderRadius: 16, overflow: 'hidden',
-        marginBottom: 16, backgroundColor: '#E5E5EA',
+        width: '100%', height: 220, borderRadius: 20, overflow: 'hidden',
+        marginBottom: 20, backgroundColor: '#E5E5EA',
     },
     resultImage: { width: '100%', height: '100%', resizeMode: 'cover' },
     resultImageBadge: {
-        position: 'absolute', top: 12, right: 12,
-        flexDirection: 'row', alignItems: 'center', gap: 4,
-        backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 10, paddingVertical: 5,
-        borderRadius: 12,
+        position: 'absolute', top: 16, right: 16,
+        flexDirection: 'row', alignItems: 'center', gap: 6,
+        backgroundColor: '#fff', paddingHorizontal: 12, paddingVertical: 8,
+        borderRadius: 16, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10,
     },
-    resultImageBadgeText: { color: '#2DCA72', fontSize: 11, fontWeight: '700' },
+    resultImageBadgeText: { color: '#111', fontSize: 13, fontWeight: '800' },
 
     resultCard: {
-        backgroundColor: '#fff', borderRadius: 16, padding: 18,
-        marginBottom: 14,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
+        backgroundColor: '#fff', borderRadius: 24, padding: 24,
+        marginBottom: 16,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.04, shadowRadius: 12, elevation: 2,
     },
-    resultCardTitle: { fontSize: 15, fontWeight: '800', color: '#111', marginBottom: 16 },
+    resultCardTitle: { fontSize: 16, fontWeight: '800', color: '#111', marginBottom: 18, letterSpacing: 0.5 },
     resultRow: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        paddingVertical: 8,
+        paddingVertical: 12,
     },
-    resultLabelWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    resultLabel: { fontSize: 14, color: '#8E8E93', fontWeight: '600' },
-    resultValue: { fontSize: 14, fontWeight: '700', color: '#111' },
-    resultAmount: { fontSize: 18, fontWeight: '900', color: '#F43F5E' },
-    resultDivider: { height: 1, backgroundColor: '#F2F2F7' },
+    resultLabelWrap: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    resultLabel: { fontSize: 15, color: '#8E8E93', fontWeight: '600' },
+    resultValue: { fontSize: 15, fontWeight: '700', color: '#111' },
+    resultAmount: { fontSize: 20, fontWeight: '900', color: '#6366F1' },
+    resultCategory: { color: '#6366F1' },
+    resultDivider: { height: 1, backgroundColor: '#F2F2F7', marginVertical: 4 },
 
     itemRow: {
         flexDirection: 'row', justifyContent: 'space-between',
-        alignItems: 'center', paddingVertical: 10,
+        alignItems: 'center', paddingVertical: 12,
     },
-    itemName: { flex: 1, fontSize: 14, color: '#333', fontWeight: '500', marginRight: 12 },
-    itemPrice: { fontSize: 14, fontWeight: '700', color: '#111' },
+    itemName: { flex: 1, fontSize: 15, color: '#333', fontWeight: '500', marginRight: 15 },
+    itemPrice: { fontSize: 15, fontWeight: '800', color: '#111' },
 
-    resultActions: { gap: 12, marginTop: 4 },
-    useBtn: { borderRadius: 16, overflow: 'hidden' },
+    resultActions: { gap: 14, marginTop: 10, marginBottom: 20 },
+    useBtn: { borderRadius: 18, overflow: 'hidden' },
     useBtnGradient: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        gap: 8, paddingVertical: 16,
+        gap: 10, paddingVertical: 18,
     },
-    useBtnText: { fontSize: 16, fontWeight: '800', color: '#fff' },
+    useBtnText: { fontSize: 17, fontWeight: '800', color: '#fff' },
     retryBtn: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-        gap: 8, paddingVertical: 14,
-        backgroundColor: '#fff', borderRadius: 16,
-        borderWidth: 1, borderColor: '#E5E5EA',
+        gap: 10, paddingVertical: 18,
+        backgroundColor: '#F9F9FB', borderRadius: 18,
     },
-    retryBtnText: { fontSize: 15, fontWeight: '700', color: '#8E8E93' },
+    retryBtnText: { fontSize: 16, fontWeight: '700', color: '#666' },
 });

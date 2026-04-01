@@ -47,8 +47,9 @@ export default function Signup() {
         setLoading(true);
         setError('');
         try {
-            const authUrl = `${API_BASE_URL}/auth/${provider}?state=mobile`;
-            const result = await WebBrowser.openAuthSessionAsync(authUrl, 'budgettracko://auth/callback');
+            const redirectUrl = Linking.createURL('auth/callback');
+            const authUrl = `${API_BASE_URL}/auth/${provider}?state=mobile&redirect=${encodeURIComponent(redirectUrl)}`;
+            const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
 
             if (result.type === 'success' && result.url) {
                 const { queryParams } = Linking.parse(result.url);

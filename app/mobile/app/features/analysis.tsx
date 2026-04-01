@@ -6,7 +6,8 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useTransactions, Category, CATEGORY_COLORS, CATEGORY_ICONS } from '@/context/TransactionContext';
+import { useTransactions, Category, CATEGORY_COLORS, CATEGORY_ICONS, mapCategoryIcon } from '@/context/TransactionContext';
+import { useSettings } from '@/context/SettingsContext';
 import DonutChart from '@/components/DonutChart';
 import Svg, { Rect, G, Text as SvgText, Circle, Path, Line } from 'react-native-svg';
 import { useRouter } from 'expo-router';
@@ -26,16 +27,9 @@ const BUDGET_LIMITS: Record<string, number> = {
     Education: 10000, Other: 2000,
 };
 
-const MOCK_RECURRING_BILLS = [
-    { id: '1', name: 'Netflix', amount: 649, dueDate: 5, autoPay: true },
-    { id: '2', name: 'Electricity', amount: 2200, dueDate: 10, autoPay: false },
-    { id: '3', name: 'Internet', amount: 999, dueDate: 15, autoPay: true },
-    { id: '4', name: 'Phone Plan', amount: 599, dueDate: 20, autoPay: false },
-];
-
 // ── Helpers ──────────────────────────────────────────────────
-function fmt(n: number): string {
-    return '₹' + Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+function fmt(n: number, formatCurrency: (n: number) => string): string {
+    return formatCurrency(Math.abs(n));
 }
 
 function ordinal(n: number): string {
@@ -114,7 +108,7 @@ const DualBarChart = ({ data, height = 170 }: { data: { label: string; income: n
 };
 
 // ── Budget Comparison Horizontal Bars ────────────────────────
-const BudgetBars = ({ data }: { data: { category: string; budget: number; actual: number; percent: number }[] }) => {
+const BudgetBars = ({ data, formatCurrency }: { data: { category: string; budget: number; actual: number; percent: number }[]; formatCurrency: (n: number) => string }) => {
     return (
         <View style={{ gap: 14 }}>
             {data.map((d, i) => {
@@ -130,8 +124,8 @@ const BudgetBars = ({ data }: { data: { category: string; budget: number; actual
                             <View style={[s.budgetBarFill, { width: `${(pct / 150) * 100}%`, backgroundColor: barColor }]} />
                         </View>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 3 }}>
-                            <Text style={s.budgetSubTxt}>Spent {fmt(d.actual)}</Text>
-                            <Text style={s.budgetSubTxt}>Budget {fmt(d.budget)}</Text>
+                            <Text style={s.budgetSubTxt}>Spent {fmt(d.actual, formatCurrency)}</Text>
+                            <Text style={s.budgetSubTxt}>Budget {fmt(d.budget, formatCurrency)}</Text>
                         </View>
                     </View>
                 );
@@ -142,7 +136,7 @@ const BudgetBars = ({ data }: { data: { category: string; budget: number; actual
 
 // ── Financial Health Gauge (Circle + stroke-dasharray) ───────
 const HealthGauge = ({ score }: { score: number }) => {
-    const clampedScore = Math.min(Math.max(score, 0), 100);
+    const clampedScore = Math.min(Math.max(Math.round(score), 0), 100);
     const size = 180;
     const strokeW = 14;
     const r = (size - strokeW) / 2 - 10;
@@ -151,8 +145,8 @@ const HealthGauge = ({ score }: { score: number }) => {
     const halfCircumference = Math.PI * r; // only top half (semicircle)
     const scoreDash = (clampedScore / 100) * halfCircumference;
 
-    const statusLabel = clampedScore > 70 ? 'Excellent' : clampedScore > 50 ? 'Good' : 'Needs Action';
-    const statusColor = clampedScore > 70 ? '#2DCA72' : clampedScore > 50 ? '#F59E0B' : '#EF4444';
+    const statusLabel = clampedScore > 70 ? 'Excellent' : clampedScore > 40 ? 'Fair' : 'Needs Action';
+    const statusColor = clampedScore > 70 ? '#2DCA72' : clampedScore > 40 ? '#F59E0B' : '#EF4444';
 
     return (
         <View style={{ alignItems: 'center' }}>
@@ -221,8 +215,9 @@ const SavingsChart = ({ data, height = 160 }: { data: { label: string; value: nu
                     {/* Zero line */}
                     <Line x1={0} y1={midY} x2={totalW} y2={midY} stroke="#E5E5EA" strokeWidth={1} strokeDasharray="4,4" />
                     {data.map((d, i) => {
-                        const bh = (Math.abs(d.value) / maxAbs) * halfH;
-                        const isPositive = d.value >= 0;
+                        const val = Math.round(d.value);
+                        const bh = (Math.abs(val) / Math.max(maxAbs, 1)) * halfH;
+                        const isPositive = val >= 0;
                         const barY = isPositive ? midY - bh : midY;
                         const color = isPositive ? '#2DCA72' : '#F43F5E';
                         return (
@@ -234,7 +229,7 @@ const SavingsChart = ({ data, height = 160 }: { data: { label: string; value: nu
                                     fill={color}
                                     fontSize="8" fontWeight="900" textAnchor="middle"
                                 >
-                                    {d.value > 0 ? '+' : ''}{d.value > 1000 || d.value < -1000 ? `${(d.value / 1000).toFixed(1)}k` : d.value}
+                                    {val > 0 ? '+' : ''}{val > 1000 || val < -1000 ? `${(val / 1000).toFixed(1)}k` : val}
                                 </SvgText>
                                 <SvgText x={barW / 2} y={height - 6} fill="#8E8E93" fontSize="9" fontWeight="600" textAnchor="middle">
                                     {d.label}
@@ -248,6 +243,34 @@ const SavingsChart = ({ data, height = 160 }: { data: { label: string; value: nu
     );
 };
 
+// ── Transaction Row ──────────────────────────────────────────
+const TransactionRow = React.memo(({ tx, index, formatCurrency }: { tx: any; index: number; formatCurrency: (n: number) => string }) => {
+    const rawIcon = CATEGORY_ICONS[tx.category as Category] || 'receipt-outline';
+    const iconName = rawIcon ? mapCategoryIcon(rawIcon) : 'receipt-outline';
+    const iconColor = CATEGORY_COLORS[tx.category as Category] || '#111';
+
+    return (
+        <Animated.View entering={FadeInDown.delay(50 + index * 30).duration(300)}>
+            <TouchableOpacity style={s.txRow} activeOpacity={0.7} onPress={() => { }}>
+                <View style={[s.txIconWrap, { backgroundColor: iconColor + '15' }]}>
+                    <Ionicons name={iconName as any} size={20} color={iconColor} />
+                </View>
+                <View style={s.txMid}>
+                    <Text style={s.txTitle} numberOfLines={1}>{tx.title}</Text>
+                    <View style={s.txMeta}>
+                        <Text style={s.txCat}>{tx.category || 'General'}</Text>
+                        <Text style={s.txDot}>·</Text>
+                        <Text style={s.txDate}>{ordinal(tx.day)} {MONTHS_SHORT[tx.month]}</Text>
+                    </View>
+                </View>
+                <Text style={[s.txAmt, { color: tx.type === 'income' ? '#2DCA72' : '#111' }]}>
+                    {tx.type === 'income' ? '+' : '−'}{fmt(tx.amount, formatCurrency)}
+                </Text>
+            </TouchableOpacity>
+        </Animated.View>
+    );
+});
+
 // ── Types ────────────────────────────────────────────────────
 type TimeFilter = 'Week' | 'Month' | 'Year' | 'Custom';
 type ViewMode = 'spending' | 'income';
@@ -258,6 +281,7 @@ type ViewMode = 'spending' | 'income';
 export default function AnalysisScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { formatCurrency } = useSettings();
     const { transactions } = useTransactions();
 
     const [selectedFilter, setSelectedFilter] = useState<TimeFilter>('Month');
@@ -270,6 +294,9 @@ export default function AnalysisScreen() {
     const [customStart, setCustomStart] = useState('');
     const [customEnd, setCustomEnd] = useState('');
     const [showDatePicker, setShowDatePicker] = useState(false);
+
+    // Transactions list
+    const [showAllTx, setShowAllTx] = useState(false);
 
     const goPrev = () => { if (mi === 0) { setMi(11); setYr(y => y - 1); } else setMi(p => p - 1); };
     const goNext = () => { if (mi === 11) { setMi(0); setYr(y => y + 1); } else setMi(p => p + 1); };
@@ -303,16 +330,25 @@ export default function AnalysisScreen() {
 
     // ── Filtered Transactions ──────────────────────────────
     const filtered = useMemo(() => {
+        if (selectedFilter === 'Month') {
+            return transactions.filter(t => t.month === mi && t.year === yr);
+        } else if (selectedFilter === 'Year') {
+            return transactions.filter(t => t.year === yr);
+        }
+
         const { start, end } = dateRange;
-        return transactions.filter(t => { const d = new Date(t.date); return d >= start && d <= end; });
-    }, [transactions, dateRange]);
+        return transactions.filter(t => {
+            const d = new Date(t.date);
+            return d >= start && d <= end;
+        });
+    }, [transactions, selectedFilter, mi, yr, dateRange]);
 
     // ── Summary Stats ──────────────────────────────────────
     const income = useMemo(() => filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0), [filtered]);
     const expense = useMemo(() => filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0), [filtered]);
     const balance = income - expense;
-    const savingsRate = income > 0 ? Math.round(((income - expense) / income) * 100) : 0;
-    const healthScore = Math.min(Math.max(savingsRate + 50, 0), 100);
+    const savingsRate = income > 0 ? Math.round(((income - expense) / income) * 100) : (expense > 0 ? -100 : 0);
+    const healthScore = income === 0 && expense > 0 ? 0 : Math.min(Math.max(savingsRate + 50, 0), 100);
 
     // ── Category Data (respects viewMode) ──────────────────
     const categoryData = useMemo(() => {
@@ -320,7 +356,10 @@ export default function AnalysisScreen() {
         const map = new Map<Category, number>();
         filtered
             .filter(t => isSpending ? t.type === 'expense' : t.type === 'income')
-            .forEach(t => map.set(t.category, (map.get(t.category) || 0) + t.amount));
+            .forEach(t => {
+                const cat = (t.category || 'Other') as Category;
+                map.set(cat, (map.get(cat) || 0) + t.amount);
+            });
         return Array.from(map.entries())
             .map(([name, amount]) => ({ name, amount, color: CATEGORY_COLORS[name] || '#795548', icon: CATEGORY_ICONS[name] || 'ellipsis-horizontal-circle-outline' }))
             .sort((a, b) => b.amount - a.amount);
@@ -329,59 +368,49 @@ export default function AnalysisScreen() {
     const chartData = useMemo(() => categoryData.map(c => ({ value: c.amount, color: c.color, label: c.name })), [categoryData]);
     const totalCategoryAmt = useMemo(() => categoryData.reduce((s, c) => s + c.amount, 0), [categoryData]);
 
-    // ── Trend Data (expense only, for basic bar chart) ─────
-    const trendData = useMemo(() => {
+    // ── Trend Data & Income/Expense Trends (Combined for performance) ─────
+    const { trendData, dualTrendData } = useMemo(() => {
         if (selectedFilter === 'Month' || selectedFilter === 'Custom') {
-            const weeks = [{ label: 'W1', value: 0 }, { label: 'W2', value: 0 }, { label: 'W3', value: 0 }, { label: 'W4', value: 0 }];
-            filtered.filter(t => t.type === 'expense').forEach(t => {
-                const day = new Date(t.date).getDate();
-                if (day <= 7) weeks[0].value += t.amount;
-                else if (day <= 14) weeks[1].value += t.amount;
-                else if (day <= 21) weeks[2].value += t.amount;
-                else weeks[3].value += t.amount;
-            });
-            return weeks;
-        } else if (selectedFilter === 'Year') {
-            const months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'].map(m => ({ label: m, value: 0 }));
-            filtered.filter(t => t.type === 'expense').forEach(t => { months[new Date(t.date).getMonth()].value += t.amount; });
-            return months;
-        }
-        return [];
-    }, [filtered, selectedFilter]);
-
-    // ── Income vs Expense Dual Trend ───────────────────────
-    const dualTrendData = useMemo(() => {
-        if (selectedFilter === 'Month' || selectedFilter === 'Custom') {
-            const weeks = [
-                { label: 'W1', income: 0, expense: 0 }, { label: 'W2', income: 0, expense: 0 },
-                { label: 'W3', income: 0, expense: 0 }, { label: 'W4', income: 0, expense: 0 },
+            const weeks = MONTHS_SHORT.map((_, i) => ({ label: `W${i + 1}`, income: 0, expense: 0, value: 0 })); // support up to 5 weeks
+            const resultWeeks = [
+                { label: 'W1', income: 0, expense: 0, value: 0 }, { label: 'W2', income: 0, expense: 0, value: 0 },
+                { label: 'W3', income: 0, expense: 0, value: 0 }, { label: 'W4', income: 0, expense: 0, value: 0 },
             ];
             filtered.forEach(t => {
                 const day = new Date(t.date).getDate();
-                const idx = day <= 7 ? 0 : day <= 14 ? 1 : day <= 21 ? 2 : 3;
-                if (t.type === 'income') weeks[idx].income += t.amount;
-                else if (t.type === 'expense') weeks[idx].expense += t.amount;
+                const idx = Math.min(Math.floor((day - 1) / 7), 3);
+                if (t.type === 'income') resultWeeks[idx].income += t.amount;
+                else if (t.type === 'expense') {
+                    resultWeeks[idx].expense += t.amount;
+                    resultWeeks[idx].value += t.amount;
+                }
             });
-            return weeks;
+            return { trendData: resultWeeks, dualTrendData: resultWeeks };
         } else if (selectedFilter === 'Year') {
-            const months = MONTHS_SHORT.map(m => ({ label: m.charAt(0), income: 0, expense: 0 }));
+            const months = MONTHS_SHORT.map(m => ({ label: m.charAt(0), income: 0, expense: 0, value: 0 }));
             filtered.forEach(t => {
-                const mIdx = new Date(t.date).getMonth();
+                const mIdx = t.month;
                 if (t.type === 'income') months[mIdx].income += t.amount;
-                else if (t.type === 'expense') months[mIdx].expense += t.amount;
+                else if (t.type === 'expense') {
+                    months[mIdx].expense += t.amount;
+                    months[mIdx].value += t.amount;
+                }
             });
-            return months;
+            return { trendData: months, dualTrendData: months };
         } else if (selectedFilter === 'Week') {
-            const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(d => ({ label: d, income: 0, expense: 0 }));
+            const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(d => ({ label: d, income: 0, expense: 0, value: 0 }));
             filtered.forEach(t => {
                 const d = new Date(t.date);
                 const dayIdx = (d.getDay() + 6) % 7; // Mon=0
                 if (t.type === 'income') days[dayIdx].income += t.amount;
-                else if (t.type === 'expense') days[dayIdx].expense += t.amount;
+                else if (t.type === 'expense') {
+                    days[dayIdx].expense += t.amount;
+                    days[dayIdx].value += t.amount;
+                }
             });
-            return days;
+            return { trendData: days, dualTrendData: days };
         }
-        return [];
+        return { trendData: [], dualTrendData: [] };
     }, [filtered, selectedFilter]);
 
     // ── Savings Trend Data ─────────────────────────────────
@@ -400,16 +429,50 @@ export default function AnalysisScreen() {
             .sort((a, b) => b.actual - a.actual);
     }, [filtered]);
 
+    // ── Recurring Bills (Dynamic) ──────────────────────────
+    const recurringBills = useMemo(() => {
+        // Find recurring bills dynamically by grouping "Bills & Utilities" transactions by title
+        const billsTxs = filtered.filter(t => t.type === 'expense' && (t.category === 'Bills & Utilities' || t.category === 'Subscriptions'));
+        const map = new Map<string, { amount: number, date: Date }>();
+
+        billsTxs.forEach(t => {
+            const name = t.title || 'Unknown Bill';
+            if (!map.has(name) || new Date(t.date) > map.get(name)!.date) {
+                map.set(name, { amount: t.amount, date: new Date(t.date) });
+            }
+        });
+
+        return Array.from(map.entries()).map(([name, data], i) => ({
+            id: String(i),
+            name,
+            amount: data.amount,
+            dueDate: data.date.getDate(),
+            autoPay: false
+        })).sort((a, b) => b.amount - a.amount).slice(0, 5); // top 5
+    }, [filtered]);
+
     // ── Insight Stats ──────────────────────────────────────
     const days = Math.max(Math.ceil(Math.abs(dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24)), 1);
     const expCount = filtered.filter(t => t.type === 'expense').length;
     const avgDay = expCount > 0 ? expense / days : 0;
     const avgTx = expCount > 0 ? expense / expCount : 0;
 
-    // ── Period Label ───────────────────────────────────────
+    const fmtL = (n: number) => fmt(n, formatCurrency);
+
+    // ── Period Label & List ────────────────────────────────
     const periodLabel = selectedFilter === 'Year' ? `${yr}`
         : selectedFilter === 'Custom' ? (customStart && customEnd ? `${customStart} – ${customEnd}` : 'Select dates')
             : `${MONTHS[mi]} ${yr}`;
+
+    // Sort transactions newest first
+    const sortedFiltered = useMemo(() => {
+        return [...filtered].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [filtered]);
+
+    // Reset showAll when filter changes
+    useEffect(() => {
+        setShowAllTx(false);
+    }, [selectedFilter, mi, yr, customStart, customEnd]);
 
     return (
         <View style={[s.root, { paddingTop: insets.top }]}>
@@ -499,7 +562,7 @@ export default function AnalysisScreen() {
                         </View>
 
                         <Animated.Text entering={BounceIn.delay(250).duration(500)} style={[s.heroBalance, { color: balance >= 0 ? '#2DCA72' : '#F43F5E' }]}>
-                            {balance >= 0 ? '+' : ''}{fmt(balance)}
+                            {balance >= 0 ? '+' : ''}{fmt(balance, formatCurrency)}
                         </Animated.Text>
 
                         <View style={s.savingsRow}>
@@ -515,12 +578,12 @@ export default function AnalysisScreen() {
                             <View style={s.heroPillGreen}>
                                 <Ionicons name="trending-up" size={14} color="#2DCA72" />
                                 <Text style={s.heroPillLbl}>Income</Text>
-                                <Text style={s.heroPillGreenAmt}>{fmt(income)}</Text>
+                                <Text style={s.heroPillGreenAmt}>{fmtL(income)}</Text>
                             </View>
                             <View style={s.heroPillRed}>
                                 <Ionicons name="trending-down" size={14} color="#F43F5E" />
                                 <Text style={s.heroPillLbl}>Expense</Text>
-                                <Text style={s.heroPillRedAmt}>{fmt(expense)}</Text>
+                                <Text style={s.heroPillRedAmt}>{fmtL(expense)}</Text>
                             </View>
                         </View>
                     </LinearGradient>
@@ -594,7 +657,7 @@ export default function AnalysisScreen() {
                                                 </View>
                                             </View>
                                             <View style={s.catRight}>
-                                                <Text style={s.catAmt}>{fmt(cat.amount)}</Text>
+                                                <Text style={s.catAmt}>{fmt(cat.amount, formatCurrency)}</Text>
                                                 <Text style={s.catPct}>{((cat.amount / Math.max(totalCategoryAmt, 1)) * 100).toFixed(0)}%</Text>
                                             </View>
                                         </Animated.View>
@@ -610,7 +673,7 @@ export default function AnalysisScreen() {
                     <Animated.View entering={SlideInRight.delay(350).duration(500).springify()} style={s.section}>
                         <Text style={s.secTitle}>Budget vs Actual</Text>
                         <View style={s.card}>
-                            <BudgetBars data={budgetCompareData} />
+                            <BudgetBars data={budgetCompareData} formatCurrency={formatCurrency} />
                         </View>
                     </Animated.View>
                 )}
@@ -621,36 +684,34 @@ export default function AnalysisScreen() {
                     <View style={s.card}>
                         <HealthGauge score={healthScore} />
                         <Text style={s.healthDescription}>
-                            Based on your savings rate ({savingsRate}%) and spending patterns.
+                            {healthScore < 40 ? 'High spending compared to income this period.'
+                                : `Based on your savings rate (${savingsRate}%) and spending patterns.`}
                         </Text>
                     </View>
                 </Animated.View>
 
                 {/* ═══ Recurring Bills ═══ */}
-                <Animated.View entering={FadeInDown.delay(390).duration(400)} style={s.section}>
-                    <Text style={s.secTitle}>Recurring Bills</Text>
-                    <View style={s.card}>
-                        {MOCK_RECURRING_BILLS.map((bill, i) => (
-                            <Animated.View key={bill.id} entering={SlideInLeft.delay(420 + i * 80).duration(400).springify()} style={[s.billRow, i < MOCK_RECURRING_BILLS.length - 1 && s.billBorder]}>
-                                <View style={s.billIcon}>
-                                    <Ionicons name="receipt-outline" size={16} color="#007AFF" />
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={s.billName}>{bill.name}</Text>
-                                    <Text style={s.billDue}>Due {ordinal(bill.dueDate)}</Text>
-                                </View>
-                                <View style={{ alignItems: 'flex-end' }}>
-                                    <Text style={s.billAmt}>-{fmt(bill.amount)}</Text>
-                                    {bill.autoPay && (
-                                        <View style={s.autoPayBadge}>
-                                            <Text style={s.autoPayTxt}>Auto-Pay</Text>
-                                        </View>
-                                    )}
-                                </View>
-                            </Animated.View>
-                        ))}
-                    </View>
-                </Animated.View>
+                {recurringBills.length > 0 && (
+                    <Animated.View entering={FadeInDown.delay(390).duration(400)} style={s.section}>
+                        <Text style={s.secTitle}>Recurring Bills</Text>
+                        <View style={s.card}>
+                            {recurringBills.map((bill, i) => (
+                                <Animated.View key={bill.id} entering={SlideInLeft.delay(420 + i * 80).duration(400).springify()} style={[s.billRow, i < recurringBills.length - 1 && s.billBorder]}>
+                                    <View style={s.billIcon}>
+                                        <Ionicons name="receipt-outline" size={16} color="#007AFF" />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={s.billName}>{bill.name}</Text>
+                                        <Text style={s.billDue}>Due {ordinal(bill.dueDate)}</Text>
+                                    </View>
+                                    <View style={{ alignItems: 'flex-end' }}>
+                                        <Text style={s.billAmt}>-{fmtL(bill.amount)}</Text>
+                                    </View>
+                                </Animated.View>
+                            ))}
+                        </View>
+                    </Animated.View>
+                )}
 
                 {/* ═══ Savings Chart ═══ */}
                 {savingsTrendData.length > 0 && (
@@ -670,8 +731,8 @@ export default function AnalysisScreen() {
                     <Text style={s.secTitle}>Financial Insights</Text>
                     <View style={s.insightGrid}>
                         {[
-                            { label: 'Daily Avg Spend', value: fmt(Math.round(avgDay)), icon: 'calendar-outline' as const, color: '#FF9500' },
-                            { label: 'Per Transaction', value: fmt(Math.round(avgTx)), icon: 'receipt-outline' as const, color: '#007AFF' },
+                            { label: 'Daily Avg Spend', value: fmtL(Math.round(avgDay)), icon: 'calendar-outline' as const, color: '#FF9500' },
+                            { label: 'Per Transaction', value: fmtL(Math.round(avgTx)), icon: 'receipt-outline' as const, color: '#007AFF' },
                             { label: 'Savings Rate', value: `${savingsRate}%`, icon: 'shield-checkmark-outline' as const, color: '#2DCA72' },
                             { label: 'Total Tx', value: `${filtered.length}`, icon: 'layers-outline' as const, color: '#AF52DE' },
                         ].map((ins, i) => (
@@ -683,6 +744,43 @@ export default function AnalysisScreen() {
                                 <Text style={s.insightValue}>{ins.value}</Text>
                             </Animated.View>
                         ))}
+                    </View>
+                </Animated.View>
+
+                {/* ═══ Recent Transactions ═══ */}
+                <Animated.View entering={FadeInUp.delay(450).duration(400)} style={s.section}>
+                    <View style={s.txHeaderRow}>
+                        <Text style={s.secTitle}>Transactions</Text>
+                        <Text style={s.txCountTxt}>{filtered.length} total</Text>
+                    </View>
+                    <View style={s.card}>
+                        {sortedFiltered.length === 0 ? (
+                            <View style={s.emptyWrap}>
+                                <Ionicons name="receipt-outline" size={36} color="#C7C7CC" />
+                                <Text style={s.emptyTxt}>No transactions in this period</Text>
+                            </View>
+                        ) : (
+                            <View>
+                                {sortedFiltered.slice(0, showAllTx ? sortedFiltered.length : 5).map((tx, i) => (
+                                    <TransactionRow key={tx.id || tx._id || i} tx={tx} index={i} formatCurrency={formatCurrency} />
+                                ))}
+                                {sortedFiltered.length > 5 && (
+                                    <TouchableOpacity
+                                        style={s.showAllBtn}
+                                        onPress={() => setShowAllTx(!showAllTx)}
+                                    >
+                                        <Text style={s.showAllTxt}>
+                                            {showAllTx ? 'Show Less' : `View All ${sortedFiltered.length} Transactions`}
+                                        </Text>
+                                        <Ionicons
+                                            name={showAllTx ? "chevron-up" : "chevron-down"}
+                                            size={16}
+                                            color="#007AFF"
+                                        />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        )}
                     </View>
                 </Animated.View>
 
@@ -853,9 +951,23 @@ const s = StyleSheet.create({
     insightLabel: { fontSize: 10, color: '#8E8E93', fontWeight: '600', textTransform: 'uppercase', marginBottom: 4 },
     insightValue: { fontSize: 17, fontWeight: '800', color: '#111' },
 
-    // Empty
     emptyWrap: { alignItems: 'center', paddingVertical: 36, gap: 10 },
     emptyTxt: { fontSize: 13, color: '#C7C7CC', fontWeight: '500' },
+
+    // Transaction Row
+    txHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16, paddingHorizontal: 4 },
+    txCountTxt: { fontSize: 13, color: '#8E8E93', fontWeight: '500' },
+    txRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: '#F2F2F7' },
+    txIconWrap: { width: 44, height: 44, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+    txMid: { flex: 1 },
+    txTitle: { fontSize: 15, fontWeight: '700', color: '#111', marginBottom: 3 },
+    txMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+    txCat: { fontSize: 11, color: '#8E8E93', fontWeight: '500' },
+    txDot: { fontSize: 11, color: '#C7C7CC' },
+    txDate: { fontSize: 11, color: '#8E8E93', fontWeight: '500' },
+    txAmt: { fontSize: 16, fontWeight: '800', letterSpacing: -0.5 },
+    showAllBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 16, borderTopWidth: 1, borderTopColor: '#F2F2F7', marginTop: 4 },
+    showAllTxt: { fontSize: 14, fontWeight: '600', color: '#007AFF' },
 
     // Modal
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },

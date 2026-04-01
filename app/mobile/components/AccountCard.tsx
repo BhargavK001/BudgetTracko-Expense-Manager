@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedPressable from './AnimatedPressable';
+import { useSettings } from '@/context/SettingsContext';
 
 // ── Account type metadata ────────────────────────────────
 export const ACCOUNT_TYPE_META: Record<string, { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; defaultColor: string }> = {
@@ -31,6 +32,7 @@ function AccountCard({
   name, type, balance, balanceNum = 0, color, masked = true,
   creditLimit, onPress, onLongPress,
 }: AccountCardProps) {
+  const { formatCurrency, currency } = useSettings();
   const resolvedType = type || NAME_TO_TYPE[name] || 'bank';
   const meta = ACCOUNT_TYPE_META[resolvedType] || ACCOUNT_TYPE_META['bank'];
   const accentColor = color || meta.defaultColor;
@@ -78,10 +80,10 @@ function AccountCard({
             </View>
             <View style={styles.creditLabels}>
               <Text style={styles.creditTxt}>
-                ₹{available.toLocaleString('en-IN')} avail
+                {formatCurrency(available)} avail
               </Text>
               <Text style={styles.creditTxt}>
-                Limit ₹{creditLimit!.toLocaleString('en-IN')}
+                Limit {formatCurrency(creditLimit || 0)}
               </Text>
             </View>
           </View>
@@ -91,7 +93,7 @@ function AccountCard({
       <View style={styles.right}>
         <Text style={styles.balLabel}>Balance</Text>
         <Text style={[styles.balance, balanceColor]}>
-          {masked ? '₹ ••••••' : balance}
+          {masked ? `${currency} ••••••` : balance}
         </Text>
         <View style={styles.historyHint}>
           <Text style={styles.historyText}>View →</Text>

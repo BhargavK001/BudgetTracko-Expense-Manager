@@ -113,37 +113,7 @@ export default function MoreScreen() {
     if (item.route) router.push(item.route as any);
   }, [router]);
 
-  const handleExportCSV = useCallback(async () => {
-    Alert.alert('Export CSV', 'Your transactions will be exported as a CSV spreadsheet.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Export', onPress: async () => {
-          try {
-            const token = (await import('@react-native-async-storage/async-storage')).default;
-            const storedToken = await token.getItem('token');
-            const fileUri = FileSystem.documentDirectory + `budgettracko_export_${new Date().toISOString().split('T')[0]}.csv`;
-            const downloadResult = await FileSystem.downloadAsync(
-              `${API_BASE_URL}/api/user/export/csv`,
-              fileUri,
-              { headers: { Authorization: `Bearer ${storedToken}` } }
-            );
-            if (downloadResult.status === 200) {
-              const canShare = await Sharing.isAvailableAsync();
-              if (canShare) {
-                await Sharing.shareAsync(downloadResult.uri, { mimeType: 'text/csv', dialogTitle: 'Export Transactions' });
-              } else {
-                Alert.alert('Success', `CSV saved to ${downloadResult.uri}`);
-              }
-            } else {
-              Alert.alert('Error', 'Failed to download CSV.');
-            }
-          } catch (e: any) {
-            Alert.alert('Error', e.message || 'Export failed.');
-          }
-        }
-      },
-    ]);
-  }, []);
+
 
   const handleClearData = useCallback(() => {
     Alert.alert(
@@ -201,9 +171,9 @@ export default function MoreScreen() {
     {
       title: 'Account', delay: 100,
       items: [
-        { icon: 'person-outline', label: 'Profile', subtitle: 'Edit your info', color: '#6366F1', route: '/profile' },
-        { icon: 'settings-outline', label: 'Settings', subtitle: 'App preferences', color: '#8E8E93', route: '/settings' },
-        { icon: 'shield-checkmark-outline', label: 'Privacy & Security', subtitle: 'Keep your data safe', color: '#8B5CF6', route: '/privacy-security' },
+        { icon: 'person-outline', label: 'Profile', subtitle: 'Edit your info', color: '#6366F1', route: '/features/edit-profile' },
+        { icon: 'settings-outline', label: 'Settings', subtitle: 'App preferences', color: '#8E8E93', route: '/features/settings' },
+        { icon: 'shield-checkmark-outline', label: 'Privacy & Security', subtitle: 'Keep your data safe', color: '#8B5CF6', route: '/features/security' },
       ],
     },
     {
@@ -238,21 +208,22 @@ export default function MoreScreen() {
       items: [
         { icon: 'pie-chart-outline', label: 'Budgets', subtitle: 'Track spending limits', color: '#10B981', route: '/features/budgets' },
         { icon: 'calendar-outline', label: 'Recurring Bills', subtitle: 'Subscriptions & more', color: '#EC4899', route: '/features/recurring-bills', badge: recurringCount },
+        { icon: 'people-outline', label: 'Debts & Loans', subtitle: 'Track who owes you and what you owe', color: '#8B5CF6', route: '/features/debts' },
       ],
     },
     {
       title: 'Data', delay: 400,
       items: [
-        { icon: 'document-text-outline', label: 'Export CSV', subtitle: 'Spreadsheet compatible', color: '#06B6D4', onPress: handleExportCSV },
+        { icon: 'document-text-outline', label: 'Export Data', subtitle: 'CSV & PDF Reports', color: '#06B6D4', route: '/features/export' },
         { icon: 'trash-outline', label: 'Clear All Data', subtitle: 'Delete all transactions & budgets', color: '#F43F5E', danger: true, onPress: handleClearData },
       ],
     },
     {
       title: 'App', delay: 500,
       items: [
-        { icon: 'help-circle-outline', label: 'Help & Support', subtitle: 'FAQs & contact', color: '#06B6D4', route: '/help-support' },
+        { icon: 'help-circle-outline', label: 'Help & Support', subtitle: 'FAQs & contact', color: '#06B6D4', route: '/features/help-support' },
         { icon: 'star-outline', label: 'Rate Us', subtitle: 'Share your feedback', color: '#FBBF24', onPress: () => { const url = Platform.OS === 'ios' ? 'https://apps.apple.com/app/budgettracko/id000000' : 'https://play.google.com/store/apps/details?id=com.budgettracko.app'; Linking.openURL(url); } },
-        { icon: 'share-social-outline', label: 'Share App', subtitle: 'Invite friends', color: '#EC4899', route: '/share-app' },
+        { icon: 'share-social-outline', label: 'Share App', subtitle: 'Invite friends', color: '#EC4899', route: '/features/share-app' },
       ],
     },
     {
@@ -261,7 +232,7 @@ export default function MoreScreen() {
         { icon: 'person-remove-outline', label: 'Delete Account', subtitle: 'Permanently delete your account & data', color: '#EF4444', danger: true, onPress: handleDeleteAccount },
       ],
     },
-  ], [darkModeEnabled, notificationsEnabled, handleExportCSV, handleClearData, handleDeleteAccount]);
+  ], [darkModeEnabled, notificationsEnabled, handleClearData, handleDeleteAccount]);
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -279,7 +250,7 @@ export default function MoreScreen() {
 
         {/* ─── User Card ─── */}
         <Animated.View entering={FadeInDown.delay(80).duration(500).springify()}>
-          <TouchableOpacity style={s.userCard} activeOpacity={0.8} onPress={() => router.push('/profile' as any)}>
+          <TouchableOpacity style={s.userCard} activeOpacity={0.8} onPress={() => router.push('/features/edit-profile')}>
             <View style={s.avatarWrap}>
               {user?.avatar ? (
                 <Image source={{ uri: user.avatar }} style={s.avatarImage} />

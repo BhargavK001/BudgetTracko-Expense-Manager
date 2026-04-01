@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DarkTheme, Spacing, FontSize, BorderRadius } from '@/constants/Theme';
 import AnimatedPressable from './AnimatedPressable';
+import { useSettings } from '@/context/SettingsContext';
 
 type TransactionItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -28,6 +29,7 @@ function TransactionItem({
   onPress,
 }: TransactionItemProps) {
   const { width } = useWindowDimensions();
+  const { currency } = useSettings();
   const isCompact = width < 360;
 
   const isExpense = type === 'expense';
@@ -54,7 +56,7 @@ function TransactionItem({
 
       <View style={[styles.right, isCompact && styles.rightCompact]}>
         <Text style={[styles.amount, isCompact && styles.amountCompact, amtStyle]} numberOfLines={1}>
-          {isExpense ? '-' : '+'}₹{amount}
+          {isExpense ? '-' : '+'}{currency}{amount}
         </Text>
         <Text style={styles.date}>{date}</Text>
       </View>

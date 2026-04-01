@@ -8,6 +8,8 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown, Layout } from 'react-native-reanimated';
 import api from '@/services/api';
+import { scheduleRecurringBillReminder, cancelNotification } from '@/services/notificationService';
+import { useSettings } from '@/context/SettingsContext';
 
 const PRESETS = [
     { name: 'Rent', category: 'Housing', amount: 15000 },
@@ -26,7 +28,7 @@ type Bill = {
     autoPay: boolean;
 };
 
-export default function RecurringBillsScreen() {
+function RecurringBillsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
 
@@ -35,6 +37,7 @@ export default function RecurringBillsScreen() {
     const [bills, setBills] = useState<Bill[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const { formatCurrency } = useSettings();
 
     const [formData, setFormData] = useState({
         name: '', amount: '', dueDate: '1',
@@ -100,6 +103,17 @@ export default function RecurringBillsScreen() {
             } else {
                 await api.post('/api/recurring', payload);
             }
+
+            // Generate next due date for the local notification
+            const today = new Date();
+            let nextDue = new Date(today.getFullYear(), today.getMonth(), payload.dueDate);
+            if (nextDue < today) {
+                nextDue.setMonth(nextDue.getMonth() + 1);
+            }
+
+            // Schedule the notification 3 days prior
+            scheduleRecurringBillReminder(payload.name, payload.amount, nextDue, formatCurrency(0).charAt(0));
+
             setIsModalOpen(false);
             await fetchBills();
         } catch (e: any) {
@@ -151,7 +165,7 @@ export default function RecurringBillsScreen() {
                         </View>
                         <View style={{ flex: 1 }}>
                             <Text style={styles.statsLabel}>Total Monthly Estimate</Text>
-                            <Text style={styles.statsValue}>₹{totalMonthly.toLocaleString(undefined, { minimumFractionDigits: 0 })}</Text>
+                            <Text style={styles.statsValue}>{formatCurrency(Math.round(totalMonthly))}</Text>
                         </View>
                     </Animated.View>
 
@@ -202,7 +216,7 @@ export default function RecurringBillsScreen() {
                                                 <Ionicons name="cash-outline" size={16} color="#2DCA72" />
                                             </View>
                                             <View>
-                                                <Text style={styles.detailValue}>₹{bill.amount.toLocaleString()}</Text>
+                                                <Text style={styles.detailValue}>{formatCurrency(bill.amount)}</Text>
                                                 <Text style={styles.detailLabel}>{bill.frequency === 'monthly' ? 'Monthly' : 'Yearly'}</Text>
                                             </View>
                                         </View>
@@ -277,7 +291,7 @@ export default function RecurringBillsScreen() {
 
                             <View style={styles.row}>
                                 <View style={[styles.formGroup, { flex: 1, marginRight: 12 }]}>
-                                    <Text style={styles.label}>Amount (₹)</Text>
+                                    <Text style={styles.label}>Amount ({formatCurrency(0).charAt(0)})</Text>
                                     <TextInput style={styles.input} placeholder="0" placeholderTextColor="#C7C7CC" keyboardType="numeric"
                                         value={formData.amount} onChangeText={v => setFormData({ ...formData, amount: v })} />
                                 </View>
@@ -442,3 +456,5 @@ const styles = StyleSheet.create({
     },
     saveButtonText: { fontSize: 16, fontWeight: '900', color: '#FFFFFF' },
 });
+
+export default RecurringBillsScreen;

@@ -15,6 +15,8 @@ import Animated, {
 import api from '@/services/api';
 import { CATEGORY_ICONS as CTX_ICONS, CATEGORY_COLORS as CTX_COLORS, mapCategoryIcon, useTransactions } from '@/context/TransactionContext';
 import { ScanData } from '@/context/QuickActionContext';
+import { useSettings } from '@/context/SettingsContext';
+import { compressImage } from '@/utils/imageCompressor';
 
 // ─── Types ───────────────────────────────────────────────
 type TxType = 'expense' | 'income' | 'transfer';
@@ -325,6 +327,7 @@ interface Props {
 
 export default function AddTransactionModal({ visible, onClose, editingTransaction, onEditSuccess, initialType, scanData }: Props) {
     const { deleteTransaction } = useTransactions();
+    const { formatCurrency, currency, triggerHaptic } = useSettings();
 
     // ── State ──
     const [type, setType] = useState<TxType>('expense');
@@ -427,6 +430,9 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
             setTitle(scanData.title || '');
             setAmount(scanData.amount || '');
             setNotes(scanData.notes || '');
+            if (scanData.category) {
+                setCategory(scanData.category);
+            }
             if (scanData.date) setDate(new Date(scanData.date));
             if (scanData.attachments?.length > 0) setImages(scanData.attachments.slice(0, 3));
         }
@@ -486,7 +492,10 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
             selectionLimit: 3 - images.length,
         });
         if (!result.canceled && result.assets) {
-            setImages(prev => [...prev, ...result.assets!.map(a => a.uri)].slice(0, 3));
+            const compressed = await Promise.all(
+                result.assets.map(async (a) => await compressImage(a.uri))
+            );
+            setImages(prev => [...prev, ...compressed].slice(0, 3));
         }
     };
 
@@ -570,6 +579,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
     const saveSc = useSharedValue(1);
     const saveStyle = useAnimatedStyle(() => ({ transform: [{ scale: saveSc.value }] }));
     const pressSave = () => {
+        triggerHaptic();
         saveSc.value = withSequence(withSpring(0.93, { damping: 10 }), withSpring(1, { damping: 8 }));
         handleSave();
     };
@@ -583,6 +593,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
                 text: 'Delete',
                 style: 'destructive',
                 onPress: async () => {
+                    triggerHaptic();
                     try {
                         await deleteTransaction(editingTransaction._id || editingTransaction.id);
                         if (onEditSuccess) onEditSuccess();
@@ -680,7 +691,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
 
                             {/* ─── Amount ─── */}
                             <Animated.View entering={ZoomIn.delay(100).duration(400)} style={styles.amountWrap}>
-                                <Text style={[styles.amountCurr, { color: accentColor }]}>₹</Text>
+                                <Text style={[styles.amountCurr, { color: accentColor }]}>{currency}</Text>
                                 <TextInput
                                     style={[styles.amountInput, { color: accentColor }]}
                                     placeholder="0"
