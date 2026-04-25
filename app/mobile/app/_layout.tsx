@@ -82,6 +82,8 @@ const CustomDarkTheme = {
   },
 };
 
+import NetworkBanner from '@/components/NetworkBanner';
+
 function RootLayoutNav() {
   const { isLocked, lockApp, user, hasBiometricKey } = useAuth();
 
@@ -105,6 +107,7 @@ function RootLayoutNav() {
           <SafeAreaProvider>
             <ThemeProvider value={CustomDarkTheme}>
               <View style={{ flex: 1, backgroundColor: '#fff' }}>
+                <NetworkBanner />
                 <Stack
                   initialRouteName="index"
                   screenOptions={{

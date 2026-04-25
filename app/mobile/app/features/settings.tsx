@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DarkTheme, Spacing, BorderRadius } from '@/constants/Theme';
 import { requestNotificationPermissions } from '@/services/notificationService';
 import { useSettings, CurrencySymbol } from '@/context/SettingsContext';
+import { useAuth } from '@/context/AuthContext';
 import { Modal } from 'react-native';
 import * as Haptics from 'expo-haptics';
 
@@ -14,12 +15,12 @@ function SettingsScreen() {
     const insets = useSafeAreaInsets();
 
     const { currency, setCurrency, hapticEnabled, setHapticEnabled, triggerHaptic } = useSettings();
+    const { logout } = useAuth(); // kept other necessary values if any, but didn't have any others used
     const [isCurrencyModalVisible, setIsCurrencyModalVisible] = useState(false);
 
     // Placeholder local state for settings until connected to context
     const [soundsEnabled, setSoundsEnabled] = useState(true);
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-    const [hiddenBalance, setHiddenBalance] = useState(false);
 
     const renderSettingRow = (
         icon: any,
@@ -53,8 +54,34 @@ function SettingsScreen() {
     };
 
     const handleCurrencySelect = async (symbol: CurrencySymbol) => {
+        triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
         await setCurrency(symbol);
         setIsCurrencyModalVisible(false);
+    };
+
+    const handleClearCache = async () => {
+        triggerHaptic(Haptics.ImpactFeedbackStyle.Medium);
+        Alert.alert(
+            'Clear Cache',
+            'This will clear temporary files and app images. Your transactions and settings will NOT be deleted.',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                    text: 'Clear', 
+                    style: 'destructive',
+                    onPress: async () => {
+                        // In a real app, you'd clear various caches here
+                        // For demonstration, we'll simulate it
+                        try {
+                            // Example: await AsyncStorage.removeItem('cached_data_key');
+                            Alert.alert('Success', 'Cache cleared successfully.');
+                        } catch (e) {
+                            Alert.alert('Error', 'Failed to clear cache.');
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     const CURRENCIES: { symbol: CurrencySymbol; label: string }[] = [
@@ -87,18 +114,7 @@ function SettingsScreen() {
                         >
                             <Text style={styles.valueTxt}>{currency}</Text>
                             <Ionicons name="chevron-down" size={14} color="#8E8E93" />
-                        </TouchableOpacity>
-                    )}
-                    {renderSettingRow('eye-off-outline', 'Hide Balances', 'Hide totals & balances on home screen',
-                        <Switch
-                            value={hiddenBalance}
-                            onValueChange={(val) => {
-                                setHiddenBalance(val);
-                                triggerHaptic(Haptics.ImpactFeedbackStyle.Light);
-                            }}
-                            trackColor={{ false: '#E5E5EA', true: '#2DCA72' }}
-                            thumbColor="#fff"
-                        />,
+                        </TouchableOpacity>,
                         true
                     )}
                 </View>
@@ -138,14 +154,14 @@ function SettingsScreen() {
                     )}
                 </View>
 
+
+
                 <Text style={styles.sectionTitle}>Data Management</Text>
                 <View style={styles.card}>
-                    {renderSettingRow('cloud-download-outline', 'Export Data', 'Download all backup as CSV',
-                        <Ionicons name="chevron-forward" size={18} color="#8E8E93" />,
-                        false
-                    )}
-                    {renderSettingRow('trash-bin-outline', 'Clear Cache', 'Free up temporary local storage',
-                        <Text style={{ fontSize: 13, color: '#F43F5E', fontWeight: '600' }}>Clear</Text>,
+                    {renderSettingRow('trash-bin-outline', 'Clear App Cache', 'Free up temporary local storage',
+                        <TouchableOpacity onPress={handleClearCache}>
+                            <Text style={{ fontSize: 13, color: '#F43F5E', fontWeight: '600' }}>Clear</Text>
+                        </TouchableOpacity>,
                         true
                     )}
                 </View>

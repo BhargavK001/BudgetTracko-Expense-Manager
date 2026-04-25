@@ -13,7 +13,8 @@ const PLANS = [
     {
         id: 'free',
         name: 'Basic',
-        price: 0,
+        monthlyPrice: 0,
+        yearlyPrice: 0,
         period: 'forever',
         desc: 'Essential tracking for everyday needs.',
         features: [
@@ -27,8 +28,9 @@ const PLANS = [
     {
         id: 'pro',
         name: 'Pro',
-        price: 49,
-        period: '/month',
+        monthlyPrice: 49,
+        yearlyPrice: 499,
+        period: '/mo',
         desc: 'Advanced tools for serious savers.',
         features: [
             'AI-powered transaction parsing',
@@ -42,8 +44,9 @@ const PLANS = [
     {
         id: 'squad',
         name: 'Squad',
-        price: 99,
-        period: '/month',
+        monthlyPrice: 99,
+        yearlyPrice: 999,
+        period: '/mo',
         desc: 'Team plan for families & groups.',
         features: [
             'All Pro features',
@@ -68,6 +71,7 @@ export default function PremiumScreen() {
     const horizontalPadding = isTablet ? 32 : isCompact ? 16 : 24;
 
     const [activePlan, setActivePlan] = useState('pro');
+    const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
     const [loading, setLoading] = useState(false);
     const currentPlan = user?.subscription?.plan || 'free';
     const isActive = user?.subscription?.status === 'active' || user?.subscription?.status === 'authenticated';
@@ -77,6 +81,11 @@ export default function PremiumScreen() {
             router.back();
             return;
         }
+        
+        // Find selected plan price
+        const plan = PLANS.find(p => p.id === activePlan);
+        const price = billingPeriod === 'yearly' ? plan?.yearlyPrice : plan?.monthlyPrice;
+
         if (isActive && currentPlan === activePlan) {
             Alert.alert('Already Subscribed', `You are already on the ${activePlan.toUpperCase()} plan.`);
             return;
@@ -85,7 +94,10 @@ export default function PremiumScreen() {
         setLoading(true);
         try {
             const planKey = activePlan;
-            const res = await api.post('/api/payments/create-order', { plan: planKey });
+            const res = await api.post('/api/payments/create-order', { 
+                plan: planKey,
+                billingPeriod: billingPeriod
+            });
             const data = res.data;
 
             if (data.success && data.key && data.subscription_id) {
@@ -129,7 +141,7 @@ export default function PremiumScreen() {
                     styles.scrollContent,
                     {
                         paddingHorizontal: horizontalPadding,
-                        paddingBottom: insets.bottom + 100,
+                        paddingBottom: insets.bottom + 180,
                     }
                 ]}
                 showsVerticalScrollIndicator={false}
@@ -137,84 +149,100 @@ export default function PremiumScreen() {
                 <View style={[styles.contentInner, isTablet && styles.contentInnerTablet]}>
 
                     {/* Hero */}
-                    <Animated.View entering={FadeInDown.delay(100).duration(400).springify()}>
+                    <Animated.View entering={FadeInDown.delay(100).duration(600)}>
                         <View style={styles.heroSection}>
-                            <View style={styles.heroGlow} />
-                            <Ionicons name="diamond" size={64} color="#F59E0B" />
-                            <Text style={styles.heroTitle}>Unlock Your Full Financial Power</Text>
+                            <View style={styles.heroBadge}>
+                                <Ionicons name="sparkles" size={12} color="#F59E0B" />
+                                <Text style={styles.heroBadgeText}>PREMIUM FEATURES</Text>
+                            </View>
+                            <Text style={styles.heroTitle}>Upgrade to Pro</Text>
                             <Text style={styles.heroDesc}>
-                                Take absolute control with AI-driven insights, limitless tracking, and complete data freedom.
+                                Unleash the full potential of your finances with advanced AI insights and unlimited tracking.
                             </Text>
                         </View>
+                    </Animated.View>
+
+                    {/* Billing Toggle */}
+                    <Animated.View entering={FadeIn.delay(200).duration(400)} style={styles.toggleContainer}>
+                        <TouchableOpacity
+                            style={[styles.toggleBtn, billingPeriod === 'monthly' && styles.toggleBtnActive]}
+                            onPress={() => setBillingPeriod('monthly')}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={[styles.toggleText, billingPeriod === 'monthly' && styles.toggleTextActive]}>Monthly</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.toggleBtn, billingPeriod === 'yearly' && styles.toggleBtnActive]}
+                            onPress={() => setBillingPeriod('yearly')}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={[styles.toggleText, billingPeriod === 'yearly' && styles.toggleTextActive]}>Yearly</Text>
+                            <View style={styles.discountBadge}>
+                                <Text style={styles.discountBadgeText}>-20%</Text>
+                            </View>
+                        </TouchableOpacity>
                     </Animated.View>
 
                     {/* Plans */}
                     <View style={styles.plansContainer}>
                         {PLANS.map((plan, index) => {
                             const isSelected = activePlan === plan.id;
-
-                            // Animate popular plan with a pop
-                            const EnteringAnimation = plan.isPopular
-                                ? ZoomIn.delay(200 + index * 100).duration(500).springify()
-                                : FadeInDown.delay(200 + index * 100).duration(400).springify();
+                            const price = billingPeriod === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
+                            const periodText = plan.id === 'free' ? 'forever' : (billingPeriod === 'yearly' ? '/yr' : '/mo');
 
                             return (
-                                <Animated.View key={plan.id} entering={EnteringAnimation}>
+                                <Animated.View key={plan.id} entering={FadeInDown.delay(300 + index * 100).duration(500)}>
                                     <TouchableOpacity
                                         onPress={() => setActivePlan(plan.id)}
                                         activeOpacity={0.9}
+                                        style={[
+                                            styles.planCard,
+                                            isSelected && styles.planCardActive,
+                                            plan.isPopular && styles.planCardPopular
+                                        ]}
                                     >
-                                        <LinearGradient
-                                            colors={plan.isPopular ? ['#2A2D3A', '#1F222B'] : ['#fff', '#fff']}
-                                            style={[
-                                                styles.planCard,
-                                                isSelected && styles.planCardActive,
-                                                plan.isPopular && styles.planCardPopular
-                                            ]}
-                                        >
-                                            {plan.isPopular && (
-                                                <View style={styles.popularBadge}>
-                                                    <Text style={styles.popularBadgeText}>MOST POPULAR</Text>
-                                                </View>
-                                            )}
+                                        {plan.isPopular && (
+                                            <LinearGradient
+                                                colors={['#F59E0B', '#D97706']}
+                                                style={styles.popularBadge}
+                                            >
+                                                <Ionicons name="star" size={10} color="#fff" style={{ marginRight: 4 }} />
+                                                <Text style={styles.popularBadgeText}>MOST POPULAR</Text>
+                                            </LinearGradient>
+                                        )}
 
-                                            <View style={styles.planHeader}>
-                                                <View style={{ flex: 1 }}>
-                                                    <Text style={[styles.planName, plan.isPopular && { color: '#fff' }]}>{plan.name}</Text>
-                                                    <Text style={[styles.planDesc, plan.isPopular && { color: 'rgba(255,255,255,0.7)' }]}>{plan.desc}</Text>
+                                        <View style={styles.planHeader}>
+                                            <View style={{ flex: 1 }}>
+                                                <View style={styles.planTitleRow}>
+                                                    <Text style={[styles.planName, plan.isPopular && styles.planNamePopular]}>{plan.name}</Text>
+                                                    {plan.id === 'pro' && <Ionicons name="ribbon" size={16} color={plan.isPopular ? "#F59E0B" : "#6366F1"} style={{ marginLeft: 6 }} />}
                                                 </View>
-                                                <View style={styles.priceRow}>
-                                                    <View style={styles.priceWrap}>
-                                                        <Text style={[styles.planPrice, plan.isPopular && { color: '#fff' }]}>
-                                                            {plan.price === 0 ? 'Free' : formatCurrency(plan.price as number)}
-                                                        </Text>
-                                                        <Text style={[styles.planPeriod, plan.isPopular && { color: 'rgba(255,255,255,0.5)' }]}>{plan.period}</Text>
-                                                    </View>
-                                                    <View style={[
-                                                        styles.radioBtn,
-                                                        isSelected && styles.radioBtnActive,
-                                                        plan.isPopular && isSelected && { borderColor: '#6366F1' }
-                                                    ]}>
-                                                        {isSelected && <View style={[styles.radioDot, plan.isPopular && { backgroundColor: '#6366F1' }]} />}
-                                                    </View>
-                                                </View>
+                                                <Text style={[styles.planDesc, plan.isPopular && styles.planDescPopular]}>{plan.desc}</Text>
                                             </View>
+                                            <View style={styles.priceWrap}>
+                                                <Text style={[styles.planPrice, plan.isPopular && styles.planPricePopular]}>
+                                                    {price === 0 ? 'Free' : formatCurrency(price as number)}
+                                                </Text>
+                                                <Text style={[styles.planPeriod, plan.isPopular && styles.planPeriodPopular]}>{periodText}</Text>
+                                            </View>
+                                        </View>
 
-                                            <View style={styles.featuresList}>
-                                                {plan.features.map((feature, i) => (
-                                                    <View key={i} style={styles.featureRow}>
+                                        <View style={styles.featuresList}>
+                                            {plan.features.map((feature, i) => (
+                                                <View key={i} style={styles.featureRow}>
+                                                    <View style={[styles.checkCircle, plan.isPopular && styles.checkCirclePopular]}>
                                                         <Ionicons
-                                                            name="checkmark-circle"
-                                                            size={18}
-                                                            color={plan.isPopular ? '#2DCA72' : '#6366F1'}
+                                                            name="checkmark"
+                                                            size={12}
+                                                            color={plan.isPopular ? '#fff' : '#6366F1'}
                                                         />
-                                                        <Text style={[styles.featureText, plan.isPopular && { color: '#fff' }]}>
-                                                            {feature}
-                                                        </Text>
                                                     </View>
-                                                ))}
-                                            </View>
-                                        </LinearGradient>
+                                                    <Text style={[styles.featureText, plan.isPopular && styles.featureTextPopular]}>
+                                                        {feature}
+                                                    </Text>
+                                                </View>
+                                            ))}
+                                        </View>
                                     </TouchableOpacity>
                                 </Animated.View>
                             );
@@ -224,30 +252,27 @@ export default function PremiumScreen() {
             </ScrollView>
 
             {/* Bottom CTA */}
-            <Animated.View entering={FadeInDown.delay(500).duration(400)} style={[styles.bottomCard, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+            <View style={[styles.bottomCard, { paddingBottom: Math.max(insets.bottom, 24) }]}>
                 <TouchableOpacity style={styles.ctaButton} activeOpacity={0.9} onPress={handleUpgrade} disabled={loading}>
-                    <LinearGradient
-                        colors={['#6366F1', '#4F46E5']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.ctaGradient}
-                    >
-                        {loading ? (
-                            <ActivityIndicator color="#fff" size="small" />
-                        ) : (
-                            <>
-                                <Text style={styles.ctaText}>
-                                    {activePlan === 'free' ? 'Continue with Basic' : (isActive && currentPlan !== 'free' ? 'Change Plan' : 'Upgrade Now')}
-                                </Text>
-                                <Ionicons name="arrow-forward" size={20} color="#fff" />
-                            </>
-                        )}
-                    </LinearGradient>
+                    {loading ? (
+                        <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                        <>
+                            <Text style={styles.ctaText}>
+                                {activePlan === 'free' ? 'Continue with Basic' : (isActive && currentPlan !== 'free' ? 'Change Plan' : 'Upgrade Now')}
+                            </Text>
+                            <Ionicons name="arrow-forward" size={18} color="#fff" />
+                        </>
+                    )}
                 </TouchableOpacity>
+                <View style={styles.trustRow}>
+                    <Ionicons name="shield-checkmark" size={12} color="#8E8E93" />
+                    <Text style={styles.trustText}>Secure payment • Cancel anytime</Text>
+                </View>
                 <Text style={styles.termsText}>
-                    By upgrading, you agree to our Terms of Service & Privacy Policy.
+                    By upgrading, you agree to our Terms & Privacy Policy.
                 </Text>
-            </Animated.View>
+            </View>
         </View>
     );
 }
@@ -255,14 +280,13 @@ export default function PremiumScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8FAFC',
+        backgroundColor: '#FAFAFC',
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingVertical: 14,
-        backgroundColor: '#F8FAFC',
     },
     backBtn: {
         width: 40,
@@ -283,7 +307,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingTop: 16,
+        paddingTop: 8,
     },
     contentInner: {
         width: '100%',
@@ -294,80 +318,124 @@ const styles = StyleSheet.create({
     },
     heroSection: {
         alignItems: 'center',
-        paddingVertical: 32,
-        paddingHorizontal: 16,
-        position: 'relative',
-    },
-    heroGlow: {
-        position: 'absolute',
-        top: 20,
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: 'rgba(245,158,11,0.15)',
-        transform: [{ scale: 1.5 }],
-    },
-    heroTitle: {
-        fontSize: 26,
-        fontWeight: '900',
-        color: '#111',
-        marginTop: 20,
-        marginBottom: 12,
-        textAlign: 'center',
-        lineHeight: 32,
-    },
-    heroDesc: {
-        fontSize: 15,
-        color: '#8E8E93',
-        textAlign: 'center',
-        lineHeight: 22,
+        paddingVertical: 24,
         paddingHorizontal: 20,
     },
+    heroBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(245,158,11,0.1)',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 20,
+        marginBottom: 16,
+    },
+    heroBadgeText: {
+        fontSize: 10,
+        color: '#D97706',
+        fontWeight: '800',
+        marginLeft: 4,
+        letterSpacing: 1,
+    },
+    heroTitle: {
+        fontSize: 28,
+        fontWeight: '900',
+        color: '#111',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    heroDesc: {
+        fontSize: 14,
+        color: '#8E8E93',
+        textAlign: 'center',
+        lineHeight: 20,
+        paddingHorizontal: 20,
+        fontWeight: '500',
+    },
+    toggleContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#F5F5F5',
+        marginHorizontal: 20,
+        padding: 4,
+        borderRadius: 24,
+        marginBottom: 24,
+    },
+    toggleBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        borderRadius: 20,
+    },
+    toggleBtnActive: {
+        backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    toggleText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#8E8E93',
+    },
+    toggleTextActive: {
+        color: '#111',
+    },
+    discountBadge: {
+        backgroundColor: '#2DCA72',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 8,
+        marginLeft: 6,
+    },
+    discountBadgeText: {
+        fontSize: 10,
+        color: '#fff',
+        fontWeight: '800',
+    },
     plansContainer: {
-        gap: 20,
+        gap: 16,
+        paddingHorizontal: 4,
     },
     planCard: {
-        borderRadius: 28,
+        backgroundColor: '#fff',
+        borderRadius: 24,
         padding: 24,
-        borderWidth: 2,
-        borderColor: '#E2E8F0',
-        position: 'relative',
+        borderWidth: 1.5,
+        borderColor: '#F2F2F7',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.05,
-        shadowRadius: 16,
+        shadowOpacity: 0.03,
+        shadowRadius: 10,
         elevation: 2,
     },
     planCardActive: {
         borderColor: '#6366F1',
-        shadowColor: '#6366F1',
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.08,
+        shadowRadius: 15,
     },
     planCardPopular: {
-        borderWidth: 0,
-        shadowColor: '#111',
-        shadowOpacity: 0.2,
+        backgroundColor: '#1E293B',
+        borderColor: '#1E293B',
     },
     popularBadge: {
         position: 'absolute',
-        top: -14,
-        alignSelf: 'center',
-        backgroundColor: '#F59E0B',
-        paddingHorizontal: 16,
+        top: -12,
+        right: 24,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
         paddingVertical: 6,
-        borderRadius: 20,
-        shadowColor: '#F59E0B',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 4,
-        zIndex: 10,
+        borderRadius: 12,
     },
     popularBadgeText: {
         color: '#fff',
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: '900',
-        letterSpacing: 1.5,
+        letterSpacing: 1,
     },
     planHeader: {
         flexDirection: 'row',
@@ -375,21 +443,27 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         marginBottom: 20,
     },
+    planTitleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
     planName: {
-        fontSize: 22,
+        fontSize: 20,
         fontWeight: '900',
         color: '#111',
-        marginBottom: 6,
+    },
+    planNamePopular: {
+        color: '#fff',
     },
     planDesc: {
         fontSize: 13,
         color: '#8E8E93',
-        maxWidth: 180,
+        marginTop: 4,
         lineHeight: 18,
+        fontWeight: '500',
     },
-    priceRow: {
-        alignItems: 'flex-end',
-        gap: 10,
+    planDescPopular: {
+        color: 'rgba(255,255,255,0.7)',
     },
     priceWrap: {
         alignItems: 'flex-end',
@@ -399,45 +473,43 @@ const styles = StyleSheet.create({
         fontWeight: '900',
         color: '#111',
     },
+    planPricePopular: {
+        color: '#fff',
+    },
     planPeriod: {
         fontSize: 12,
         color: '#8E8E93',
-        fontWeight: '600',
-        marginTop: 2,
+        fontWeight: '700',
+    },
+    planPeriodPopular: {
+        color: 'rgba(255,255,255,0.5)',
     },
     featuresList: {
         gap: 12,
-        marginTop: 8,
     },
     featureRow: {
         flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 10,
+        alignItems: 'center',
+        gap: 12,
     },
-    featureText: {
-        fontSize: 14,
-        color: '#111',
-        fontWeight: '500',
-        flex: 1,
-        lineHeight: 20,
-    },
-    radioBtn: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        borderWidth: 2,
-        borderColor: '#C7C7CC',
+    checkCircle: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        backgroundColor: 'rgba(99,102,241,0.1)',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    radioBtnActive: {
-        borderColor: '#6366F1',
+    checkCirclePopular: {
+        backgroundColor: 'rgba(255,255,255,0.1)',
     },
-    radioDot: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        backgroundColor: '#6366F1',
+    featureText: {
+        fontSize: 14,
+        color: '#4B5563',
+        fontWeight: '500',
+    },
+    featureTextPopular: {
+        color: 'rgba(255,255,255,0.9)',
     },
     bottomCard: {
         position: 'absolute',
@@ -445,38 +517,49 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         backgroundColor: 'rgba(255,255,255,0.95)',
-        paddingTop: 20,
+        paddingTop: 16,
         paddingHorizontal: 24,
         borderTopWidth: 1,
         borderTopColor: '#F2F2F7',
     },
     ctaButton: {
         width: '100%',
-        marginBottom: 16,
-        shadowColor: '#6366F1',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-        elevation: 6,
-    },
-    ctaGradient: {
+        height: 56,
+        borderRadius: 18,
+        backgroundColor: '#6366F1',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 20,
-        paddingVertical: 18,
         gap: 10,
+        shadowColor: '#6366F1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 10,
+        elevation: 4,
+        marginBottom: 12,
     },
     ctaText: {
         color: '#fff',
-        fontSize: 17,
-        fontWeight: '900',
+        fontSize: 16,
+        fontWeight: '800',
     },
     termsText: {
         fontSize: 11,
         color: '#A1A1AA',
         textAlign: 'center',
-        paddingHorizontal: 20,
         lineHeight: 16,
+        fontWeight: '500',
+    },
+    trustRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        marginBottom: 8,
+    },
+    trustText: {
+        fontSize: 12,
+        color: '#8E8E93',
+        fontWeight: '600',
     },
 });

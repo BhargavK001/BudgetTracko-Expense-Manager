@@ -11,6 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import api, { API_BASE_URL } from '@/services/api';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import * as Haptics from 'expo-haptics';
 import Animated, {
   FadeInDown, FadeIn, SlideInLeft, BounceIn,
   useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming,
@@ -97,7 +98,9 @@ export default function MoreScreen() {
     (async () => {
       try {
         const res = await api.get('/api/recurring');
-        if (res.data?.length > 0) setRecurringCount(String(res.data.length));
+        const raw = res.data;
+        const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+        if (list.length > 0) setRecurringCount(String(list.length));
       } catch (e) { /* ignore */ }
     })();
   }, []);
@@ -109,6 +112,7 @@ export default function MoreScreen() {
 
   // ── Handlers ────────────────────────────────────────────
   const handleMenuPress = useCallback((item: MenuItem) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (item.onPress) return item.onPress();
     if (item.route) router.push(item.route as any);
   }, [router]);
@@ -169,15 +173,15 @@ export default function MoreScreen() {
   // ── Menu Data (memoized) ───────────────────────────────
   const MENU_GROUPS: MenuGroup[] = useMemo(() => [
     {
-      title: 'Account', delay: 100,
+      title: 'Configuration', delay: 100,
       items: [
-        { icon: 'person-outline', label: 'Profile', subtitle: 'Edit your info', color: '#6366F1', route: '/features/edit-profile' },
-        { icon: 'settings-outline', label: 'Settings', subtitle: 'App preferences', color: '#8E8E93', route: '/features/settings' },
-        { icon: 'shield-checkmark-outline', label: 'Privacy & Security', subtitle: 'Keep your data safe', color: '#8B5CF6', route: '/features/security' },
+        { icon: 'settings-outline', label: 'App Settings', subtitle: 'Currency, Haptics & General', color: '#6366F1', route: '/features/settings' },
+        { icon: 'shield-checkmark-outline', label: 'Privacy & Security', subtitle: 'App lock & data privacy', color: '#8B5CF6', route: '/features/security' },
+        { icon: 'grid-outline', label: 'Categories', subtitle: 'Manage spending labels', color: '#06B6D4', route: '/features/categories' },
       ],
     },
     {
-      title: 'Preferences', delay: 200,
+      title: 'Experience', delay: 200,
       items: [
         {
           icon: darkModeEnabled ? 'moon-outline' : 'sunny-outline',
@@ -188,51 +192,51 @@ export default function MoreScreen() {
         },
         {
           icon: 'notifications-outline', label: 'Notifications',
-          subtitle: notificationsEnabled ? 'Enabled' : 'Disabled',
+          subtitle: notificationsEnabled ? 'Stay updated' : 'Muted',
           color: '#F59E0B', toggle: true, toggleValue: notificationsEnabled,
           onToggle: async (v) => {
             setNotificationsEnabled(v);
-            try {
-              await api.put('/api/user/preferences', { notifications: v });
-            } catch (e) {
-              // Revert on failure
-              setNotificationsEnabled(!v);
-            }
+            try { await api.put('/api/user/preferences', { notifications: v }); } catch (e) { setNotificationsEnabled(!v); }
           },
         },
-        { icon: 'grid-outline', label: 'Categories', subtitle: 'Manage expense & income categories', color: '#06B6D4', route: '/features/categories' },
       ],
     },
     {
-      title: 'Finance', delay: 300,
+      title: 'Smart Tools', delay: 300,
       items: [
-        { icon: 'pie-chart-outline', label: 'Budgets', subtitle: 'Track spending limits', color: '#10B981', route: '/features/budgets' },
-        { icon: 'calendar-outline', label: 'Recurring Bills', subtitle: 'Subscriptions & more', color: '#EC4899', route: '/features/recurring-bills', badge: recurringCount },
-        { icon: 'people-outline', label: 'Debts & Loans', subtitle: 'Track who owes you and what you owe', color: '#8B5CF6', route: '/features/debts' },
+        { icon: 'flash-outline', label: 'Ask Tracko AI', subtitle: 'AI Expense Insights', color: '#2DCA72', route: '/features/ask-tracko' },
+        { icon: 'pie-chart-outline', label: 'Budgets', subtitle: 'Set monthly limits', color: '#10B981', route: '/features/budgets' },
       ],
     },
     {
-      title: 'Data', delay: 400,
+      title: 'Finance Tracker', delay: 400,
+      items: [
+        { icon: 'calendar-outline', label: 'Recurring Bills', subtitle: 'Subscription tracker', color: '#EC4899', route: '/features/recurring-bills', badge: recurringCount },
+        { icon: 'people-outline', label: 'Debts & Loans', subtitle: 'IOUs & payments', color: '#8B5CF6', route: '/features/debts' },
+      ],
+    },
+    {
+      title: 'Data & Privacy', delay: 500,
       items: [
         { icon: 'document-text-outline', label: 'Export Data', subtitle: 'CSV & PDF Reports', color: '#06B6D4', route: '/features/export' },
-        { icon: 'trash-outline', label: 'Clear All Data', subtitle: 'Delete all transactions & budgets', color: '#F43F5E', danger: true, onPress: handleClearData },
+        { icon: 'trash-outline', label: 'Clear All Data', subtitle: 'Reset app to zero', color: '#F43F5E', danger: true, onPress: handleClearData },
       ],
     },
     {
-      title: 'App', delay: 500,
+      title: 'System', delay: 600,
       items: [
         { icon: 'help-circle-outline', label: 'Help & Support', subtitle: 'FAQs & contact', color: '#06B6D4', route: '/features/help-support' },
-        { icon: 'star-outline', label: 'Rate Us', subtitle: 'Share your feedback', color: '#FBBF24', onPress: () => { const url = Platform.OS === 'ios' ? 'https://apps.apple.com/app/budgettracko/id000000' : 'https://play.google.com/store/apps/details?id=com.budgettracko.app'; Linking.openURL(url); } },
-        { icon: 'share-social-outline', label: 'Share App', subtitle: 'Invite friends', color: '#EC4899', route: '/features/share-app' },
+        { icon: 'star-outline', label: 'Rate Us', subtitle: 'Share feedback', color: '#FBBF24', onPress: () => { const url = Platform.OS === 'ios' ? 'https://apps.apple.com/app/budgettracko/id000000' : 'https://play.google.com/store/apps/details?id=com.budgettracko.app'; Linking.openURL(url); } },
+        { icon: 'share-social-outline', label: 'Invite Friends', subtitle: 'Share Tracko with others', color: '#EC4899', route: '/features/share-app' },
       ],
     },
     {
-      title: 'Danger Zone', delay: 600,
+      title: 'Danger Zone', delay: 700,
       items: [
-        { icon: 'person-remove-outline', label: 'Delete Account', subtitle: 'Permanently delete your account & data', color: '#EF4444', danger: true, onPress: handleDeleteAccount },
+        { icon: 'person-remove-outline', label: 'Delete Account', subtitle: 'Goodbye forever', color: '#EF4444', danger: true, onPress: handleDeleteAccount },
       ],
     },
-  ], [darkModeEnabled, notificationsEnabled, handleClearData, handleDeleteAccount]);
+  ], [darkModeEnabled, notificationsEnabled, recurringCount, handleClearData, handleDeleteAccount]);
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -262,8 +266,8 @@ export default function MoreScreen() {
               <Text style={s.userName}>{user?.displayName || 'BudgetTracko User'}</Text>
               <Text style={s.userEmail} numberOfLines={1}>{user?.email || 'Authenticated mode'}</Text>
             </View>
-            <View style={[s.planChip, isPaid && { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
-              <Text style={[s.planText, isPaid && { color: '#F59E0B' }]}>{userPlan}</Text>
+            <View style={[s.planChip, !isPaid && s.planChipFree, isPaid && { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
+              <Text style={[s.planText, !isPaid && s.planTextFree, isPaid && { color: '#F59E0B' }]}>{userPlan}</Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
           </TouchableOpacity>
@@ -336,7 +340,7 @@ export default function MoreScreen() {
         </Animated.View>
 
         <Animated.Text entering={FadeIn.delay(800).duration(500)} style={s.version}>
-          BudgetTracko v1.0.0 · Made with ❤️
+          BudgetTracko v2.0.0 · Made with ❤️
         </Animated.Text>
 
         <View style={{ height: 120 }} />
@@ -415,11 +419,15 @@ const s = StyleSheet.create({
   userName: { fontSize: 14, fontWeight: '800', color: '#111', marginBottom: 2 },
   userEmail: { fontSize: 10, color: '#8E8E93', fontWeight: '500' },
   planChip: {
-    paddingHorizontal: 8, paddingVertical: 4,
+    paddingHorizontal: 10, paddingVertical: 4,
     backgroundColor: '#F5F5F5', borderRadius: 20,
     borderWidth: 1, borderColor: '#F2F2F7',
   },
-  planText: { fontSize: 10, fontWeight: '700', color: '#8E8E93', textTransform: 'uppercase', letterSpacing: 0.5 },
+  planChipFree: {
+    backgroundColor: 'rgba(45, 202, 114, 0.12)', borderColor: 'rgba(45, 202, 114, 0.2)',
+  },
+  planText: { fontSize: 10, fontWeight: '800', color: '#8E8E93', textTransform: 'uppercase', letterSpacing: 0.5 },
+  planTextFree: { color: '#2DCA72' },
 
   // Premium Banner (stays dark — intentional contrast)
   premiumBanner: {

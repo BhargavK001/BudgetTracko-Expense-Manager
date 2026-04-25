@@ -32,7 +32,13 @@ The project aims to provide a seamless experience across **Web** (for detailed a
   - Category-based budget vs actual comparisons.
 - **Mobile App**: 
   - React Native (Expo) implementation for Android.
-  - Key features: Dashboard, Add Transaction, Analytics.
+  - Key features: Dashboard, Add Transaction, Analytics, Budgets, Recurring Bills, AskTracko AI Assistant.
+  - Polished with system-wide haptic feedback, pull-to-refresh, and keyboard-safe modals.
+  - Offline sync with AsyncStorage cache & mutation queue (auto-syncs on reconnect).
+  - Skeleton loaders and error fallback UI for graceful degradation.
+  - Biometric App Lock (Face ID / Fingerprint) with lock-on-resume.
+  - Fully integrated AI Assistant (AskTracko) hooked to production backend with context-aware chat, haptic feedback, and offline fallback.
+  - Complete Premium UI Refinements: Enhanced System-wide Haptics, Overhauled Privacy & Security settings, Redesigned Help & Support.
 - **Backend API**:
   - Robust Node.js/Express REST API.
   - MongoDB database integration with Mongoose.
@@ -41,7 +47,7 @@ The project aims to provide a seamless experience across **Web** (for detailed a
 
 ### 🛠 In Progress / Pending Refinement
 - **Export/Import**: Google Drive backup and restore integration.
-- **Notifications**: Push notifications for bill reminders and budget alerts (Libraries not yet installed).
+- **Mobile Production Readiness**: A full audit was conducted in Apr 2026. A detailed [Production Roadmap](file:///c:/Users/Lenovo/Documents/GitHub/BudgetTracko%20-%20Expense%20Manager/docs/PRODUCTION_ROADMAP.md) has been created to guide the final push to launch.
 
 ---
 
@@ -155,4 +161,4 @@ npx expo start
 
 ---
 
-*This document reflects the current state of the BudgetTracko project as of Feb 2026.*
+*This document reflects the current state of the BudgetTracko project as of April 2026 for the v2.0.0 release.*

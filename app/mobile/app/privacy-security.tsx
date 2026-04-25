@@ -82,7 +82,7 @@ export default function PrivacySecurityScreen() {
                         </View>
                     </Animated.View>
 
-                    <Text style={styles.lastUpdated}>Last Updated: October 2023</Text>
+                    <Text style={styles.lastUpdated}>Last Updated: April 2026</Text>
 
                     <View style={styles.sectionsContainer}>
                         {sections.map((section, index) => (

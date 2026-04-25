@@ -10,7 +10,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
-import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSequence, withSpring } from 'react-native-reanimated';
+import Animated, { FadeInDown, FadeIn, useSharedValue, useAnimatedStyle, withSequence, withSpring, Easing } from 'react-native-reanimated';
 
 export default function EditProfileScreen() {
     const router = useRouter();
@@ -22,13 +22,12 @@ export default function EditProfileScreen() {
     const isTablet = width >= 768;
     const horizontalPadding = isTablet ? 32 : isCompact ? 16 : 24;
 
-    const [displayName, setDisplayName] = useState('');
-    const [email, setEmail] = useState('');
+    const [displayName, setDisplayName] = useState(user?.displayName || '');
+    const [email, setEmail] = useState(user?.email || '');
     const [phone, setPhone] = useState('');
-    const [avatarUri, setAvatarUri] = useState<string | null>(null);
+    const [avatarUri, setAvatarUri] = useState<string | null>(user?.avatar || null);
     const [loading, setLoading] = useState(false);
     const [avatarLoading, setAvatarLoading] = useState(false);
-    const [profileLoading, setProfileLoading] = useState(true);
 
     // Password fields
     const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -56,10 +55,7 @@ export default function EditProfileScreen() {
                     setHasPassword(d.hasPassword);
                 }
             } catch (e) {
-                setDisplayName(user?.displayName || '');
-                setEmail(user?.email || '');
-            } finally {
-                setProfileLoading(false);
+                // fallbacks to context data which is already in initial state
             }
         };
         fetchProfile();
@@ -208,26 +204,18 @@ export default function EditProfileScreen() {
 
     const initials = displayName ? displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '';
 
-    if (profileLoading) {
-        return (
-            <View style={[styles.container, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
-                <ActivityIndicator size="large" color="#6366F1" />
-            </View>
-        );
-    }
-
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <StatusBar barStyle="dark-content" />
 
             {/* Header — consistent with rest of app */}
-            <Animated.View entering={FadeIn.delay(50).duration(300)} style={[styles.header, { paddingHorizontal: horizontalPadding }]}>
+            <View style={[styles.header, { paddingHorizontal: horizontalPadding }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
                     <Ionicons name="chevron-back" size={22} color="#111" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Edit Profile</Text>
                 <View style={{ width: 40 }} />
-            </Animated.View>
+            </View>
 
             <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
                 <ScrollView
@@ -237,7 +225,7 @@ export default function EditProfileScreen() {
                     keyboardShouldPersistTaps="handled"
                 >
                     {/* Avatar */}
-                    <Animated.View entering={FadeInDown.delay(80).duration(400).springify()} style={styles.avatarSection}>
+                    <Animated.View entering={FadeInDown.delay(50).duration(600).easing(Easing.out(Easing.cubic))} style={styles.avatarSection}>
                         <TouchableOpacity style={styles.avatarContainer} onPress={handlePickImage} disabled={avatarLoading} activeOpacity={0.8}>
                             <View style={styles.avatar}>
                                 {avatarLoading ? (
@@ -263,7 +251,7 @@ export default function EditProfileScreen() {
                     </Animated.View>
 
                     {/* Profile Fields */}
-                    <Animated.View entering={FadeInDown.delay(150).duration(400).springify()}>
+                    <Animated.View entering={FadeInDown.delay(100).duration(600).easing(Easing.out(Easing.cubic))}>
                         <Text style={styles.sectionTitle}>Personal Info</Text>
                         <View style={styles.fieldGroup}>
                             <FieldRow icon="person-outline" label="Display Name" value={displayName} onChange={setDisplayName} />
@@ -273,7 +261,7 @@ export default function EditProfileScreen() {
                     </Animated.View>
 
                     {/* Save Button with animation */}
-                    <Animated.View entering={FadeInDown.delay(250).duration(400)}>
+                    <Animated.View entering={FadeInDown.delay(150).duration(600).easing(Easing.out(Easing.cubic))}>
                         <Animated.View style={animatedBtnStyle}>
                             <TouchableOpacity style={styles.saveBtn} onPress={handleSaveProfile} disabled={loading} activeOpacity={0.8}>
                                 {loading ? (
@@ -289,7 +277,7 @@ export default function EditProfileScreen() {
                     </Animated.View>
 
                     {/* Password Section */}
-                    <Animated.View entering={FadeInDown.delay(350).duration(400)}>
+                    <Animated.View entering={FadeInDown.delay(200).duration(600).easing(Easing.out(Easing.cubic))}>
                         <Text style={styles.sectionTitle}>Security</Text>
                         <TouchableOpacity
                             style={styles.passwordToggle}

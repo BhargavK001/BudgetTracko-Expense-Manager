@@ -95,9 +95,18 @@ export interface Transaction {
 export interface Budget {
     id: string;
     _id?: string;
-    category: Category | string;
+    category: string;
     amount: number;
     period: 'weekly' | 'monthly' | 'yearly';
+}
+
+export interface CategoryItem {
+    _id: string;
+    name: string;
+    type: 'expense' | 'income' | 'both';
+    icon?: string;
+    color?: string;
+    userId: string;
 }
 
 // ─── Context Shape ───────────────────────────────────────
@@ -115,6 +124,12 @@ interface TransactionContextType {
     deleteBudget: (id: string) => Promise<void>;
     refreshBudgets: () => Promise<void>;
     getTotalBudget: (period: 'weekly' | 'monthly' | 'yearly') => number;
+    // Categories
+    categories: CategoryItem[];
+    refreshCategories: () => Promise<void>;
+    addCategory: (cat: Omit<CategoryItem, '_id' | 'userId'>) => Promise<void>;
+    updateCategory: (id: string, cat: Partial<CategoryItem>) => Promise<void>;
+    deleteCategory: (id: string) => Promise<void>;
     // Analytics
     getTotalIncome: (month?: number, year?: number) => number;
     getTotalExpense: (month?: number, year?: number) => number;
@@ -189,6 +204,7 @@ function normalizeTransaction(tx: any): Transaction {
 export function TransactionProvider({ children }: { children: React.ReactNode }) {
     const { isAuthenticated } = useAuth();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [categories, setCategories] = useState<CategoryItem[]>([]);
     const [budgets, setBudgets] = useState<Budget[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -222,16 +238,29 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
         }
     }, []);
 
+    const refreshCategories = useCallback(async () => {
+        try {
+            const res = await api.get('/api/categories');
+            const raw = res.data;
+            const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+            setCategories(list);
+        } catch (e) {
+            console.log('Failed to fetch categories:', e);
+        }
+    }, []);
+
     useEffect(() => {
         if (isAuthenticated) {
             refreshTransactions();
+            refreshCategories();
             refreshBudgets();
         } else {
             setTransactions([]);
+            setCategories([]);
             setBudgets([]);
             setIsLoading(false);
         }
-    }, [isAuthenticated, refreshTransactions, refreshBudgets]);
+    }, [isAuthenticated, refreshTransactions, refreshCategories, refreshBudgets]);
 
     const addTransaction = useCallback(async (tx: Omit<Transaction, 'id'>) => {
         // The AddTransactionModal now handles the API call directly.
@@ -278,6 +307,36 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
             throw e;
         }
     }, []);
+
+    const addCategory = useCallback(async (cat: Omit<CategoryItem, '_id' | 'userId'>) => {
+        try {
+            await api.post('/api/categories', cat);
+            await refreshCategories();
+        } catch (e) {
+            console.log('Failed to add category:', e);
+            throw e;
+        }
+    }, [refreshCategories]);
+
+    const updateCategory = useCallback(async (id: string, cat: Partial<CategoryItem>) => {
+        try {
+            await api.put(`/api/categories/${id}`, cat);
+            await refreshCategories();
+        } catch (e) {
+            console.log('Failed to update category:', e);
+            throw e;
+        }
+    }, [refreshCategories]);
+
+    const deleteCategory = useCallback(async (id: string) => {
+        try {
+            await api.delete(`/api/categories/${id}`);
+            await refreshCategories();
+        } catch (e) {
+            console.log('Failed to delete category:', e);
+            throw e;
+        }
+    }, [refreshCategories]);
 
     const getTotalBudget = useCallback((period: 'weekly' | 'monthly' | 'yearly') => {
         return budgets.filter(b => b.period === period).reduce((sum, b) => sum + (b.amount || 0), 0);
@@ -344,6 +403,11 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
                 deleteBudget,
                 refreshBudgets,
                 getTotalBudget,
+                categories,
+                refreshCategories,
+                addCategory,
+                updateCategory,
+                deleteCategory,
                 getTotalIncome,
                 getTotalExpense,
                 getBalance,

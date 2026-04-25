@@ -15,6 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useSettings } from '@/context/SettingsContext';
+import * as Haptics from 'expo-haptics';
 
 // ── Floating glow ────────────────────────────────────────
 function useFloat() {
@@ -35,6 +36,7 @@ const Bounce = React.memo(function Bounce({ children, onPress, style }: any) {
   const sc = useSharedValue(1);
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
   const press = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     sc.value = withSequence(withSpring(0.9, { damping: 12 }), withSpring(1, { damping: 10 }));
     onPress?.();
   }, [onPress]);
@@ -508,7 +510,7 @@ export default function AccountsScreen() {
                 </Animated.Text>
                 <Text style={styles.heroSub}>Across {accounts.length} accounts</Text>
               </View>
-              <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowBalance(!showBalance)}>
+              <TouchableOpacity style={styles.eyeBtn} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowBalance(!showBalance); }}>
                 <Ionicons name={showBalance ? 'eye-outline' : 'eye-off-outline'} size={20} color="#8E8E93" />
               </TouchableOpacity>
             </View>
@@ -549,7 +551,7 @@ export default function AccountsScreen() {
         {/* ═══ All Accounts ═══ */}
         <Animated.View entering={FadeIn.delay(320).duration(350)} style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>All Accounts</Text>
-          <TouchableOpacity onPress={() => setShowBalance(!showBalance)}>
+          <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowBalance(!showBalance); }}>
             <Text style={styles.toggleTxt}>{showBalance ? 'Hide' : 'Show'} balances</Text>
           </TouchableOpacity>
         </Animated.View>
@@ -580,7 +582,7 @@ export default function AccountsScreen() {
 
         {/* ═══ Add Account CTA ═══ */}
         <Animated.View entering={FadeInDown.delay(520).duration(380)}>
-          <TouchableOpacity style={styles.addCta} onPress={handleOpenAdd} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.addCta} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleOpenAdd(); }} activeOpacity={0.7}>
             <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#2DCA72" />
             <Text style={styles.addCtaTxt}>Add New Account</Text>
           </TouchableOpacity>

@@ -15,6 +15,7 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 const { width } = Dimensions.get('window');
 
 import { useSettings } from '@/context/SettingsContext';
+import * as Haptics from 'expo-haptics';
 
 type TimeFilter = 'Week' | 'Month' | 'Year' | 'Custom';
 
@@ -339,6 +340,7 @@ export default function AnalysisScreen() {
                                 key={filter}
                                 style={styles.filterChip}
                                 onPress={() => {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                                     tabPosition.value = index;
                                     setSelectedFilter(filter);
                                 }}
@@ -353,12 +355,12 @@ export default function AnalysisScreen() {
 
                 {selectedFilter === 'Custom' && (
                     <View style={styles.customDateContainer}>
-                        <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowPicker('start')}>
+                        <TouchableOpacity style={styles.datePickerButton} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowPicker('start'); }}>
                             <Ionicons name="calendar-outline" size={16} color={DarkTheme.textMuted} />
                             <Text style={styles.datePickerText}>{customStart.toLocaleDateString()}</Text>
                         </TouchableOpacity>
                         <Text style={styles.datePickerTo}>to</Text>
-                        <TouchableOpacity style={styles.datePickerButton} onPress={() => setShowPicker('end')}>
+                        <TouchableOpacity style={styles.datePickerButton} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowPicker('end'); }}>
                             <Ionicons name="calendar-outline" size={16} color={DarkTheme.textMuted} />
                             <Text style={styles.datePickerText}>{customEnd.toLocaleDateString()}</Text>
                         </TouchableOpacity>
@@ -398,10 +400,10 @@ export default function AnalysisScreen() {
                             <Text style={styles.summaryBalanceLabel}>Total Balance</Text>
                         </View>
                         <View style={styles.navButtons}>
-                            <TouchableOpacity onPress={goToPrevMonth} style={styles.navButton} disabled={selectedFilter === 'Custom' || selectedFilter === 'Week'}>
+                            <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); goToPrevMonth(); }} style={styles.navButton} disabled={selectedFilter === 'Custom' || selectedFilter === 'Week'}>
                                 <Ionicons name="chevron-back" size={18} color={selectedFilter === 'Custom' || selectedFilter === 'Week' ? DarkTheme.textMuted + '50' : DarkTheme.textPrimary} />
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={goToNextMonth} style={styles.navButton} disabled={selectedFilter === 'Custom' || selectedFilter === 'Week'}>
+                            <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); goToNextMonth(); }} style={styles.navButton} disabled={selectedFilter === 'Custom' || selectedFilter === 'Week'}>
                                 <Ionicons name="chevron-forward" size={18} color={selectedFilter === 'Custom' || selectedFilter === 'Week' ? DarkTheme.textMuted + '50' : DarkTheme.textPrimary} />
                             </TouchableOpacity>
                         </View>

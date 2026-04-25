@@ -11,6 +11,8 @@ import { useTransactions, CATEGORY_ICONS, CATEGORY_COLORS, Category, mapCategory
 import { useAuth } from '@/context/AuthContext';
 import { useQuickAction } from '@/context/QuickActionContext';
 import { useSettings } from '@/context/SettingsContext';
+import { DashboardSkeleton } from '@/components/SkeletonLoader';
+import * as Haptics from 'expo-haptics';
 import Animated, {
   FadeInDown, FadeInUp, FadeIn, ZoomIn,
   useSharedValue, useAnimatedStyle,
@@ -59,6 +61,7 @@ const BounceButton = React.memo(function BounceButton({ children, onPress, style
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
   const press = useCallback(() => {
     sc.value = withSequence(withSpring(0.88, { damping: 12 }), withSpring(1, { damping: 10 }));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress?.();
   }, [onPress]);
   return (
@@ -75,11 +78,21 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { transactions, getTotalIncome, getTotalExpense, getBalance, getTotalBudget } = useTransactions();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { openModal } = useQuickAction();
   const { formatCurrency } = useSettings();
   const [hidden, setHidden] = useState(false);
   const floatStyle = useFloat();
+
+  // Show skeleton while initial auth/data is loading
+  if (authLoading) {
+    return (
+      <View style={[styles.root, { paddingTop: insets.top }]}>
+        <StatusBar barStyle="dark-content" />
+        <DashboardSkeleton />
+      </View>
+    );
+  }
 
   const now = new Date();
   const mon = now.getMonth();
@@ -106,7 +119,10 @@ export default function HomeScreen() {
     { icon: 'bank-transfer', label: 'Transfer', type: 'transfer' as const },
   ], []);
 
-  const toggleHidden = useCallback(() => setHidden(h => !h), []);
+  const toggleHidden = useCallback(() => {
+    Haptics.selectionAsync();
+    setHidden(h => !h);
+  }, []);
   const onNotification = useCallback(() => Alert.alert('Notifications', 'No new notifications'), []);
 
   const renderTxItem = useCallback(({ item: tx, index: i }: { item: any; index: number }) => (

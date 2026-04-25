@@ -8,6 +8,7 @@ import Animated, {
   useSharedValue, useAnimatedStyle,
   withRepeat, withSequence, withTiming, Easing,
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 function useFloat(offset = -5, dur = 2000) {
   const y = useSharedValue(0);
@@ -27,6 +28,7 @@ function TapCard({ children, onPress, style, delay = 0 }: any) {
   const sc = useSharedValue(1);
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
   const press = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     sc.value = withSequence(
       withTiming(0.97, { duration: 80 }),
       withTiming(1, { duration: 200, easing: Easing.out(Easing.quad) }),
@@ -90,7 +92,10 @@ export default function PulseHubScreen() {
             <TouchableOpacity
               key={i}
               style={styles.chip}
-              onPress={() => router.push(c.route as any)}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                router.push(c.route as any);
+              }}
               activeOpacity={0.7}
             >
               <Ionicons name={c.icon} size={14} color="#2DCA72" />

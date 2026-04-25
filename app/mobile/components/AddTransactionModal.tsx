@@ -13,7 +13,7 @@ import Animated, {
     interpolateColor, useAnimatedProps,
 } from 'react-native-reanimated';
 import api from '@/services/api';
-import { CATEGORY_ICONS as CTX_ICONS, CATEGORY_COLORS as CTX_COLORS, mapCategoryIcon, useTransactions } from '@/context/TransactionContext';
+import { mapCategoryIcon, useTransactions, CategoryItem } from '@/context/TransactionContext';
 import { ScanData } from '@/context/QuickActionContext';
 import { useSettings } from '@/context/SettingsContext';
 import { compressImage } from '@/utils/imageCompressor';
@@ -29,13 +29,7 @@ interface BackendAccount {
     balance: number;
 }
 
-interface BackendCategory {
-    _id: string;
-    name: string;
-    icon?: string;
-    color?: string;
-    type?: string;
-}
+// Deleted local BackendCategory type since we use CategoryItem from context
 
 // ─── Constants ───────────────────────────────────────────
 const SCREEN_W = Dimensions.get('window').width;
@@ -45,24 +39,9 @@ const PILL_TYPES: { key: TxType; label: string; icon: string; color: string }[] 
     { key: 'transfer', label: 'Transfer', icon: 'swap-horizontal-outline', color: '#007AFF' },
 ];
 
-const DEFAULT_EXPENSE_CATS = [
-    { name: 'Food and Dining', icon: 'restaurant-outline', color: '#FF9800' },
-    { name: 'Transport', icon: 'car-outline', color: '#2196F3' },
-    { name: 'Shopping', icon: 'cart-outline', color: '#E91E63' },
-    { name: 'Entertainment', icon: 'headset-outline', color: '#4CAF50' },
-    { name: 'Bills & Utilities', icon: 'receipt-outline', color: '#9C27B0' },
-    { name: 'Health', icon: 'heart-outline', color: '#F44336' },
-    { name: 'Education', icon: 'school-outline', color: '#00BCD4' },
-    { name: 'Other', icon: 'ellipsis-horizontal-circle-outline', color: '#795548' },
-];
-
-const DEFAULT_INCOME_CATS = [
-    { name: 'Salary', icon: 'briefcase-outline', color: '#4CAF50' },
-    { name: 'Freelance', icon: 'laptop-outline', color: '#7C4DFF' },
-    { name: 'Investment', icon: 'trending-up-outline', color: '#FF5722' },
-    { name: 'Gift', icon: 'gift-outline', color: '#FFD700' },
-    { name: 'Other', icon: 'ellipsis-horizontal-circle-outline', color: '#795548' },
-];
+// Standard defaults are handled by the backend and context now
+const DEFAULT_EXPENSE_CATS: any[] = [];
+const DEFAULT_INCOME_CATS: any[] = [];
 // ─── Date helpers ────────────────────────────────────────
 function isToday(d: Date): boolean {
     const now = new Date();
@@ -326,7 +305,7 @@ interface Props {
 }
 
 export default function AddTransactionModal({ visible, onClose, editingTransaction, onEditSuccess, initialType, scanData }: Props) {
-    const { deleteTransaction } = useTransactions();
+    const { deleteTransaction, categories: contextCategories, refreshCategories } = useTransactions();
     const { formatCurrency, currency, triggerHaptic } = useSettings();
 
     // ── State ──
@@ -348,16 +327,12 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
 
     // Backend data
     const [accounts, setAccounts] = useState<BackendAccount[]>([]);
-    const [categories, setCategories] = useState<BackendCategory[]>([]);
     const [loadingData, setLoadingData] = useState(true);
 
     const fetchData = useCallback(async () => {
         setLoadingData(true);
         try {
-            const [accRes, catRes] = await Promise.all([
-                api.get('/api/accounts'),
-                api.get('/api/categories'),
-            ]);
+            const accRes = await api.get('/api/accounts');
             const accRaw = accRes.data;
             const accs = Array.isArray(accRaw) ? accRaw : Array.isArray(accRaw?.data) ? accRaw.data : [];
             setAccounts(accs);
@@ -366,16 +341,14 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
                 setFromAccountId(accs[0]._id);
                 if (accs.length > 1) setToAccountId(accs[1]._id);
             }
-
-            const catRaw = catRes.data;
-            const cats = Array.isArray(catRaw) ? catRaw : Array.isArray(catRaw?.data) ? catRaw.data : [];
-            setCategories(cats);
+            // Refresh categories in background to ensure latest
+            refreshCategories();
         } catch (e) {
-            console.log('Failed to load form data:', e);
+            console.log('Failed to load accounts:', e);
         } finally {
             setLoadingData(false);
         }
-    }, [accountId]);
+    }, [accountId, refreshCategories]);
 
     useEffect(() => {
         if (visible) fetchData();
@@ -440,22 +413,15 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
 
     // ── Derived ──
     const getDisplayCategories = () => {
-        const backendCats = categories.filter(c => {
-            if (type === 'expense') return c.type === 'expense' || !c.type;
-            if (type === 'income') return c.type === 'income' || !c.type;
+        return contextCategories.filter(c => {
+            if (type === 'expense') return c.type === 'expense' || c.type === 'both';
+            if (type === 'income') return c.type === 'income' || c.type === 'both';
             return false;
-        });
-
-        if (backendCats.length > 0) return backendCats.map(c => {
-            const rawIcon = c.icon || (CTX_ICONS as any)[c.name];
-            return {
-                name: c.name,
-                icon: rawIcon ? mapCategoryIcon(rawIcon) : 'ellipsis-horizontal-circle-outline',
-                color: c.color || (CTX_COLORS as any)[c.name] || '#795548',
-            };
-        });
-
-        return type === 'expense' ? DEFAULT_EXPENSE_CATS : DEFAULT_INCOME_CATS;
+        }).map(c => ({
+            name: c.name,
+            icon: mapCategoryIcon(c.icon || 'ellipsis-horizontal-circle-outline'),
+            color: c.color || '#6366F1',
+        }));
     };
 
     const displayCats = getDisplayCategories();
@@ -724,7 +690,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
                                 <Animated.View entering={FadeInDown.delay(200).duration(350)} style={styles.fieldGroup}>
                                     <Text style={styles.fieldLabel}>Category</Text>
                                     <View style={styles.catGrid}>
-                                        {displayCats.map((cat, i) => {
+                                        {displayCats.map((cat: any, i: number) => {
                                             const sel = category === cat.name;
                                             return (
                                                 <Animated.View key={cat.name} entering={FadeInDown.delay(220 + i * 20).duration(280)}>
@@ -748,7 +714,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
                                     <Text style={styles.fieldLabel}>Account</Text>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                         <View style={styles.accRow}>
-                                            {accounts.map(acc => {
+                                            {accounts.map((acc: any) => {
                                                 const sel = accountId === acc._id;
                                                 return (
                                                     <TouchableOpacity
@@ -772,7 +738,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
                                     <Text style={styles.fieldLabel}>From Account</Text>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
                                         <View style={styles.accRow}>
-                                            {accounts.map(acc => {
+                                            {accounts.map((acc: any) => {
                                                 const sel = fromAccountId === acc._id;
                                                 return (
                                                     <TouchableOpacity

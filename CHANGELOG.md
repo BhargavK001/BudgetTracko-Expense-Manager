@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.0.0] - 2026-04-25
+
+### Added
+- **AskTracko Mobile AI Integration**: Integrated the 'AskTracko' AI assistant directly into the mobile app, fully connected to the production backend, ensuring context-aware chat history. Includes offline fallback caching for robust access even without a network.
+- **Biometric Persistence Integration**: Moved the Biometric App lock functionality to properly persist within the newly updated Privacy & Security context.
+- **Offline Sync System**: The mobile app now leverages a mature AsyncStorage mutation queue designed to cache interactions offline and gracefully sync to MongoDB upon reconnection without crashes.
+
+### Changed
+- **Comprehensive Mobile UI Polish**: System-wide Haptic feedback added to effectively every primary interaction on the dashboard and settings utilizing `expo-haptics`.
+- **Settings Consolidation**: Removed redundant settings rows across the account setup, centralizing Privacy, Analytics, and Security toggles into a singular, clean Privacy & Security Page.
+- **Premium App Overhauls**: Replaced legacy and fragmented Help & Support layouts with fully redesigned, highly polished modern light-theme layouts that accurately reflect the premium aesthetic of BudgetTracko.
+- **Version Bump**: Formally migrated to application version 2.0.0 reflecting the production-readiness of the mobile infrastructure.
+
 ## [1.0.2] - 2026-03-12
 
 ### Added

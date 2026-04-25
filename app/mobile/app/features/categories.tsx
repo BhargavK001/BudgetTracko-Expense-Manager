@@ -1,73 +1,66 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, StatusBar, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, { FadeInDown, FadeIn, Layout } from 'react-native-reanimated';
-import { CATEGORY_ICONS, CATEGORY_COLORS, Category, mapCategoryIcon } from '@/context/TransactionContext';
+import Animated, { FadeInDown, FadeIn, Layout, SlideInRight } from 'react-native-reanimated';
+import { mapCategoryIcon, useTransactions, CategoryItem } from '@/context/TransactionContext';
+import { LinearGradient } from 'expo-linear-gradient';
 import api from '@/services/api';
 
-type CategoryItem = {
-    _id: string;
-    name: string;
-    type: 'expense' | 'income';
-    icon?: string;
-    color?: string;
-};
+const AVAILABLE_COLORS = [
+    '#6366F1', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6', 
+    '#06B6D4', '#F43F5E', '#3B82F6', '#1E293B', '#64748B'
+];
+
+const AVAILABLE_ICONS = [
+    'cart', 'bus', 'restaurant', 'gift', 'medical', 
+    'school', 'game-controller', 'fitness', 'home', 'construct', 
+    'airplane', 'subway', 'receipt', 'card', 'briefcase', 
+    'laptop', 'cash', 'trending-up', 'wallet', 'apps'
+];
 
 export default function CategoriesScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { categories, refreshCategories, addCategory, updateCategory, deleteCategory, transactions } = useTransactions();
 
     const [activeTab, setActiveTab] = useState<'expense' | 'income'>('expense');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [categoryName, setCategoryName] = useState('');
+    const [selectedIcon, setSelectedIcon] = useState(AVAILABLE_ICONS[0]);
+    const [selectedColor, setSelectedColor] = useState(AVAILABLE_COLORS[0]);
     const [editingCategory, setEditingCategory] = useState<CategoryItem | null>(null);
-    const [categories, setCategories] = useState<CategoryItem[]>([]);
-    const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({});
-    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
     const currentCategories = categories.filter(c => c.type === activeTab);
 
-    const fetchData = useCallback(async () => {
-        try {
-            const [catRes, txnRes] = await Promise.all([
-                api.get('/api/categories'),
-                api.get('/api/transactions'),
-            ]);
-
-            const catRaw = catRes.data;
-            const cats = Array.isArray(catRaw) ? catRaw : Array.isArray(catRaw?.data) ? catRaw.data : [];
-            setCategories(cats);
-
-            const txnRaw = txnRes.data;
-            const txns = Array.isArray(txnRaw) ? txnRaw : Array.isArray(txnRaw?.data) ? txnRaw.data : [];
-            const counts: Record<string, number> = {};
-            txns.forEach((t: any) => {
-                if (t.category) counts[t.category] = (counts[t.category] || 0) + 1;
-            });
-            setCategoryCounts(counts);
-        } catch (e) {
-            console.log('Failed to fetch categories:', e);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+    const categoryCounts = useMemo(() => {
+        const counts: Record<string, number> = {};
+        transactions.forEach((t: any) => {
+            const catName = typeof t.category === 'string' ? t.category : t.category?.name;
+            if (catName) counts[catName] = (counts[catName] || 0) + 1;
+        });
+        return counts;
+    }, [transactions]);
 
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        refreshCategories();
+    }, []);
 
     const openAddModal = () => {
         setEditingCategory(null);
         setCategoryName('');
+        setSelectedIcon(AVAILABLE_ICONS[0]);
+        setSelectedColor(AVAILABLE_COLORS[0]);
         setIsModalOpen(true);
     };
 
     const openEditModal = (cat: CategoryItem) => {
         setEditingCategory(cat);
         setCategoryName(cat.name);
+        setSelectedIcon(cat.icon || AVAILABLE_ICONS[0]);
+        setSelectedColor(cat.color || AVAILABLE_COLORS[0]);
         setIsModalOpen(true);
     };
 
@@ -78,22 +71,30 @@ export default function CategoriesScreen() {
         setSaving(true);
         try {
             if (editingCategory) {
-                await api.put(`/api/categories/${editingCategory._id}`, { name });
+                await updateCategory(editingCategory._id, { 
+                    name, 
+                    icon: selectedIcon, 
+                    color: selectedColor 
+                });
             } else {
-                await api.post('/api/categories', { name, type: activeTab });
+                await addCategory({ 
+                    name, 
+                    type: activeTab, 
+                    icon: selectedIcon, 
+                    color: selectedColor 
+                });
             }
             setIsModalOpen(false);
             setCategoryName('');
             setEditingCategory(null);
-            await fetchData();
         } catch (e: any) {
-            Alert.alert('Error', e.response?.data?.message || 'Failed to save category.');
+            Alert.alert('Error', e.response?.data?.message || e.message || 'Failed to save category.');
         } finally {
             setSaving(false);
         }
     };
 
-    const handleDelete = (cat: CategoryItem) => {
+    const handleDeleteCat = (cat: CategoryItem) => {
         const count = categoryCounts[cat.name] || 0;
         const warning = count > 0
             ? `This category has ${count} transaction${count > 1 ? 's' : ''}. Deleting it will remove the category label from those transactions.`
@@ -105,10 +106,9 @@ export default function CategoriesScreen() {
                 text: 'Delete', style: 'destructive',
                 onPress: async () => {
                     try {
-                        await api.delete(`/api/categories/${cat._id}`);
-                        await fetchData();
+                        await deleteCategory(cat._id);
                     } catch (e: any) {
-                        Alert.alert('Error', e.response?.data?.message || 'Failed to delete category.');
+                        Alert.alert('Error', e.response?.data?.message || e.message || 'Failed to delete category.');
                     }
                 },
             },
@@ -146,69 +146,62 @@ export default function CategoriesScreen() {
                 </View>
             </Animated.View>
 
-            {loading ? (
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                    <ActivityIndicator size="large" color="#6366F1" />
-                </View>
-            ) : (
-                <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                    <View style={styles.grid}>
-                        {currentCategories.map((cat, index) => {
-                            const rawIcon = CATEGORY_ICONS[cat.name as Category] || (cat.icon as any);
-                            const iconName = rawIcon ? mapCategoryIcon(rawIcon) : 'folder-outline';
-                            const iconColor = CATEGORY_COLORS[cat.name as Category] || cat.color || '#6366F1';
-                            const count = categoryCounts[cat.name] || 0;
+            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <View style={styles.grid}>
+                    {currentCategories.map((cat, index) => {
+                        const iconName = mapCategoryIcon(cat.icon || 'ellipsis-horizontal-circle-outline');
+                        const iconColor = cat.color || '#6366F1';
+                        const count = categoryCounts[cat.name] || 0;
 
-                            return (
-                                <Animated.View key={cat._id} layout={Layout.springify()}>
-                                    <Animated.View
-                                        entering={FadeInDown.delay(100 + index * 30).duration(400).springify()}
-                                        style={styles.categoryCard}
-                                    >
-                                        <View style={styles.catLeft}>
-                                            <View style={[styles.iconWrap, { backgroundColor: iconColor + '15' }]}>
-                                                <Ionicons name={iconName as any} size={20} color={iconColor} />
-                                            </View>
-                                            <View>
-                                                <Text style={styles.catName}>{cat.name}</Text>
-                                                <Text style={styles.catUsage}>{count} transaction{count !== 1 ? 's' : ''}</Text>
-                                            </View>
+                        return (
+                            <Animated.View key={cat._id} layout={Layout.springify()}>
+                                <Animated.View
+                                    entering={FadeInDown.delay(100 + index * 30).duration(400).springify()}
+                                    style={styles.categoryCard}
+                                >
+                                    <View style={styles.catLeft}>
+                                        <View style={[styles.iconWrap, { backgroundColor: iconColor + '15' }]}>
+                                            <Ionicons name={iconName as any} size={20} color={iconColor} />
                                         </View>
-                                        <View style={styles.catRight}>
-                                            <TouchableOpacity style={styles.iconButton} activeOpacity={0.7} onPress={() => openEditModal(cat)}>
-                                                <Ionicons name="pencil-outline" size={16} color="#8E8E93" />
-                                            </TouchableOpacity>
-                                            <TouchableOpacity
-                                                style={[styles.iconButton, { backgroundColor: 'rgba(244,63,94,0.05)' }]}
-                                                activeOpacity={0.7}
-                                                onPress={() => handleDelete(cat)}
-                                            >
-                                                <Ionicons name="trash-outline" size={16} color="#F43F5E" />
-                                            </TouchableOpacity>
+                                        <View>
+                                            <Text style={styles.catName}>{cat.name}</Text>
+                                            <Text style={styles.catUsage}>{count} transaction{count !== 1 ? 's' : ''}</Text>
                                         </View>
-                                    </Animated.View>
+                                    </View>
+                                    <View style={styles.catRight}>
+                                        <TouchableOpacity style={styles.iconButton} activeOpacity={0.7} onPress={() => openEditModal(cat)}>
+                                            <Ionicons name="pencil-outline" size={16} color="#8E8E93" />
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.iconButton, { backgroundColor: 'rgba(244,63,94,0.05)' }]}
+                                            activeOpacity={0.7}
+                                            onPress={() => handleDeleteCat(cat)}
+                                        >
+                                            <Ionicons name="trash-outline" size={16} color="#F43F5E" />
+                                        </TouchableOpacity>
+                                    </View>
                                 </Animated.View>
-                            );
-                        })}
+                            </Animated.View>
+                        );
+                    })}
 
-                        {currentCategories.length === 0 && (
-                            <View style={styles.emptyState}>
-                                <Ionicons name="folder-open-outline" size={64} color="#E5E5EA" />
-                                <Text style={styles.emptyTitle}>No categories yet</Text>
-                                <Text style={styles.emptyDesc}>Tap the + button to add your first {activeTab} category.</Text>
-                            </View>
-                        )}
+                    {currentCategories.length === 0 && (
+                        <View style={styles.emptyState}>
+                            <Ionicons name="folder-open-outline" size={64} color="#E5E5EA" />
+                            <Text style={styles.emptyTitle}>No categories yet</Text>
+                            <Text style={styles.emptyDesc}>Tap the + button to add your first {activeTab} category.</Text>
+                        </View>
+                    )}
 
-                        <Animated.View entering={FadeInDown.delay(100 + currentCategories.length * 30).duration(400).springify()}>
-                            <TouchableOpacity style={styles.emptyCard} onPress={openAddModal} activeOpacity={0.7}>
-                                <Ionicons name="add-circle-outline" size={32} color="#C7C7CC" />
-                                <Text style={styles.emptyCardText}>Add Category</Text>
-                            </TouchableOpacity>
-                        </Animated.View>
-                    </View>
-                    <View style={{ height: 100 }} />
-                </ScrollView>
-            )}
+                    <Animated.View entering={FadeInDown.delay(100 + currentCategories.length * 30).duration(400).springify()}>
+                        <TouchableOpacity style={styles.emptyCard} onPress={openAddModal} activeOpacity={0.7}>
+                            <Ionicons name="add-circle-outline" size={32} color="#C7C7CC" />
+                            <Text style={styles.emptyCardText}>Add Category</Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                </View>
+                <View style={{ height: 100 }} />
+            </ScrollView>
 
             <Modal visible={isModalOpen} animationType="fade" transparent onRequestClose={() => setIsModalOpen(false)}>
                 <View style={styles.modalOverlay}>
@@ -230,8 +223,48 @@ export default function CategoriesScreen() {
                                 placeholderTextColor="#C7C7CC"
                                 value={categoryName}
                                 onChangeText={setCategoryName}
-                                autoFocus
                             />
+                        </View>
+
+                        <View style={styles.formGroup}>
+                            <Text style={styles.label}>Select Icon</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.iconPicker}>
+                                {AVAILABLE_ICONS.map((icon) => (
+                                    <TouchableOpacity
+                                        key={icon}
+                                        style={[
+                                            styles.pickerIconWrap,
+                                            selectedIcon === icon && { backgroundColor: selectedColor + '15', borderColor: selectedColor }
+                                        ]}
+                                        onPress={() => setSelectedIcon(icon)}
+                                    >
+                                        <Ionicons 
+                                            name={mapCategoryIcon(icon) as any} 
+                                            size={22} 
+                                            color={selectedIcon === icon ? selectedColor : '#8E8E93'} 
+                                        />
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+
+                        <View style={styles.formGroup}>
+                            <Text style={styles.label}>Select Color</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.colorPicker}>
+                                {AVAILABLE_COLORS.map((color) => (
+                                    <TouchableOpacity
+                                        key={color}
+                                        style={[
+                                            styles.colorDot,
+                                            { backgroundColor: color },
+                                            selectedColor === color && styles.colorDotActive
+                                        ]}
+                                        onPress={() => setSelectedColor(color)}
+                                    >
+                                        {selectedColor === color && <Ionicons name="checkmark" size={14} color="#fff" />}
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
                         </View>
 
                         <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.8} disabled={saving}>
@@ -329,4 +362,20 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.25, shadowRadius: 10, elevation: 4,
     },
     saveButtonText: { fontSize: 16, fontWeight: '900', color: '#FFFFFF' },
+    iconPicker: { gap: 12, paddingVertical: 4 },
+    pickerIconWrap: {
+        width: 46, height: 46, borderRadius: 12,
+        backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center',
+        borderWidth: 1.5, borderColor: 'transparent',
+    },
+    colorPicker: { gap: 12, paddingVertical: 4 },
+    colorDot: {
+        width: 32, height: 32, borderRadius: 16,
+        justifyContent: 'center', alignItems: 'center',
+    },
+    colorDotActive: {
+        borderWidth: 2, borderColor: '#fff',
+        shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2, shadowRadius: 4, elevation: 3,
+    },
 });

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
     TextInput, Modal, Switch, StatusBar, Alert, ActivityIndicator,
+    KeyboardAvoidingView, Platform, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -16,6 +17,11 @@ const PRESETS = [
     { name: 'Netflix', category: 'Entertainment', amount: 649 },
     { name: 'Prime Video', category: 'Entertainment', amount: 299 },
     { name: 'Mess', category: 'Food', amount: 3000 },
+];
+
+const FREQUENCIES = [
+    { key: 'monthly', label: 'Monthly' },
+    { key: 'yearly', label: 'Yearly' },
 ];
 
 type Bill = {
@@ -37,7 +43,8 @@ function RecurringBillsScreen() {
     const [bills, setBills] = useState<Bill[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const { formatCurrency } = useSettings();
+    const [refreshing, setRefreshing] = useState(false);
+    const { formatCurrency, triggerHaptic } = useSettings();
 
     const [formData, setFormData] = useState({
         name: '', amount: '', dueDate: '1',
@@ -59,6 +66,12 @@ function RecurringBillsScreen() {
 
     useEffect(() => { fetchBills(); }, [fetchBills]);
 
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try { await fetchBills(); } catch {}
+        setRefreshing(false);
+    }, [fetchBills]);
+
     const sortedBills = useMemo(() => {
         if (!Array.isArray(bills)) return [];
         return [...bills].sort((a, b) => (a.dueDate || 0) - (b.dueDate || 0));
@@ -70,6 +83,7 @@ function RecurringBillsScreen() {
     }, [bills]);
 
     const handleOpenModal = (bill: Bill | null = null) => {
+        triggerHaptic();
         if (bill) {
             setEditingBill(bill);
             setFormData({
@@ -85,6 +99,7 @@ function RecurringBillsScreen() {
     };
 
     const handleSave = async () => {
+        triggerHaptic();
         if (!formData.name || !formData.amount) return;
         setSaving(true);
 
@@ -117,23 +132,25 @@ function RecurringBillsScreen() {
             setIsModalOpen(false);
             await fetchBills();
         } catch (e: any) {
-            Alert.alert('Error', e.response?.data?.message || 'Failed to save bill.');
+            Alert.alert('Error', e.response?.data?.error || e.response?.data?.message || 'Failed to save bill.');
         } finally {
             setSaving(false);
         }
     };
 
     const handleDelete = (bill: Bill) => {
+        triggerHaptic();
         Alert.alert('Delete Bill', `Are you sure you want to delete "${bill.name}"?`, [
             { text: 'Cancel', style: 'cancel' },
             {
                 text: 'Delete', style: 'destructive',
                 onPress: async () => {
+                    triggerHaptic();
                     try {
                         await api.delete(`/api/recurring/${bill._id}`);
                         await fetchBills();
                     } catch (e: any) {
-                        Alert.alert('Error', e.response?.data?.message || 'Failed to delete bill.');
+                        Alert.alert('Error', e.response?.data?.error || e.response?.data?.message || 'Failed to delete bill.');
                     }
                 },
             },
@@ -155,9 +172,17 @@ function RecurringBillsScreen() {
             {loading ? (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
                     <ActivityIndicator size="large" color="#6366F1" />
+                    <Text style={{ marginTop: 12, color: '#8E8E93', fontSize: 13, fontWeight: '600' }}>Loading bills…</Text>
                 </View>
             ) : (
-                <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <ScrollView
+                    style={styles.scrollView}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366F1" colors={['#6366F1']} />
+                    }
+                >
                     {/* Stats */}
                     <Animated.View entering={FadeInDown.delay(100).duration(400).springify()} style={styles.statsContainer}>
                         <View style={styles.statsIcon}>
@@ -166,6 +191,9 @@ function RecurringBillsScreen() {
                         <View style={{ flex: 1 }}>
                             <Text style={styles.statsLabel}>Total Monthly Estimate</Text>
                             <Text style={styles.statsValue}>{formatCurrency(Math.round(totalMonthly))}</Text>
+                        </View>
+                        <View style={styles.countBadge}>
+                            <Text style={styles.countBadgeText}>{sortedBills.length}</Text>
                         </View>
                     </Animated.View>
 
@@ -256,79 +284,104 @@ function RecurringBillsScreen() {
 
             {/* Modal */}
             <Modal visible={isModalOpen} animationType="slide" transparent onRequestClose={() => setIsModalOpen(false)}>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{editingBill ? 'Edit Bill' : 'New Bill'}</Text>
-                            <TouchableOpacity onPress={() => setIsModalOpen(false)}>
-                                <Ionicons name="close-circle" size={28} color="#C7C7CC" />
-                            </TouchableOpacity>
-                        </View>
+                <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>{editingBill ? 'Edit Bill' : 'New Bill'}</Text>
+                                <TouchableOpacity onPress={() => setIsModalOpen(false)}>
+                                    <Ionicons name="close-circle" size={28} color="#C7C7CC" />
+                                </TouchableOpacity>
+                            </View>
 
-                        <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
-                            {!editingBill && (
-                                <View style={styles.formSection}>
-                                    <Text style={styles.label}>Quick Add</Text>
-                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetScroll}>
-                                        {PRESETS.map(p => (
+                            <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
+                                {!editingBill && (
+                                    <View style={styles.formSection}>
+                                        <Text style={styles.label}>Quick Add</Text>
+                                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.presetScroll}>
+                                            {PRESETS.map(p => (
+                                                <TouchableOpacity
+                                                    key={p.name} style={styles.presetChip}
+                                                    onPress={() => { triggerHaptic(); setFormData({ ...formData, name: p.name, category: p.category, amount: p.amount.toString() }); }}
+                                                    activeOpacity={0.8}
+                                                >
+                                                    <Text style={styles.presetChipText}>{p.name}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </ScrollView>
+                                    </View>
+                                )}
+
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.label}>Bill Name</Text>
+                                    <TextInput style={styles.input} placeholder="e.g. Netflix" placeholderTextColor="#C7C7CC"
+                                        value={formData.name} onChangeText={v => setFormData({ ...formData, name: v })} />
+                                </View>
+
+                                <View style={styles.row}>
+                                    <View style={[styles.formGroup, { flex: 1, marginRight: 12 }]}>
+                                        <Text style={styles.label}>Amount ({formatCurrency(0).charAt(0)})</Text>
+                                        <TextInput style={styles.input} placeholder="0" placeholderTextColor="#C7C7CC" keyboardType="numeric"
+                                            value={formData.amount} onChangeText={v => setFormData({ ...formData, amount: v })} />
+                                    </View>
+                                    <View style={[styles.formGroup, { flex: 1 }]}>
+                                        <Text style={styles.label}>Due Date (1-31)</Text>
+                                        <TextInput style={styles.input} placeholder="1" placeholderTextColor="#C7C7CC" keyboardType="numeric" maxLength={2}
+                                            value={formData.dueDate} onChangeText={v => setFormData({ ...formData, dueDate: v })} />
+                                    </View>
+                                </View>
+
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.label}>Category</Text>
+                                    <TextInput style={styles.input} placeholder="Category" placeholderTextColor="#C7C7CC"
+                                        value={formData.category} onChangeText={v => setFormData({ ...formData, category: v })} />
+                                </View>
+
+                                {/* Frequency Selector */}
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.label}>Frequency</Text>
+                                    <View style={styles.frequencyContainer}>
+                                        {FREQUENCIES.map(f => (
                                             <TouchableOpacity
-                                                key={p.name} style={styles.presetChip}
-                                                onPress={() => setFormData({ ...formData, name: p.name, category: p.category, amount: p.amount.toString() })}
+                                                key={f.key}
+                                                style={[
+                                                    styles.frequencyButton,
+                                                    formData.frequency === f.key && styles.frequencyButtonActive
+                                                ]}
+                                                onPress={() => { triggerHaptic(); setFormData({ ...formData, frequency: f.key }); }}
                                                 activeOpacity={0.8}
                                             >
-                                                <Text style={styles.presetChipText}>{p.name}</Text>
+                                                <Text style={[
+                                                    styles.frequencyLabel,
+                                                    formData.frequency === f.key && styles.frequencyLabelActive
+                                                ]}>{f.label}</Text>
                                             </TouchableOpacity>
                                         ))}
-                                    </ScrollView>
+                                    </View>
                                 </View>
-                            )}
 
-                            <View style={styles.formGroup}>
-                                <Text style={styles.label}>Bill Name</Text>
-                                <TextInput style={styles.input} placeholder="e.g. Netflix" placeholderTextColor="#C7C7CC"
-                                    value={formData.name} onChangeText={v => setFormData({ ...formData, name: v })} />
-                            </View>
-
-                            <View style={styles.row}>
-                                <View style={[styles.formGroup, { flex: 1, marginRight: 12 }]}>
-                                    <Text style={styles.label}>Amount ({formatCurrency(0).charAt(0)})</Text>
-                                    <TextInput style={styles.input} placeholder="0" placeholderTextColor="#C7C7CC" keyboardType="numeric"
-                                        value={formData.amount} onChangeText={v => setFormData({ ...formData, amount: v })} />
+                                <View style={styles.switchGroup}>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={styles.switchLabel}>Auto-Pay</Text>
+                                        <Text style={styles.switchSubLabel}>Mark if this is automatically deducted</Text>
+                                    </View>
+                                    <Switch value={formData.autoPay} onValueChange={v => { triggerHaptic(); setFormData({ ...formData, autoPay: v }); }}
+                                        trackColor={{ false: '#E5E5EA', true: '#6366F1' }} thumbColor="#fff" ios_backgroundColor="#E5E5EA" />
                                 </View>
-                                <View style={[styles.formGroup, { flex: 1 }]}>
-                                    <Text style={styles.label}>Due Date (1-31)</Text>
-                                    <TextInput style={styles.input} placeholder="1" placeholderTextColor="#C7C7CC" keyboardType="numeric" maxLength={2}
-                                        value={formData.dueDate} onChangeText={v => setFormData({ ...formData, dueDate: v })} />
-                                </View>
-                            </View>
 
-                            <View style={styles.formGroup}>
-                                <Text style={styles.label}>Category</Text>
-                                <TextInput style={styles.input} placeholder="Category" placeholderTextColor="#C7C7CC"
-                                    value={formData.category} onChangeText={v => setFormData({ ...formData, category: v })} />
-                            </View>
+                                <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.8} disabled={saving}>
+                                    {saving ? (
+                                        <ActivityIndicator color="#fff" size="small" />
+                                    ) : (
+                                        <Text style={styles.saveButtonText}>{editingBill ? 'Update Bill' : 'Save Bill'}</Text>
+                                    )}
+                                </TouchableOpacity>
 
-                            <View style={styles.switchGroup}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.switchLabel}>Auto-Pay</Text>
-                                    <Text style={styles.switchSubLabel}>Mark if this is automatically deducted</Text>
-                                </View>
-                                <Switch value={formData.autoPay} onValueChange={v => setFormData({ ...formData, autoPay: v })}
-                                    trackColor={{ false: '#E5E5EA', true: '#6366F1' }} thumbColor="#fff" ios_backgroundColor="#E5E5EA" />
-                            </View>
-
-                            <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.8} disabled={saving}>
-                                {saving ? (
-                                    <ActivityIndicator color="#fff" size="small" />
-                                ) : (
-                                    <Text style={styles.saveButtonText}>{editingBill ? 'Update Bill' : 'Save Bill'}</Text>
-                                )}
-                            </TouchableOpacity>
-
-                            <View style={{ height: 40 }} />
-                        </ScrollView>
+                                <View style={{ height: 40 }} />
+                            </ScrollView>
+                        </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
         </View>
     );
@@ -364,6 +417,11 @@ const styles = StyleSheet.create({
         textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2,
     },
     statsValue: { fontSize: 24, fontWeight: '900', color: '#111' },
+    countBadge: {
+        backgroundColor: 'rgba(99,102,241,0.1)', paddingHorizontal: 10, paddingVertical: 4,
+        borderRadius: 12,
+    },
+    countBadgeText: { fontSize: 14, fontWeight: '800', color: '#6366F1' },
     sectionHeader: {
         flexDirection: 'row', justifyContent: 'space-between',
         alignItems: 'center', marginBottom: 16,
@@ -442,6 +500,21 @@ const styles = StyleSheet.create({
         borderRadius: 16, padding: 16, color: '#111', fontSize: 16, fontWeight: '700',
     },
     row: { flexDirection: 'row' },
+    frequencyContainer: {
+        flexDirection: 'row', backgroundColor: '#F5F5F5',
+        borderRadius: 12, padding: 4,
+    },
+    frequencyButton: {
+        flex: 1, alignItems: 'center', justifyContent: 'center',
+        paddingVertical: 10, borderRadius: 10,
+    },
+    frequencyButtonActive: {
+        backgroundColor: '#6366F1',
+        shadowColor: '#6366F1', shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2, shadowRadius: 4, elevation: 2,
+    },
+    frequencyLabel: { fontSize: 13, fontWeight: '700', color: '#8E8E93' },
+    frequencyLabelActive: { color: '#FFFFFF' },
     switchGroup: {
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
         backgroundColor: '#F5F5F5', padding: 16, borderRadius: 16, marginBottom: 24,

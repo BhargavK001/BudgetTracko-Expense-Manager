@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
     View,
     Text,
@@ -10,6 +10,9 @@ import {
     Platform,
     StatusBar,
     Alert,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -27,12 +30,13 @@ const PERIODS = [
 export default function BudgetsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { budgets, addBudget, updateBudget, deleteBudget, getCategoryBreakdown } = useTransactions();
+    const { budgets, addBudget, updateBudget, deleteBudget, getCategoryBreakdown, isLoading, refreshBudgets } = useTransactions();
     const { formatCurrency, triggerHaptic } = useSettings();
 
     const [activePeriod, setActivePeriod] = useState('monthly');
     const [showForm, setShowForm] = useState(false);
     const [editingBudget, setEditingBudget] = useState<any>(null);
+    const [refreshing, setRefreshing] = useState(false);
 
     // Form State
     const [formCategory, setFormCategory] = useState('');
@@ -60,7 +64,14 @@ export default function BudgetsScreen() {
     const totalSpent = filteredBudgets.reduce((a, b) => a + (b.spent || 0), 0);
     const totalPercent = totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0;
 
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try { await refreshBudgets(); } catch {}
+        setRefreshing(false);
+    }, [refreshBudgets]);
+
     const openAddForm = () => {
+        triggerHaptic();
         setEditingBudget(null);
         setFormCategory('');
         setFormAmount('');
@@ -87,11 +98,12 @@ export default function BudgetsScreen() {
             }
             setShowForm(false);
         } catch (e: any) {
-            Alert.alert('Error', e.response?.data?.message || 'Failed to save budget.');
+            Alert.alert('Error', e.response?.data?.error || e.response?.data?.message || 'Failed to save budget.');
         }
     };
 
     const handleDelete = (id: string) => {
+        triggerHaptic();
         Alert.alert('Delete Budget', 'Are you sure you want to delete this budget?', [
             { text: 'Cancel', style: 'cancel' },
             {
@@ -102,12 +114,37 @@ export default function BudgetsScreen() {
                     try {
                         await deleteBudget(id);
                     } catch (e: any) {
-                        Alert.alert('Error', e.response?.data?.message || 'Failed to delete budget.');
+                        Alert.alert('Error', e.response?.data?.error || e.response?.data?.message || 'Failed to delete budget.');
                     }
                 }
             }
         ]);
     };
+
+    const getProgressColor = (percent: number) => {
+        if (percent > 90) return '#F43F5E';
+        if (percent > 70) return '#F59E0B';
+        return '#2DCA72';
+    };
+
+    if (isLoading) {
+        return (
+            <View style={[styles.container, { paddingTop: insets.top }]}>
+                <StatusBar barStyle="dark-content" />
+                <Animated.View entering={FadeIn.delay(50)} style={styles.header}>
+                    <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
+                        <Ionicons name="arrow-back" size={20} color="#111" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>Budgets</Text>
+                    <View style={{ width: 40 }} />
+                </Animated.View>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color="#6366F1" />
+                    <Text style={{ marginTop: 12, color: '#8E8E93', fontSize: 13, fontWeight: '600' }}>Loading budgets…</Text>
+                </View>
+            </View>
+        );
+    }
 
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -124,7 +161,14 @@ export default function BudgetsScreen() {
                 </TouchableOpacity>
             </Animated.View>
 
-            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366F1" colors={['#6366F1']} />
+                }
+            >
                 {/* Period Selector */}
                 <Animated.View entering={FadeInDown.delay(100).duration(400).springify()} style={styles.periodContainer}>
                     {PERIODS.map(p => (
@@ -134,7 +178,7 @@ export default function BudgetsScreen() {
                                 styles.periodButton,
                                 activePeriod === p.key && styles.periodButtonActive
                             ]}
-                            onPress={() => setActivePeriod(p.key)}
+                            onPress={() => { triggerHaptic(); setActivePeriod(p.key); }}
                             activeOpacity={0.8}
                         >
                             <Ionicons
@@ -169,16 +213,18 @@ export default function BudgetsScreen() {
                             ]}>{totalPercent.toFixed(0)}% Used</Text>
                         </View>
                     </View>
+                    {/* Progress Bar (flex-based) */}
                     <View style={styles.progressBarBg}>
-                        <Animated.View
+                        <View
                             style={[
                                 styles.progressBarFill,
                                 {
-                                    width: `${totalPercent}%`,
-                                    backgroundColor: totalPercent > 90 ? '#F43F5E' : totalPercent > 70 ? '#F59E0B' : '#2DCA72'
+                                    flex: totalPercent / 100,
+                                    backgroundColor: getProgressColor(totalPercent)
                                 }
                             ]}
                         />
+                        <View style={{ flex: Math.max((100 - totalPercent) / 100, 0) }} />
                     </View>
                 </Animated.View>
 
@@ -194,8 +240,8 @@ export default function BudgetsScreen() {
                                 style={styles.budgetCard}
                             >
                                 <View style={styles.budgetHeader}>
-                                    <View style={[styles.budgetIconContainer, { backgroundColor: CATEGORY_COLORS[budget.category as Category] + '15' }]}>
-                                        <Ionicons name={CATEGORY_ICONS[budget.category as Category] as any} size={20} color={CATEGORY_COLORS[budget.category as Category]} />
+                                    <View style={[styles.budgetIconContainer, { backgroundColor: (CATEGORY_COLORS[budget.category as Category] || '#795548') + '15' }]}>
+                                        <Ionicons name={(CATEGORY_ICONS[budget.category as Category] || 'ellipsis-horizontal-circle-outline') as any} size={20} color={CATEGORY_COLORS[budget.category as Category] || '#795548'} />
                                     </View>
                                     <View style={styles.budgetInfo}>
                                         <Text style={styles.budgetCategory}>{budget.category}</Text>
@@ -209,6 +255,7 @@ export default function BudgetsScreen() {
                                         <TouchableOpacity
                                             style={styles.actionButton}
                                             onPress={() => {
+                                                triggerHaptic();
                                                 setEditingBudget(budget);
                                                 setFormCategory(budget.category);
                                                 setFormAmount(budget.amount.toString());
@@ -226,16 +273,18 @@ export default function BudgetsScreen() {
                                     </View>
                                 </View>
 
+                                {/* Mini Progress Bar (flex-based) */}
                                 <View style={styles.miniProgressBarBg}>
                                     <View
                                         style={[
                                             styles.miniProgressBarFill,
                                             {
-                                                width: `${Math.min(budget.percent, 100)}%`,
-                                                backgroundColor: budget.percent > 90 ? '#F43F5E' : budget.percent > 70 ? '#F59E0B' : '#2DCA72'
+                                                flex: Math.min(budget.percent, 100) / 100,
+                                                backgroundColor: getProgressColor(budget.percent)
                                             }
                                         ]}
                                     />
+                                    <View style={{ flex: Math.max((100 - Math.min(budget.percent, 100)) / 100, 0) }} />
                                 </View>
 
                                 <View style={styles.budgetFooter}>
@@ -276,54 +325,59 @@ export default function BudgetsScreen() {
                 transparent={true}
                 onRequestClose={() => setShowForm(false)}
             >
-                <View style={styles.modalOverlay}>
-                    <Animated.View entering={FadeInDown.duration(300).springify()} style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>{editingBudget ? 'Edit Budget' : 'Add Budget'}</Text>
-                            <TouchableOpacity onPress={() => setShowForm(false)}>
-                                <Ionicons name="close-circle" size={28} color="#C7C7CC" />
+                <KeyboardAvoidingView
+                    style={{ flex: 1 }}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                >
+                    <View style={styles.modalOverlay}>
+                        <Animated.View entering={FadeInDown.duration(300).springify()} style={styles.modalContent}>
+                            <View style={styles.modalHeader}>
+                                <Text style={styles.modalTitle}>{editingBudget ? 'Edit Budget' : 'Add Budget'}</Text>
+                                <TouchableOpacity onPress={() => setShowForm(false)}>
+                                    <Ionicons name="close-circle" size={28} color="#C7C7CC" />
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.formGroup}>
+                                <Text style={styles.label}>Category</Text>
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
+                                    {EXPENSE_CATEGORIES.map(cat => (
+                                        <TouchableOpacity
+                                            key={cat}
+                                            style={[
+                                                styles.categoryChip,
+                                                formCategory === cat && styles.categoryChipActive
+                                            ]}
+                                            onPress={() => { triggerHaptic(); setFormCategory(cat); }}
+                                            activeOpacity={0.8}
+                                        >
+                                            <Text style={[
+                                                styles.categoryChipText,
+                                                formCategory === cat && styles.categoryChipTextActive
+                                            ]}>{cat}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+
+                            <View style={styles.formGroup}>
+                                <Text style={styles.label}>Amount ({formatCurrency(0).charAt(0)})</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="e.g. 5000"
+                                    placeholderTextColor="#C7C7CC"
+                                    keyboardType="numeric"
+                                    value={formAmount}
+                                    onChangeText={setFormAmount}
+                                />
+                            </View>
+
+                            <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.8}>
+                                <Text style={styles.saveButtonText}>Save Budget</Text>
                             </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>Category</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll}>
-                                {EXPENSE_CATEGORIES.map(cat => (
-                                    <TouchableOpacity
-                                        key={cat}
-                                        style={[
-                                            styles.categoryChip,
-                                            formCategory === cat && styles.categoryChipActive
-                                        ]}
-                                        onPress={() => setFormCategory(cat)}
-                                        activeOpacity={0.8}
-                                    >
-                                        <Text style={[
-                                            styles.categoryChipText,
-                                            formCategory === cat && styles.categoryChipTextActive
-                                        ]}>{cat}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </ScrollView>
-                        </View>
-
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>Amount ({formatCurrency(0).charAt(0)})</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="e.g. 5000"
-                                placeholderTextColor="#C7C7CC"
-                                keyboardType="numeric"
-                                value={formAmount}
-                                onChangeText={setFormAmount}
-                            />
-                        </View>
-
-                        <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.8}>
-                            <Text style={styles.saveButtonText}>Save Budget</Text>
-                        </TouchableOpacity>
-                    </Animated.View>
-                </View>
+                        </Animated.View>
+                    </View>
+                </KeyboardAvoidingView>
             </Modal>
         </View>
     );
@@ -450,6 +504,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#F5F5F5',
         borderRadius: 8,
         overflow: 'hidden',
+        flexDirection: 'row',
     },
     progressBarFill: {
         height: '100%',
@@ -521,6 +576,7 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         overflow: 'hidden',
         marginBottom: 12,
+        flexDirection: 'row',
     },
     miniProgressBarFill: {
         height: '100%',

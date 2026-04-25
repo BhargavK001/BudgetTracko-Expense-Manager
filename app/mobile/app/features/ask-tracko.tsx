@@ -13,6 +13,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useTransactions } from '@/context/TransactionContext';
 import { useSettings } from '@/context/SettingsContext';
+import * as Haptics from 'expo-haptics';
+import api from '@/services/api';
 
 const LOADING_PHRASES = [
     "Calculating how much you spent on Momo's...",
@@ -99,59 +101,57 @@ export default function AskTrackoScreen() {
         return () => clearInterval(interval);
     }, [isTyping]);
 
-    const sendMessage = (text: string) => {
+    const sendMessage = async (text: string) => {
         if (!text.trim() || isTyping) return;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
         const userMsg: Message = { id: Date.now().toString(), sender: 'user', text: text.trim(), timestamp: new Date() };
         setMessages(prev => [...prev, userMsg]);
         setInputValue('');
         setIsTyping(true);
         setLoadingPhrase(LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)]);
 
-        setTimeout(() => {
-            const aiMsg: Message = { id: (Date.now() + 1).toString(), sender: 'tracko', text: getMock(text), timestamp: new Date() };
+        try {
+            // Build chat history for context (last 6 messages)
+            const chatHistory = messages.slice(-6).map(m => ({
+                role: m.sender === 'user' ? 'user' : 'assistant',
+                content: m.text,
+            }));
+
+            const response = await api.post('/api/tracko-pulse/ask', {
+                question: text.trim(),
+                chatHistory,
+            });
+
+            const answer = response.data?.data?.answer || response.data?.answer || 'Sorry, I couldn\'t process that right now.';
+            const aiMsg: Message = { id: (Date.now() + 1).toString(), sender: 'tracko', text: answer, timestamp: new Date() };
             setMessages(prev => [...prev, aiMsg]);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch (error: any) {
+            // Fallback to local generation if API fails
+            const fallbackText = getLocalFallback(text);
+            const aiMsg: Message = { id: (Date.now() + 1).toString(), sender: 'tracko', text: fallbackText, timestamp: new Date() };
+            setMessages(prev => [...prev, aiMsg]);
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        } finally {
             setIsTyping(false);
-        }, 2200);
+        }
     };
 
-    const getMock = (input: string) => {
+    const getLocalFallback = (input: string) => {
         const l = input.toLowerCase();
 
-        // 1. Spending logic
         if (l.includes('spent') || l.includes('spending')) {
             const currentMonthExpense = getTotalExpense(new Date().getMonth(), new Date().getFullYear());
-            const lastMonth = new Date().getMonth() === 0 ? 11 : new Date().getMonth() - 1;
-            const lastYear = new Date().getMonth() === 0 ? new Date().getFullYear() - 1 : new Date().getFullYear();
-            const lastMonthExpense = getTotalExpense(lastMonth, lastYear);
-
-            if (lastMonthExpense === 0) {
-                return `You've spent ${formatCurrency(currentMonthExpense)} so far this month. Keep an eye on it!`;
-            }
-
-            const diff = currentMonthExpense - lastMonthExpense;
-            if (diff > 0) {
-                return `You've spent ${formatCurrency(currentMonthExpense)} this month. That's ${formatCurrency(diff)} more than last month. Slow down!`;
-            } else {
-                return `You've spent ${formatCurrency(currentMonthExpense)} this month. That's ${formatCurrency(Math.abs(diff))} less than last month. Great job saving!`;
-            }
+            return `You've spent ${formatCurrency(currentMonthExpense)} so far this month. I'm having trouble connecting to my full brain right now, but I can still crunch your local data!`;
         }
 
-        // 2. Balance logic
         if (l.includes('balance') || l.includes('left')) {
             const balance = getBalance();
-            if (balance > 10000) return `Your overall balance is a healthy ${formatCurrency(balance)}. Looking good!`;
-            if (balance > 0) return `Your balance is ${formatCurrency(balance)}. A bit low, probably shouldn't splurge.`;
-            return `Your balance is ${formatCurrency(balance)}. You're currently operating at a deficit. Time to cut costs.`;
+            return `Your overall balance is ${formatCurrency(balance)}. Note: I'm running in offline mode right now, so this is based on cached data.`;
         }
 
-        // 3. Afford logic
-        if (l.includes('afford')) {
-            const balance = getBalance();
-            return `Given your current total balance of ${formatCurrency(balance)}, technically maybe. But remember your long term savings goals! Use the "Budget & Goals" tab to plan better.`;
-        }
-
-        // 4. Default dynamic fallback
-        return `I track your ${transactions.length} transactions. Try asking me "How much have I spent this month?", or "What is my balance?".`;
+        return `I'm having trouble connecting right now. Try again in a moment, or ask me about your spending or balance — I can handle those locally!`;
     };
 
     const quickActions = [
@@ -239,7 +239,10 @@ export default function AskTrackoScreen() {
                         <TouchableOpacity
                             key={i}
                             style={styles.quickChip}
-                            onPress={() => sendMessage(qa.label)}
+                            onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                sendMessage(qa.label);
+                            }}
                             activeOpacity={0.7}
                         >
                             <Ionicons name={qa.icon} size={13} color="#2DCA72" />
