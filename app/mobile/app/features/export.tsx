@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, { FadeInDown, FadeInUp, useAnimatedStyle, useSharedValue, withSpring, withSequence } from 'react-native-reanimated';
 
-import { Container } from '../../components/Container';
 import { useTransactions } from '../../context/TransactionContext';
 import { exportToCSV, exportToPDF } from '../../utils/exportService';
 import { useSettings } from '../../context/SettingsContext';
-import { Spacing, BorderRadius, NeoShadow } from '../../constants/Theme';
+import { useThemeStyles } from '../../components/more/DesignSystem';
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
@@ -17,11 +16,12 @@ export default function ExportFeature() {
     const router = useRouter();
     const { transactions } = useTransactions();
     const { triggerHaptic } = useSettings();
-    
+    const { styles: dStyles, tokens, isDarkMode } = useThemeStyles();
+
     const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), 0, 1));
     const [endDate, setEndDate] = useState(new Date());
     const [format, setFormat] = useState<'csv' | 'pdf'>('pdf');
-    
+
     const [showStartPicker, setShowStartPicker] = useState(false);
     const [showEndPicker, setShowEndPicker] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
@@ -36,10 +36,10 @@ export default function ExportFeature() {
         try {
             const start = startDate.getTime();
             const end = endDate.getTime();
-            
+
             const endOfDay = new Date(end);
             endOfDay.setHours(23, 59, 59, 999);
-            
+
             const startOfDay = new Date(start);
             startOfDay.setHours(0, 0, 0, 0);
 
@@ -53,7 +53,7 @@ export default function ExportFeature() {
                 return;
             }
 
-            const rangeStr = `${startDate.toLocaleDateString('en-US', {month:'short', day:'numeric'})} - ${endDate.toLocaleDateString('en-US', {month:'short', day:'numeric'})}`;
+            const rangeStr = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 
             if (format === 'csv') {
                 await exportToCSV(filtered, rangeStr);
@@ -77,123 +77,118 @@ export default function ExportFeature() {
     };
 
     return (
-        <Container backgroundColor="#F9FAFB">
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.8}>
-                    <Ionicons name="arrow-back" size={22} color="#111" />
+        <View style={[styles.root, { backgroundColor: tokens.bgPrimary }]}>
+            {/* Header */}
+            <View style={[styles.header, { backgroundColor: tokens.bgPrimary }]}>
+                <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: isDarkMode ? tokens.bgTertiary : '#fff', borderColor: tokens.borderDefault }]} activeOpacity={0.8}>
+                    <Ionicons name="arrow-back" size={22} color={tokens.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Export Data</Text>
+                <Text style={[styles.headerTitle, { color: tokens.textPrimary }]}>Export Data</Text>
                 <View style={{ width: 44 }} />
             </View>
 
-            <ScrollView style={styles.scrollFlex} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                
-                <Animated.View entering={FadeInDown.delay(100).springify().damping(16)}>
-                    <Text style={styles.sectionTitle}>1. Timeframe Selection</Text>
-                    
-                    <View style={styles.card}>
-                        <View style={styles.dateFlow}>
+            {/* Core Body - Non Scrollable Flex layout */}
+            <View style={styles.bodyFlex}>
+                <Animated.View entering={FadeInDown.delay(100).springify().damping(16)} style={styles.sectionWrap}>
+                    <Text style={[styles.sectionTitle, { color: tokens.textMuted }]}>1. Timeframe Selection</Text>
+
+                    <View style={[styles.card, { backgroundColor: isDarkMode ? tokens.bgTertiary : '#fff', borderColor: tokens.borderSubtle }]}>
+                        <View style={styles.dateFlowRow}>
                             <View style={styles.dateBlock}>
-                                <Text style={styles.label}>Start Date</Text>
-                                <TouchableOpacity style={styles.datePill} activeOpacity={0.7} onPress={() => openPicker('start')}>
+                                <Text style={[styles.label, { color: tokens.textSecondary }]}>Start Date</Text>
+                                <TouchableOpacity style={[styles.datePill, { backgroundColor: isDarkMode ? tokens.bgSecondary : '#F9FAFB', borderColor: tokens.borderDefault }]} activeOpacity={0.7} onPress={() => openPicker('start')}>
                                     <View style={[styles.iconWrap, { backgroundColor: 'rgba(99,102,241,0.1)' }]}>
-                                        <Ionicons name="calendar" size={18} color="#6366F1" />
+                                        <Ionicons name="calendar" size={16} color="#6366F1" />
                                     </View>
-                                    <Text style={styles.dateText}>
-                                        {startDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
+                                    <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.dateText, { color: tokens.textPrimary }]}>
+                                        {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
                                     </Text>
                                 </TouchableOpacity>
-                                {showStartPicker && (
-                                    <DateTimePicker
-                                        value={startDate}
-                                        mode="date"
-                                        display="default"
-                                        onChange={(event, date) => {
-                                            setShowStartPicker(Platform.OS === 'ios');
-                                            if (date) setStartDate(date);
-                                        }}
-                                    />
-                                )}
                             </View>
 
                             <View style={styles.dateConnector}>
-                                <Ionicons name="arrow-down" size={24} color="#D1D5DB" />
+                                <Ionicons name="arrow-forward" size={20} color={tokens.textMuted} />
                             </View>
 
                             <View style={styles.dateBlock}>
-                                <Text style={styles.label}>End Date</Text>
-                                <TouchableOpacity style={styles.datePill} activeOpacity={0.7} onPress={() => openPicker('end')}>
+                                <Text style={[styles.label, { color: tokens.textSecondary }]}>End Date</Text>
+                                <TouchableOpacity style={[styles.datePill, { backgroundColor: isDarkMode ? tokens.bgSecondary : '#F9FAFB', borderColor: tokens.borderDefault }]} activeOpacity={0.7} onPress={() => openPicker('end')}>
                                     <View style={[styles.iconWrap, { backgroundColor: 'rgba(239,68,68,0.1)' }]}>
-                                        <Ionicons name="calendar" size={18} color="#EF4444" />
+                                        <Ionicons name="calendar" size={16} color="#EF4444" />
                                     </View>
-                                    <Text style={styles.dateText}>
-                                        {endDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
+                                    <Text adjustsFontSizeToFit numberOfLines={1} style={[styles.dateText, { color: tokens.textPrimary }]}>
+                                        {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}
                                     </Text>
                                 </TouchableOpacity>
-                                {showEndPicker && (
-                                    <DateTimePicker
-                                        value={endDate}
-                                        mode="date"
-                                        display="default"
-                                        minimumDate={startDate}
-                                        onChange={(event, date) => {
-                                            setShowEndPicker(Platform.OS === 'ios');
-                                            if (date) setEndDate(date);
-                                        }}
-                                    />
-                                )}
                             </View>
                         </View>
+
+                        {/* Hidden Native Date Pickers */}
+                        {showStartPicker && (
+                            <DateTimePicker
+                                value={startDate} mode="date" display="default"
+                                onChange={(_, date) => { setShowStartPicker(Platform.OS === 'ios'); if (date) setStartDate(date); }}
+                            />
+                        )}
+                        {showEndPicker && (
+                            <DateTimePicker
+                                value={endDate} mode="date" display="default" minimumDate={startDate}
+                                onChange={(_, date) => { setShowEndPicker(Platform.OS === 'ios'); if (date) setEndDate(date); }}
+                            />
+                        )}
                     </View>
                 </Animated.View>
 
-                <Animated.View entering={FadeInDown.delay(200).springify().damping(16)}>
-                    <Text style={[styles.sectionTitle, { marginTop: Spacing.xl }]}>2. File Format</Text>
-                    
-                    <View style={styles.formatGrid}>
-                        <TouchableOpacity 
-                            style={[styles.formatCard, format === 'pdf' && styles.formatCardActive]}
+                <Animated.View entering={FadeInDown.delay(200).springify().damping(16)} style={[styles.sectionWrap, { marginTop: 12 }]}>
+                    <Text style={[styles.sectionTitle, { color: tokens.textMuted }]}>2. File Format</Text>
+
+                    <View style={styles.formatGridRow}>
+                        <TouchableOpacity
+                            style={[
+                                styles.formatCardHorizontal,
+                                { backgroundColor: isDarkMode ? tokens.bgTertiary : '#fff', borderColor: tokens.borderDefault },
+                                format === 'pdf' && { borderColor: '#6366F1', backgroundColor: isDarkMode ? 'rgba(99,102,241,0.05)' : '#F8FAFC' }
+                            ]}
                             activeOpacity={0.8}
                             onPress={() => toggleFormat('pdf')}
                         >
-                            <View style={styles.formatCardHeader}>
-                                <View style={[styles.formatIconCirc, format === 'pdf' ? { backgroundColor: '#6366F1' } : { backgroundColor: '#F3F4F6' }]}>
-                                    <Ionicons name="document-text" size={22} color={format === 'pdf' ? '#FFF' : '#6B7280'} />
-                                </View>
-                                <View style={[styles.radio, format === 'pdf' && styles.radioActive]}>
-                                    {format === 'pdf' && <View style={styles.radioInner} />}
-                                </View>
+                            <View style={[styles.formatIconCirc, { backgroundColor: format === 'pdf' ? '#6366F1' : isDarkMode ? tokens.bgSecondary : '#F3F4F6' }]}>
+                                <Ionicons name="document-text" size={24} color={format === 'pdf' ? '#FFF' : tokens.textMuted} />
                             </View>
-                            <Text style={[styles.formatTitle, format === 'pdf' && { color: '#111' }]}>PDF Report</Text>
-                            <Text style={styles.formatDesc}>Visual, print-ready document with charts and tables.</Text>
+                            <Text style={[styles.formatTitle, { color: tokens.textPrimary }, format === 'pdf' && { color: isDarkMode ? '#818CF8' : '#6366F1' }]}>PDF Report</Text>
+                            <Text adjustsFontSizeToFit numberOfLines={3} style={[styles.formatDesc, { color: tokens.textSecondary }]}>Visual, print-ready document.</Text>
+                            <View style={[styles.radio, { borderColor: format === 'pdf' ? '#6366F1' : tokens.textMuted }]}>
+                                {format === 'pdf' && <View style={styles.radioInner} />}
+                            </View>
                         </TouchableOpacity>
 
-                        <TouchableOpacity 
-                            style={[styles.formatCard, format === 'csv' && styles.formatCardActive]}
+                        <TouchableOpacity
+                            style={[
+                                styles.formatCardHorizontal,
+                                { backgroundColor: isDarkMode ? tokens.bgTertiary : '#fff', borderColor: tokens.borderDefault },
+                                format === 'csv' && { borderColor: '#10B981', backgroundColor: isDarkMode ? 'rgba(16,185,129,0.05)' : '#F0FDF4' }
+                            ]}
                             activeOpacity={0.8}
                             onPress={() => toggleFormat('csv')}
                         >
-                            <View style={styles.formatCardHeader}>
-                                <View style={[styles.formatIconCirc, format === 'csv' ? { backgroundColor: '#10B981' } : { backgroundColor: '#F3F4F6' }]}>
-                                    <Ionicons name="grid" size={22} color={format === 'csv' ? '#FFF' : '#6B7280'} />
-                                </View>
-                                <View style={[styles.radio, format === 'csv' && styles.radioActive]}>
-                                    {format === 'csv' && <View style={styles.radioInner} />}
-                                </View>
+                            <View style={[styles.formatIconCirc, { backgroundColor: format === 'csv' ? '#10B981' : isDarkMode ? tokens.bgSecondary : '#F3F4F6' }]}>
+                                <Ionicons name="grid" size={24} color={format === 'csv' ? '#FFF' : tokens.textMuted} />
                             </View>
-                            <Text style={[styles.formatTitle, format === 'csv' && { color: '#111' }]}>CSV Data</Text>
-                            <Text style={styles.formatDesc}>Raw spreadsheet data for Excel or accounting workflows.</Text>
+                            <Text style={[styles.formatTitle, { color: tokens.textPrimary }, format === 'csv' && { color: isDarkMode ? '#34D399' : '#10B981' }]}>CSV Data</Text>
+                            <Text adjustsFontSizeToFit numberOfLines={3} style={[styles.formatDesc, { color: tokens.textSecondary }]}>Raw spreadsheet data format.</Text>
+                            <View style={[styles.radio, { borderColor: format === 'csv' ? '#10B981' : tokens.textMuted }]}>
+                                {format === 'csv' && <View style={[styles.radioInner, { backgroundColor: '#10B981' }]} />}
+                            </View>
                         </TouchableOpacity>
                     </View>
                 </Animated.View>
-                
-                <View style={{ height: 160 }} />
-            </ScrollView>
+            </View>
 
-            <Animated.View entering={FadeInUp.delay(300).springify().damping(18)} style={styles.footerWrap}>
-                <AnimatedTouchable 
-                    style={[styles.exportBtn, format === 'csv' ? { backgroundColor: '#10B981' } : { backgroundColor: '#6366F1' }, btnStyle]} 
-                    activeOpacity={0.9} 
+            {/* Anchored Footer */}
+            <Animated.View entering={FadeInUp.delay(300).springify().damping(18)} style={[styles.footer, { backgroundColor: isDarkMode ? tokens.bgPrimary : '#fff', borderTopColor: tokens.borderSubtle }]}>
+                <AnimatedTouchable
+                    style={[styles.exportBtn, format === 'csv' ? { backgroundColor: '#10B981' } : { backgroundColor: '#6366F1' }, btnStyle]}
+                    activeOpacity={0.9}
                     onPress={handleExport}
                     disabled={isExporting}
                 >
@@ -204,151 +199,128 @@ export default function ExportFeature() {
                     )}
                     <Text style={styles.exportBtnTxt}>{isExporting ? 'Generating...' : 'Generate Export'}</Text>
                 </AnimatedTouchable>
-                
+
                 <View style={styles.secNoteRow}>
-                    <Ionicons name="shield-checkmark" size={14} color="#9CA3AF" />
-                    <Text style={styles.secNoteTxt}>Data exports are processed securely on-device.</Text>
+                    <Ionicons name="shield-checkmark" size={14} color={tokens.textMuted} />
+                    <Text style={[styles.secNoteTxt, { color: tokens.textSecondary }]}>Data exports are processed securely on-device.</Text>
                 </View>
             </Animated.View>
-        </Container>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    root: {
+        flex: 1,
+    },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: Spacing.lg,
+        paddingHorizontal: 24,
         paddingTop: Platform.OS === 'ios' ? 60 : 40,
-        paddingBottom: Spacing.md,
-        backgroundColor: '#F9FAFB',
+        paddingBottom: 20,
     },
     backButton: {
         width: 44,
         height: 44,
         borderRadius: 22,
-        backgroundColor: '#fff',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1, borderColor: '#F3F4F6',
-        ...NeoShadow,
-        shadowOpacity: 0.05,
+        borderWidth: 1,
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: '800',
-        color: '#111',
     },
-    scrollFlex: {
+    bodyFlex: {
         flex: 1,
+        paddingHorizontal: 24,
     },
-    scrollContent: {
-        padding: Spacing.lg,
+    sectionWrap: {
+        marginBottom: 20,
     },
     sectionTitle: {
         fontSize: 13,
         fontWeight: '800',
-        color: '#9CA3AF',
         textTransform: 'uppercase',
         letterSpacing: 1.2,
-        marginBottom: Spacing.md,
+        marginBottom: 12,
         paddingLeft: 4,
     },
     card: {
-        backgroundColor: '#fff',
         borderRadius: 24,
-        padding: 24,
+        padding: 20,
         borderWidth: 1,
-        borderColor: '#F3F4F6',
-        ...NeoShadow,
-        shadowOpacity: 0.04,
-        shadowRadius: 10,
-        elevation: 2,
     },
-    dateFlow: {
+    dateFlowRow: {
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
     },
     dateBlock: {
-        width: '100%',
+        flex: 1,
     },
     label: {
         fontSize: 12,
         fontWeight: '700',
-        color: '#6B7280',
         marginBottom: 8,
         marginLeft: 4,
     },
     datePill: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F9FAFB',
         borderRadius: 16,
-        padding: 12,
+        padding: 8,
+        paddingRight: 10,
         borderWidth: 1,
-        borderColor: '#F3F4F6',
     },
     iconWrap: {
-        width: 36,
-        height: 36,
-        borderRadius: 12,
+        width: 32,
+        height: 32,
+        borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12,
+        marginRight: 8,
     },
     dateText: {
-        fontSize: 16,
+        fontSize: 13,
         fontWeight: '700',
-        color: '#111',
+        flex: 1,
     },
     dateConnector: {
-        height: 44,
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: -1,
+        marginHorizontal: 12,
+        marginTop: 18,
     },
-    formatGrid: {
-        gap: 16,
-    },
-    formatCard: {
-        backgroundColor: '#fff',
-        borderRadius: 24,
-        padding: 24,
-        borderWidth: 2,
-        borderColor: '#F3F4F6',
-        ...NeoShadow,
-        shadowOpacity: 0.02,
-        shadowRadius: 8,
-    },
-    formatCardActive: {
-        borderColor: '#6366F1',
-        backgroundColor: '#F8FAFC',
-    },
-    formatCardHeader: {
+    formatGridRow: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 16,
+        gap: 16,
+        marginBottom: 20, // Prevents footer overlap
+    },
+    formatCardHorizontal: {
+        flex: 1,
+        borderRadius: 24,
+        padding: 20,
+        borderWidth: 1,
+        alignItems: 'center',
+        justifyContent: 'flex-start',
     },
     formatIconCirc: {
-        width: 48,
-        height: 48,
-        borderRadius: 16,
+        width: 52,
+        height: 52,
+        borderRadius: 18,
         justifyContent: 'center',
         alignItems: 'center',
+        marginBottom: 16,
     },
     radio: {
         width: 24,
         height: 24,
         borderRadius: 12,
         borderWidth: 2,
-        borderColor: '#D1D5DB',
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#fff',
-    },
-    radioActive: {
-        borderColor: '#6366F1',
+        marginTop: 16, 
     },
     radioInner: {
         width: 12,
@@ -357,27 +329,22 @@ const styles = StyleSheet.create({
         backgroundColor: '#6366F1',
     },
     formatTitle: {
-        fontSize: 17,
+        fontSize: 16,
         fontWeight: '800',
-        color: '#4B5563',
         marginBottom: 6,
+        textAlign: 'center',
     },
     formatDesc: {
-        fontSize: 14,
-        color: '#6B7280',
-        lineHeight: 20,
+        fontSize: 12,
+        lineHeight: 18,
+        textAlign: 'center',
+        marginBottom: 16,
     },
-    footerWrap: {
-        position: 'absolute',
-        bottom: 0, left: 0, right: 0,
-        backgroundColor: '#fff',
-        paddingHorizontal: Spacing.lg,
-        paddingTop: 20,
-        paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    footer: {
+        paddingHorizontal: 24,
+        paddingTop: 16,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 24,
         borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
-        ...NeoShadow,
-        shadowOpacity: 0.05,
     },
     exportBtn: {
         flexDirection: 'row',
@@ -385,8 +352,6 @@ const styles = StyleSheet.create({
         borderRadius: 18,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#111', shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1, shadowRadius: 8, elevation: 4,
         marginBottom: 16,
     },
     exportBtnTxt: {
@@ -403,6 +368,5 @@ const styles = StyleSheet.create({
     secNoteTxt: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#9CA3AF',
     }
 });

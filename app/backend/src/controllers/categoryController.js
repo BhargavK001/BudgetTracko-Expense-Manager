@@ -1,4 +1,5 @@
 const Category = require('../models/Category');
+const DeletionLog = require('../models/DeletionLog');
 
 // Default categories seeded on first fetch
 const DEFAULT_CATEGORIES = [
@@ -83,6 +84,7 @@ exports.deleteCategory = async (req, res) => {
             userId: req.user._id
         });
         if (!category) return res.status(404).json({ error: 'Category not found' });
+        await DeletionLog.create({ userId: req.user._id, entityType: 'category', entityId: req.params.id });
         res.json({ message: 'Category deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });

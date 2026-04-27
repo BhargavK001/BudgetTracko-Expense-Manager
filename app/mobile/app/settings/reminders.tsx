@@ -5,6 +5,8 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import { useThemeStyles } from '@/components/more/DesignSystem';
+import { useSettings } from '@/context/SettingsContext';
 
 const STORAGE_KEYS = {
     daily: 'reminder_daily',
@@ -15,6 +17,8 @@ const STORAGE_KEYS = {
 export default function RemindersScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { tokens } = useThemeStyles();
+    const { isDarkMode } = useSettings();
 
     const [dailyReminder, setDailyReminder] = useState(true);
     const [weeklyReport, setWeeklyReport] = useState(true);
@@ -82,8 +86,6 @@ export default function RemindersScreen() {
             }
             return true;
         } catch (e) {
-            // expo-notifications not available (Expo Go in SDK 53+)
-            // Preferences are still saved via AsyncStorage
             console.log('Notification scheduling unavailable (Expo Go). Preference saved locally.');
             return true;
         }
@@ -111,26 +113,26 @@ export default function RemindersScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <StatusBar barStyle="dark-content" />
+        <View style={[styles.container, { backgroundColor: tokens.bgPrimary, paddingTop: insets.top }]}>
+            <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
             <Animated.View entering={FadeIn.delay(50).duration(300)} style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-                    <Ionicons name="arrow-back" size={20} color="#111" />
+                <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F5F5F5' }]} activeOpacity={0.7}>
+                    <Ionicons name="arrow-back" size={20} color={tokens.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Reminders</Text>
+                <Text style={[styles.headerTitle, { color: tokens.textPrimary }]}>Reminders</Text>
                 <View style={{ width: 40 }} />
             </Animated.View>
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <Animated.View entering={FadeInDown.delay(100).duration(400).springify()}>
-                    <Text style={styles.sectionDesc}>
+                    <Text style={[styles.sectionDesc, { color: tokens.textSecondary }]}>
                         Stay on top of your finances by customizing when and how we notify you.
                     </Text>
                 </Animated.View>
 
                 <Animated.View entering={FadeInDown.delay(150).duration(400)}>
-                    <View style={styles.settingsGroup}>
+                    <View style={[styles.settingsGroup, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
                         <ReminderItem
                             icon="today-outline"
                             iconColor="#3B82F6"
@@ -139,6 +141,8 @@ export default function RemindersScreen() {
                             desc="Reminds you to log daily expenses at 8:00 PM."
                             value={dailyReminder}
                             onValueChange={toggleDaily}
+                            tokens={tokens}
+                            isDarkMode={isDarkMode}
                         />
                         <ReminderItem
                             icon="stats-chart-outline"
@@ -148,6 +152,8 @@ export default function RemindersScreen() {
                             desc="Get a summary of your spending every Sunday morning."
                             value={weeklyReport}
                             onValueChange={toggleWeekly}
+                            tokens={tokens}
+                            isDarkMode={isDarkMode}
                         />
                         <ReminderItem
                             icon="warning-outline"
@@ -157,15 +163,17 @@ export default function RemindersScreen() {
                             desc="Notifies you when you reach 80% and 100% of any budget."
                             value={budgetAlerts}
                             onValueChange={toggleBudget}
+                            tokens={tokens}
+                            isDarkMode={isDarkMode}
                             isLast
                         />
                     </View>
                 </Animated.View>
 
                 <Animated.View entering={FadeInDown.delay(200).duration(400)}>
-                    <View style={styles.infoBox}>
-                        <Ionicons name="information-circle-outline" size={20} color="#8E8E93" />
-                        <Text style={styles.infoText}>
+                    <View style={[styles.infoBox, { backgroundColor: isDarkMode ? tokens.bgSecondary : '#F5F5F5' }]}>
+                        <Ionicons name="information-circle-outline" size={20} color={tokens.textMuted} />
+                        <Text style={[styles.infoText, { color: tokens.textSecondary }]}>
                             Notification scheduling requires a development build. In Expo Go, your preferences are saved and will activate once you build the app.
                         </Text>
                     </View>
@@ -175,54 +183,54 @@ export default function RemindersScreen() {
     );
 }
 
-function ReminderItem({ icon, iconColor, iconTint, title, desc, value, onValueChange, isLast }: any) {
+function ReminderItem({ icon, iconColor, iconTint, title, desc, value, onValueChange, isLast, tokens, isDarkMode }: any) {
     return (
-        <View style={[styles.reminderRow, isLast && styles.reminderRowLast]}>
+        <View style={[styles.reminderRow, { borderBottomColor: tokens.borderSubtle }, isLast && styles.reminderRowLast]}>
             <View style={[styles.iconWrap, { backgroundColor: iconTint }]}>
                 <Ionicons name={icon} size={20} color={iconColor} />
             </View>
             <View style={styles.textContent}>
-                <Text style={styles.title}>{title}</Text>
-                <Text style={styles.desc}>{desc}</Text>
+                <Text style={[styles.title, { color: tokens.textPrimary }]}>{title}</Text>
+                <Text style={[styles.desc, { color: tokens.textSecondary }]}>{desc}</Text>
             </View>
             <Switch
                 value={value}
                 onValueChange={onValueChange}
-                trackColor={{ false: '#E5E5EA', true: '#2DCA72' }}
+                trackColor={{ false: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E5E5EA', true: '#2DCA72' }}
                 thumbColor="#fff"
-                ios_backgroundColor="#E5E5EA"
+                ios_backgroundColor={isDarkMode ? 'rgba(255,255,255,0.1)' : '#E5E5EA'}
             />
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
+    container: { flex: 1 },
     header: {
         flexDirection: 'row', justifyContent: 'space-between',
         alignItems: 'center', paddingHorizontal: 24, paddingVertical: 14,
     },
     backBtn: {
         width: 40, height: 40, borderRadius: 20,
-        backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center',
+        justifyContent: 'center', alignItems: 'center',
     },
-    headerTitle: { fontSize: 18, fontWeight: '800', color: '#111' },
+    headerTitle: { fontSize: 18, fontWeight: '800' },
     scrollView: { flex: 1 },
     scrollContent: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40 },
     sectionDesc: {
-        fontSize: 15, color: '#8E8E93', lineHeight: 22,
+        fontSize: 15, lineHeight: 22,
         marginBottom: 24, paddingHorizontal: 8,
     },
     settingsGroup: {
-        backgroundColor: '#fff', borderRadius: 20,
-        borderWidth: 1, borderColor: '#F2F2F7',
+        borderRadius: 20,
+        borderWidth: 1,
         overflow: 'hidden', marginBottom: 24,
         shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.02, shadowRadius: 8, elevation: 1,
     },
     reminderRow: {
         flexDirection: 'row', alignItems: 'center',
-        padding: 20, borderBottomWidth: 1, borderBottomColor: '#F2F2F7',
+        padding: 20, borderBottomWidth: 1,
     },
     reminderRowLast: { borderBottomWidth: 0 },
     iconWrap: {
@@ -230,12 +238,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center', alignItems: 'center', marginRight: 16,
     },
     textContent: { flex: 1, marginRight: 16 },
-    title: { fontSize: 16, fontWeight: '700', color: '#111', marginBottom: 4 },
-    desc: { fontSize: 13, color: '#8E8E93', lineHeight: 18 },
+    title: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
+    desc: { fontSize: 13, lineHeight: 18 },
     infoBox: {
         flexDirection: 'row', padding: 16,
-        backgroundColor: '#F5F5F5', borderRadius: 16,
+        borderRadius: 16,
         gap: 12, alignItems: 'center',
     },
-    infoText: { flex: 1, fontSize: 13, color: '#8E8E93', lineHeight: 18 },
+    infoText: { flex: 1, fontSize: 13, lineHeight: 18 },
 });

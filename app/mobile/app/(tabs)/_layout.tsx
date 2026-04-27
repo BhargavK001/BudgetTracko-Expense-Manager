@@ -10,6 +10,7 @@ import Animated, {
 import AddTransactionModal from '@/components/AddTransactionModal';
 import { useQuickAction } from '@/context/QuickActionContext';
 import { useSettings } from '@/context/SettingsContext';
+import { useThemeStyles } from '@/components/more/DesignSystem';
 
 type TabIconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -22,7 +23,7 @@ type TabConfig = {
 
 const TABS: TabConfig[] = [
   { name: 'index', title: 'Home', icon: 'home-outline', iconFocused: 'home' },
-  { name: 'pulse', title: 'Pulse', icon: 'flash-outline', iconFocused: 'flash' },
+  { name: 'analysis', title: 'Analytics', icon: 'pie-chart-outline', iconFocused: 'pie-chart' },
   { name: 'accounts', title: 'Accounts', icon: 'wallet-outline', iconFocused: 'wallet' },
   { name: 'more', title: 'More', icon: 'grid-outline', iconFocused: 'grid' },
 ];
@@ -30,6 +31,7 @@ const TABS: TabConfig[] = [
 // ── Bouncy tab item ──────────────────────────────────────────
 const TabItem = React.memo(function TabItem({ tab, isFocused, onPress }: { tab: TabConfig; isFocused: boolean; onPress: () => void }) {
   const sc = useSharedValue(1);
+  const { tokens } = useThemeStyles();
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
   const press = () => {
     sc.value = withSequence(withSpring(0.85, { damping: 12 }), withSpring(1, { damping: 8 }));
@@ -41,10 +43,14 @@ const TabItem = React.memo(function TabItem({ tab, isFocused, onPress }: { tab: 
         <Ionicons
           name={isFocused ? tab.iconFocused : tab.icon}
           size={21}
-          color={isFocused ? '#111' : '#C7C7CC'}
+          color={isFocused ? tokens.textPrimary : tokens.textMuted}
         />
-        {isFocused && <View style={styles.activeDot} />}
-        <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+        {isFocused && <View style={[styles.activeDot, { backgroundColor: '#2DCA72' }]} />}
+        <Text style={[
+          styles.tabLabel, 
+          { color: isFocused ? tokens.textPrimary : tokens.textMuted },
+          isFocused && styles.tabLabelActive
+        ]}>
           {tab.title}
         </Text>
       </Animated.View>
@@ -55,6 +61,7 @@ const TabItem = React.memo(function TabItem({ tab, isFocused, onPress }: { tab: 
 // ── Bouncy FAB ───────────────────────────────────────────────
 const FabButton = React.memo(function FabButton({ onPress }: { onPress: () => void }) {
   const sc = useSharedValue(1);
+  const { tokens, isDarkMode } = useThemeStyles();
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
   const press = () => {
     sc.value = withSequence(withSpring(0.82, { damping: 10 }), withSpring(1, { damping: 7 }));
@@ -62,7 +69,14 @@ const FabButton = React.memo(function FabButton({ onPress }: { onPress: () => vo
   };
   return (
     <TouchableOpacity style={styles.fabTouchable} activeOpacity={1} onPress={press}>
-      <Animated.View style={[styles.fabCircle, animStyle]}>
+      <Animated.View style={[
+        styles.fabCircle, 
+        animStyle, 
+        { 
+          backgroundColor: isDarkMode ? tokens.purple.stroke : '#111',
+          shadowColor: isDarkMode ? tokens.purple.stroke : '#111'
+        }
+      ]}>
         <Ionicons name="add" size={28} color="#fff" />
       </Animated.View>
     </TouchableOpacity>
@@ -72,11 +86,18 @@ const FabButton = React.memo(function FabButton({ onPress }: { onPress: () => vo
 // ── Custom Tab Bar ───────────────────────────────────────────
 function CustomTabBar({ state, navigation, onFabPress, triggerHaptic }: any) {
   const insets = useSafeAreaInsets();
+  const { isDarkMode, tokens } = useThemeStyles();
   const fabIndex = 2; // FAB between Pulse and Accounts
 
   return (
     <View style={[styles.outerWrap, { paddingBottom: insets.bottom > 0 ? insets.bottom : 8 }]}>
-      <View style={styles.barContainer}>
+      <View style={[
+        styles.barContainer, 
+        { 
+          backgroundColor: isDarkMode ? 'rgba(28,28,35,0.95)' : '#fff',
+          borderColor: tokens.borderDefault 
+        }
+      ]}>
         {state.routes.map((route: any, index: number) => {
           const tab = TABS.find((t) => t.name === route.name);
           if (!tab) return null;
@@ -114,7 +135,7 @@ export default function TabLayout() {
         screenOptions={{ headerShown: false }}
       >
         <Tabs.Screen name="index" />
-        <Tabs.Screen name="pulse" />
+        <Tabs.Screen name="analysis" />
         <Tabs.Screen name="accounts" />
         <Tabs.Screen name="more" />
       </Tabs>
@@ -135,14 +156,12 @@ const styles = StyleSheet.create({
   },
   barContainer: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingVertical: 8,
     paddingHorizontal: 8,
     borderWidth: 1,
-    borderColor: '#F2F2F7',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -165,10 +184,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#2DCA72',
   },
   tabLabel: {
-    fontSize: 10, marginTop: 4, fontWeight: '500', color: '#C7C7CC',
+    fontSize: 10, marginTop: 4, fontWeight: '500',
   },
   tabLabelActive: {
-    fontWeight: '700', color: '#111',
+    fontWeight: '700',
   },
   fabTouchable: {
     alignItems: 'center', justifyContent: 'center',
@@ -176,10 +195,9 @@ const styles = StyleSheet.create({
   },
   fabCircle: {
     width: 54, height: 54, borderRadius: 27,
-    backgroundColor: '#111', alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
     ...Platform.select({
       ios: {
-        shadowColor: '#111',
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.3,
         shadowRadius: 12,

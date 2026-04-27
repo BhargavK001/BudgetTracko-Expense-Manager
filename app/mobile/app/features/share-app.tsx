@@ -1,15 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Share, Image, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Share, Image, Platform, StatusBar } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DarkTheme, Spacing, BorderRadius } from '@/constants/Theme';
+import { Spacing, BorderRadius } from '@/constants/Theme';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, SlideInUp } from 'react-native-reanimated';
+import { useThemeStyles } from '@/components/more/DesignSystem';
+import { useSettings } from '@/context/SettingsContext';
 
 export default function ShareAppScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { tokens } = useThemeStyles();
+    const { isDarkMode } = useSettings();
 
     const handleShare = async () => {
         try {
@@ -41,11 +45,16 @@ export default function ShareAppScreen() {
     };
 
     return (
-        <View style={[styles.root, { paddingBottom: insets.bottom }]}>
+        <View style={[styles.root, { backgroundColor: tokens.bgPrimary, paddingBottom: insets.bottom }]}>
+            <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
             {/* Header */}
             <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-                    <Ionicons name="close" size={24} color={DarkTheme.textPrimary} />
+                <TouchableOpacity 
+                    onPress={() => router.back()} 
+                    style={[styles.backBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F5F5F7' }]} 
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="close" size={24} color={tokens.textPrimary} />
                 </TouchableOpacity>
             </View>
 
@@ -69,8 +78,8 @@ export default function ShareAppScreen() {
 
                 {/* Text Content */}
                 <Animated.View entering={FadeInDown.delay(200).duration(400)} style={styles.textContainer}>
-                    <Text style={styles.title}>Love BudgetTracko?</Text>
-                    <Text style={styles.subtitle}>
+                    <Text style={[styles.title, { color: tokens.textPrimary }]}>Love BudgetTracko?</Text>
+                    <Text style={[styles.subtitle, { color: tokens.textMuted }]}>
                         Sharing is caring! Invite your friends and family to join BudgetTracko and start their journey toward financial freedom together.
                     </Text>
                 </Animated.View>
@@ -88,7 +97,7 @@ export default function ShareAppScreen() {
                         </LinearGradient>
                     </TouchableOpacity>
 
-                    <Text style={styles.footerTxt}>
+                    <Text style={[styles.footerTxt, { color: tokens.textMuted, opacity: 0.6 }]}>
                         Your support helps us stay independent and ad-free.
                     </Text>
                 </Animated.View>
@@ -98,14 +107,13 @@ export default function ShareAppScreen() {
 }
 
 const styles = StyleSheet.create({
-    root: { flex: 1, backgroundColor: '#fff' },
+    root: { flex: 1 },
     header: {
         paddingHorizontal: Spacing.lg, paddingVertical: 10,
         alignItems: 'flex-start',
     },
     backBtn: {
         width: 44, height: 44, borderRadius: 22,
-        backgroundColor: '#F5F5F5',
         justifyContent: 'center', alignItems: 'center'
     },
 
@@ -133,9 +141,9 @@ const styles = StyleSheet.create({
     bubble: { position: 'absolute', width: 12, height: 12, borderRadius: 10, opacity: 0.8 },
 
     textContainer: { alignItems: 'center', marginBottom: 60 },
-    title: { fontSize: 28, fontWeight: '900', color: '#111', marginBottom: 16, textAlign: 'center' },
+    title: { fontSize: 28, fontWeight: '900', marginBottom: 16, textAlign: 'center' },
     subtitle: {
-        fontSize: 15, color: '#8E8E93', fontWeight: '500',
+        fontSize: 15, fontWeight: '500',
         textAlign: 'center', lineHeight: 24, paddingHorizontal: 10,
     },
 
@@ -147,5 +155,5 @@ const styles = StyleSheet.create({
     },
     shareTxt: { fontSize: 16, fontWeight: '800', color: '#fff' },
 
-    footerTxt: { fontSize: 12, fontWeight: '600', color: '#C7C7CC', textAlign: 'center' },
+    footerTxt: { fontSize: 12, fontWeight: '600', textAlign: 'center' },
 });

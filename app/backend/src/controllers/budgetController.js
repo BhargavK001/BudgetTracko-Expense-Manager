@@ -1,4 +1,5 @@
 const Budget = require('../models/Budget');
+const DeletionLog = require('../models/DeletionLog');
 const Transaction = require('../models/Transaction');
 const { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } = require('date-fns');
 
@@ -101,6 +102,7 @@ exports.deleteBudget = async (req, res) => {
             userId: req.user._id
         });
         if (!budget) return res.status(404).json({ error: 'Budget not found' });
+        await DeletionLog.create({ userId: req.user._id, entityType: 'budget', entityId: req.params.id });
         res.json({ message: 'Budget deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });

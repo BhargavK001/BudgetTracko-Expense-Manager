@@ -15,6 +15,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useSettings } from '@/context/SettingsContext';
+import { useThemeStyles } from '@/components/more/DesignSystem';
+import * as Haptics from 'expo-haptics';
 
 // ── Floating glow ────────────────────────────────────────
 function useFloat() {
@@ -35,6 +37,7 @@ const Bounce = React.memo(function Bounce({ children, onPress, style }: any) {
   const sc = useSharedValue(1);
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
   const press = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     sc.value = withSequence(withSpring(0.9, { damping: 12 }), withSpring(1, { damping: 10 }));
     onPress?.();
   }, [onPress]);
@@ -68,6 +71,8 @@ type FormModalProps = {
 };
 
 function AccountFormModal({ visible, editMode, initial, formatCurrency, onClose, onSubmit, onDelete }: FormModalProps) {
+  const { tokens } = useThemeStyles();
+  const { isDarkMode } = useSettings();
   const [name, setName] = useState(initial.name);
   const [type, setType] = useState(initial.type);
   const [balance, setBalance] = useState(initial.balance);
@@ -87,58 +92,62 @@ function AccountFormModal({ visible, editMode, initial, formatCurrency, onClose,
 
   return (
     <Modal visible={visible} animationType="slide" transparent statusBarTranslucent>
-      <View style={fm.overlay}>
+      <View style={[fm.overlay, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.3)' }]}>
         <TouchableOpacity style={fm.backdrop} activeOpacity={1} onPress={onClose} />
-        <View style={fm.sheet}>
-          <View style={fm.handleRow}><View style={fm.handle} /></View>
+        <View style={[fm.sheet, { backgroundColor: tokens.bgPrimary }]}>
+          <View style={fm.handleRow}><View style={[fm.handle, { backgroundColor: tokens.borderSubtle }]}/></View>
 
-          <View style={fm.header}>
-            <Text style={fm.headerTitle}>{editMode ? 'Edit Account' : 'Add Account'}</Text>
-            <TouchableOpacity onPress={onClose} style={fm.closeBtn}>
-              <Ionicons name="close" size={18} color="#111" />
+          <View style={[fm.header, { borderBottomColor: tokens.borderSubtle }]}>
+            <Text style={[fm.headerTitle, { color: tokens.textPrimary }]}>{editMode ? 'Edit Account' : 'Add Account'}</Text>
+            <TouchableOpacity onPress={onClose} style={[fm.closeBtn, { backgroundColor: tokens.bgSecondary }]}>
+              <Ionicons name="close" size={18} color={tokens.textPrimary} />
             </TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={fm.scrollBody} keyboardShouldPersistTaps="handled">
             {/* Account type selector */}
-            <Text style={fm.label}>Account Type</Text>
+            <Text style={[fm.label, { color: tokens.textMuted }]}>Account Type</Text>
             <View style={fm.typeGrid}>
               {ACCOUNT_TYPES.map(t => {
                 const sel = type === t.key;
                 return (
                   <TouchableOpacity key={t.key}
-                    style={[fm.typeCard, sel && { borderColor: t.color, backgroundColor: t.color + '10' }]}
+                    style={[
+                      fm.typeCard, 
+                      { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle },
+                      sel && { borderColor: t.color, backgroundColor: t.color + '10' }
+                    ]}
                     onPress={() => { setType(t.key); if (!color || COLORS.includes(color)) setColor(t.color); }}
                     activeOpacity={0.7}
                   >
                     <View style={[fm.typeIcon, { backgroundColor: t.color + '18' }]}>
                       <Ionicons name={t.icon} size={16} color={t.color} />
                     </View>
-                    <Text style={[fm.typeLabel, sel && { color: t.color, fontWeight: '700' }]} numberOfLines={1}>{t.label}</Text>
+                    <Text style={[fm.typeLabel, { color: tokens.textPrimary }, sel && { color: t.color, fontWeight: '700' }]} numberOfLines={1}>{t.label}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
 
             {/* Name field */}
-            <Text style={fm.label}>Account Name</Text>
-            <View style={fm.inputRow}>
-              <MaterialCommunityIcons name="pencil-outline" size={16} color="#C7C7CC" style={{ marginRight: 10 }} />
+            <Text style={[fm.label, { color: tokens.textMuted }]}>Account Name</Text>
+            <View style={[fm.inputRow, { backgroundColor: tokens.bgSecondary }]}>
+              <MaterialCommunityIcons name="pencil-outline" size={16} color={tokens.textMuted} style={{ marginRight: 10 }} />
               <TextInput
-                style={fm.input}
+                style={[fm.input, { color: tokens.textPrimary }]}
                 placeholder="e.g. HDFC Savings, Paytm..."
-                placeholderTextColor="#C7C7CC"
+                placeholderTextColor={tokens.textMuted}
                 value={name} onChangeText={setName} returnKeyType="done"
               />
             </View>
 
-            <Text style={fm.label}>Initial Balance ({formatCurrency(0).charAt(0)})</Text>
-            <View style={fm.inputRow}>
+            <Text style={[fm.label, { color: tokens.textMuted }]}>Initial Balance ({formatCurrency(0).charAt(0)})</Text>
+            <View style={[fm.inputRow, { backgroundColor: tokens.bgSecondary }]}>
               <Text style={{ fontSize: 16, fontWeight: '800', color: '#2DCA72', marginRight: 8 }}>{formatCurrency(0).charAt(0)}</Text>
               <TextInput
-                style={fm.input}
+                style={[fm.input, { color: tokens.textPrimary }]}
                 placeholder="0"
-                placeholderTextColor="#C7C7CC"
+                placeholderTextColor={tokens.textMuted}
                 value={balance} onChangeText={setBalance}
                 keyboardType="numeric" returnKeyType="done"
               />
@@ -147,13 +156,13 @@ function AccountFormModal({ visible, editMode, initial, formatCurrency, onClose,
             {/* Credit Limit (only for credit cards) */}
             {type === 'credit' && (
               <>
-                <Text style={fm.label}>Credit Limit ({formatCurrency(0).charAt(0)})</Text>
-                <View style={fm.inputRow}>
+                <Text style={[fm.label, { color: tokens.textMuted }]}>Credit Limit ({formatCurrency(0).charAt(0)})</Text>
+                <View style={[fm.inputRow, { backgroundColor: tokens.bgSecondary }]}>
                   <Ionicons name="card-outline" size={16} color="#F43F5E" style={{ marginRight: 8 }} />
                   <TextInput
-                    style={fm.input}
+                    style={[fm.input, { color: tokens.textPrimary }]}
                     placeholder="e.g. 50000"
-                    placeholderTextColor="#C7C7CC"
+                    placeholderTextColor={tokens.textMuted}
                     value={creditLimit} onChangeText={setCreditLimit}
                     keyboardType="numeric" returnKeyType="done"
                   />
@@ -162,11 +171,11 @@ function AccountFormModal({ visible, editMode, initial, formatCurrency, onClose,
             )}
 
             {/* Color picker */}
-            <Text style={fm.label}>Account Color</Text>
+            <Text style={[fm.label, { color: tokens.textMuted }]}>Account Color</Text>
             <View style={fm.colorRow}>
               {COLORS.map(c => (
                 <TouchableOpacity key={c} onPress={() => setColor(c)}
-                  style={[fm.colorDot, { backgroundColor: c }, color === c && fm.colorDotActive]}
+                  style={[fm.colorDot, { backgroundColor: c }, color === c && [fm.colorDotActive, { borderColor: tokens.textPrimary }]]}
                 />
               ))}
             </View>
@@ -180,8 +189,8 @@ function AccountFormModal({ visible, editMode, initial, formatCurrency, onClose,
                 <Text style={fm.deleteTxt}>Delete</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity style={[fm.submitBtn, editMode && onDelete ? { flex: 1 } : { width: '100%' as any }]} onPress={handleSubmit} activeOpacity={0.9}>
-              <Text style={fm.submitTxt}>{editMode ? 'Update Account' : 'Add Account'}</Text>
+            <TouchableOpacity style={[fm.submitBtn, { backgroundColor: tokens.textPrimary }, editMode && onDelete ? { flex: 1 } : { width: '100%' as any }]} onPress={handleSubmit} activeOpacity={0.9}>
+              <Text style={[fm.submitTxt, { color: tokens.bgPrimary }]}>{editMode ? 'Update Account' : 'Add Account'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -229,6 +238,8 @@ type HistoryProps = {
 };
 
 function AccountHistoryModal({ visible, account, transactions, onClose, formatCurrency }: HistoryProps) {
+  const { tokens } = useThemeStyles();
+  const { isDarkMode } = useSettings();
   if (!account) return null;
   const meta = ACCOUNT_TYPE_META[account.type] || ACCOUNT_TYPE_META['bank'];
   const accentColor = account.color || meta.defaultColor;
@@ -239,32 +250,32 @@ function AccountHistoryModal({ visible, account, transactions, onClose, formatCu
   );
 
   const iconBgStyle = useMemo(() => ({ backgroundColor: accentColor + '14' }), [accentColor]);
-  const balAmtStyle = useMemo(() => ({ color: account.balance < 0 ? '#F43F5E' : '#111' }), [account.balance]);
+  const balAmtStyle = useMemo(() => ({ color: account.balance < 0 ? '#F43F5E' : tokens.textPrimary }), [account.balance, tokens]);
 
   const renderHistoryItem = useCallback(({ item: tx }: { item: any }) => {
     const isIncome = tx.type === 'income';
     return (
-      <View style={hm.txRow}>
+      <View style={[hm.txRow, { borderBottomColor: tokens.borderSubtle }]}>
         <View style={[hm.txDot, { backgroundColor: isIncome ? '#2DCA72' : '#F43F5E' }]} />
         <View style={{ flex: 1 }}>
-          <Text style={hm.txTitle} numberOfLines={1}>{tx.title}</Text>
-          <Text style={hm.txDate}>{new Date(tx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
+          <Text style={[hm.txTitle, { color: tokens.textPrimary }]} numberOfLines={1}>{tx.title}</Text>
+          <Text style={[hm.txDate, { color: tokens.textMuted }]}>{new Date(tx.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</Text>
         </View>
-        <Text style={[hm.txAmt, { color: isIncome ? '#2DCA72' : '#111' }]}>
+        <Text style={[hm.txAmt, { color: isIncome ? '#2DCA72' : tokens.textPrimary }]}>
           {isIncome ? '+' : '\u2212'}{Math.abs(tx.amount).toLocaleString('en-IN')}
         </Text>
       </View>
     );
-  }, []);
+  }, [tokens]);
 
   const historyKeyExtractor = useCallback((item: any, index: number) => item.id || String(index), []);
 
   return (
     <Modal visible={visible} animationType="slide" transparent statusBarTranslucent>
-      <View style={hm.overlay}>
+      <View style={[hm.overlay, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.3)' }]}>
         <TouchableOpacity style={hm.backdrop} activeOpacity={1} onPress={onClose} />
-        <View style={hm.sheet}>
-          <View style={hm.handleRow}><View style={hm.handle} /></View>
+        <View style={[hm.sheet, { backgroundColor: tokens.bgPrimary }]}>
+          <View style={hm.handleRow}><View style={[hm.handle, { backgroundColor: tokens.borderSubtle }]} /></View>
 
           {/* Account header */}
           <View style={hm.accHeader}>
@@ -272,25 +283,25 @@ function AccountHistoryModal({ visible, account, transactions, onClose, formatCu
               <Ionicons name={meta.icon} size={22} color={accentColor} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={hm.accName}>{account.name}</Text>
-              <Text style={hm.accType}>{meta.label}</Text>
+              <Text style={[hm.accName, { color: tokens.textPrimary }]}>{account.name}</Text>
+              <Text style={[hm.accType, { color: tokens.textMuted }]}>{meta.label}</Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={hm.balLabel}>Balance</Text>
+              <Text style={[hm.balLabel, { color: tokens.textMuted }]}>Balance</Text>
               <Text style={[hm.balAmt, balAmtStyle]}>
                 {formatCurrency(account.balance)}
               </Text>
             </View>
           </View>
 
-          <View style={hm.divider} />
+          <View style={[hm.divider, { backgroundColor: tokens.borderSubtle }]} />
 
-          <Text style={hm.sectionTitle}>Transaction History</Text>
+          <Text style={[hm.sectionTitle, { color: tokens.textPrimary }]}>Transaction History</Text>
 
           {accountTxs.length === 0 ? (
             <View style={hm.empty}>
-              <MaterialCommunityIcons name="receipt" size={28} color="#C7C7CC" />
-              <Text style={hm.emptyTxt}>No transactions for this account yet</Text>
+              <MaterialCommunityIcons name="receipt" size={28} color={tokens.textMuted} />
+              <Text style={[hm.emptyTxt, { color: tokens.textMuted }]}>No transactions for this account yet</Text>
             </View>
           ) : (
             <FlatList
@@ -314,30 +325,32 @@ function AccountHistoryModal({ visible, account, transactions, onClose, formatCu
 
 const hm = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
-  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '80%' },
+  backdrop: { flex: 1 },
+  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, maxHeight: '80%' },
   handleRow: { alignItems: 'center', paddingTop: 10, paddingBottom: 4 },
-  handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#E5E5EA' },
+  handle: { width: 36, height: 4, borderRadius: 2 },
   accHeader: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 16, gap: 12 },
   accIcon: { width: 48, height: 48, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  accName: { fontSize: 17, fontWeight: '700', color: '#111' },
-  accType: { fontSize: 11, color: '#8E8E93', fontWeight: '600', marginTop: 2 },
-  balLabel: { fontSize: 9, color: '#8E8E93', fontWeight: '600', textTransform: 'uppercase', marginBottom: 2 },
+  accName: { fontSize: 17, fontWeight: '700' },
+  accType: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+  balLabel: { fontSize: 9, fontWeight: '600', textTransform: 'uppercase', marginBottom: 2 },
   balAmt: { fontSize: 18, fontWeight: '800' },
-  divider: { height: 1, backgroundColor: '#F2F2F7', marginHorizontal: 24 },
-  sectionTitle: { fontSize: 13, fontWeight: '700', color: '#111', paddingHorizontal: 24, paddingVertical: 14 },
+  divider: { height: 1, marginHorizontal: 24 },
+  sectionTitle: { fontSize: 13, fontWeight: '700', paddingHorizontal: 24, paddingVertical: 14 },
   txScroll: { paddingHorizontal: 24 },
-  txRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#F9F9FB' },
+  txRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1 },
   txDot: { width: 8, height: 8, borderRadius: 4, marginRight: 12 },
-  txTitle: { fontSize: 14, fontWeight: '600', color: '#111', marginBottom: 2 },
-  txDate: { fontSize: 11, color: '#C7C7CC' },
+  txTitle: { fontSize: 14, fontWeight: '600', marginBottom: 2 },
+  txDate: { fontSize: 11 },
   txAmt: { fontSize: 14, fontWeight: '700', marginLeft: 8 },
   empty: { alignItems: 'center', paddingVertical: 40, gap: 10 },
-  emptyTxt: { fontSize: 13, color: '#C7C7CC', fontWeight: '500' },
+  emptyTxt: { fontSize: 13, fontWeight: '500' },
 });
 
 export default function AccountsScreen() {
   const insets = useSafeAreaInsets();
+  const { tokens } = useThemeStyles();
+  const { isDarkMode, formatCurrency } = useSettings();
   const [showBalance, setShowBalance] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
@@ -346,7 +359,6 @@ export default function AccountsScreen() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const { formatCurrency } = useSettings();
   const floatStyle = useFloat();
 
   const fetchData = useCallback(async () => {
@@ -468,25 +480,25 @@ export default function AccountsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.root, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
-        <StatusBar barStyle="dark-content" />
+      <View style={[styles.root, { backgroundColor: tokens.bgPrimary, paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
         <ActivityIndicator size="large" color="#6366F1" />
       </View>
     );
   }
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.root, { backgroundColor: tokens.bgPrimary, paddingTop: insets.top }]}>
+      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
       {/* Header */}
       <Animated.View entering={FadeIn.delay(50).duration(350)} style={styles.header}>
         <View>
-          <Text style={styles.headerSub}>Overview</Text>
-          <Text style={styles.headerTitle}>My Accounts</Text>
+          <Text style={[styles.headerSub, { color: tokens.textMuted }]}>Overview</Text>
+          <Text style={[styles.headerTitle, { color: tokens.textPrimary }]}>My Accounts</Text>
         </View>
-        <Bounce onPress={handleOpenAdd} style={styles.addHeaderBtn}>
-          <Ionicons name="add" size={20} color="#fff" />
+        <Bounce onPress={handleOpenAdd} style={[styles.addHeaderBtn, { backgroundColor: tokens.textPrimary }]}>
+          <Ionicons name="add" size={20} color={tokens.bgPrimary} />
         </Bounce>
       </Animated.View>
 
@@ -495,21 +507,21 @@ export default function AccountsScreen() {
         {/* ═══ Net Worth Hero ═══ */}
         <Animated.View entering={FadeInDown.delay(80).duration(500).springify()}>
           <LinearGradient
-            colors={['#1A1C20', '#0F1014']}
+            colors={isDarkMode ? ['#1A1C20', '#0F1014'] : ['#111111', '#2D2D2D']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
             style={styles.heroCard}
           >
-            <Animated.View style={[styles.heroGlow, floatStyle]} />
+            <Animated.View style={[styles.heroGlow, floatStyle, { backgroundColor: isDarkMode ? 'rgba(45,202,114,0.1)' : 'rgba(45,202,114,0.16)' }]} />
             <View style={styles.heroTop}>
               <View>
-                <Text style={styles.heroLabel}>Net Worth</Text>
+                <Text style={[styles.heroLabel, { color: tokens.textMuted }]}>Net Worth</Text>
                 <Animated.Text entering={ZoomIn.delay(250).duration(380)} style={styles.heroAmount}>
                   {showBalance ? formatCurrency(totalBalance) : `${formatCurrency(0).charAt(0)} ••••••`}
                 </Animated.Text>
-                <Text style={styles.heroSub}>Across {accounts.length} accounts</Text>
+                <Text style={[styles.heroSub, { color: isDarkMode ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.35)' }]}>Across {accounts.length} accounts</Text>
               </View>
-              <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowBalance(!showBalance)}>
-                <Ionicons name={showBalance ? 'eye-outline' : 'eye-off-outline'} size={20} color="#8E8E93" />
+              <TouchableOpacity style={[styles.eyeBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.08)' }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowBalance(!showBalance); }}>
+                <Ionicons name={showBalance ? 'eye-outline' : 'eye-off-outline'} size={20} color={tokens.textMuted} />
               </TouchableOpacity>
             </View>
 
@@ -530,35 +542,35 @@ export default function AccountsScreen() {
 
         {/* ═══ Quick Stats ═══ */}
         <View style={styles.statsRow}>
-          <Animated.View entering={FadeInUp.delay(200).duration(400)} style={[styles.statCard, { borderColor: 'rgba(45,202,114,0.2)' }]}>
+          <Animated.View entering={FadeInUp.delay(200).duration(400)} style={[styles.statCard, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
             <View style={[styles.statIcon, { backgroundColor: 'rgba(45,202,114,0.12)' }]}>
               <Ionicons name="wallet-outline" size={18} color="#2DCA72" />
             </View>
-            <Text style={styles.statLabel}>Available</Text>
-            <Text style={styles.statAmt}>{showBalance ? formatCurrency(totalBalance) : '••••'}</Text>
+            <Text style={[styles.statLabel, { color: tokens.textMuted }]}>Available</Text>
+            <Text style={[styles.statAmt, { color: tokens.textPrimary }]}>{showBalance ? formatCurrency(totalBalance) : '••••'}</Text>
           </Animated.View>
-          <Animated.View entering={FadeInUp.delay(280).duration(400)} style={[styles.statCard, { borderColor: 'rgba(0,122,255,0.15)' }]}>
+          <Animated.View entering={FadeInUp.delay(280).duration(400)} style={[styles.statCard, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
             <View style={[styles.statIcon, { backgroundColor: 'rgba(0,122,255,0.1)' }]}>
               <MaterialCommunityIcons name="bank-outline" size={18} color="#007AFF" />
             </View>
-            <Text style={styles.statLabel}>Accounts</Text>
-            <Text style={styles.statAmt}>{accounts.length}</Text>
+            <Text style={[styles.statLabel, { color: tokens.textMuted }]}>Accounts</Text>
+            <Text style={[styles.statAmt, { color: tokens.textPrimary }]}>{accounts.length}</Text>
           </Animated.View>
         </View>
 
         {/* ═══ All Accounts ═══ */}
         <Animated.View entering={FadeIn.delay(320).duration(350)} style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>All Accounts</Text>
-          <TouchableOpacity onPress={() => setShowBalance(!showBalance)}>
+          <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>All Accounts</Text>
+          <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowBalance(!showBalance); }}>
             <Text style={styles.toggleTxt}>{showBalance ? 'Hide' : 'Show'} balances</Text>
           </TouchableOpacity>
         </Animated.View>
 
         {accounts.length === 0 && (
           <View style={{ alignItems: 'center', paddingVertical: 40, gap: 12 }}>
-            <MaterialCommunityIcons name="bank-off-outline" size={48} color="#E5E5EA" />
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#8E8E93' }}>No accounts yet</Text>
-            <Text style={{ fontSize: 13, color: '#C7C7CC', textAlign: 'center' }}>Add your first account to start tracking balances.</Text>
+            <MaterialCommunityIcons name="bank-off-outline" size={48} color={tokens.borderSubtle} />
+            <Text style={{ fontSize: 16, fontWeight: '700', color: tokens.textMuted }}>No accounts yet</Text>
+            <Text style={{ fontSize: 13, color: tokens.textMuted, textAlign: 'center' }}>Add your first account to start tracking balances.</Text>
           </View>
         )}
 
@@ -580,13 +592,13 @@ export default function AccountsScreen() {
 
         {/* ═══ Add Account CTA ═══ */}
         <Animated.View entering={FadeInDown.delay(520).duration(380)}>
-          <TouchableOpacity style={styles.addCta} onPress={handleOpenAdd} activeOpacity={0.7}>
+          <TouchableOpacity style={[styles.addCta, { borderColor: tokens.borderSubtle }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleOpenAdd(); }} activeOpacity={0.7}>
             <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#2DCA72" />
             <Text style={styles.addCtaTxt}>Add New Account</Text>
           </TouchableOpacity>
         </Animated.View>
 
-        <Text style={styles.footNote}>
+        <Text style={[styles.footNote, { color: tokens.textMuted }]}>
           Balances synced from your account. Long-press any account to edit or delete.
         </Text>
 
@@ -619,20 +631,20 @@ export default function AccountsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#fff' },
+  root: { flex: 1 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 24, paddingVertical: 14 },
-  headerSub: { fontSize: 11, color: '#8E8E93', fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#111' },
-  addHeaderBtn: { width: 38, height: 38, borderRadius: 14, backgroundColor: '#111', justifyContent: 'center', alignItems: 'center' },
+  headerSub: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+  headerTitle: { fontSize: 24, fontWeight: '800' },
+  addHeaderBtn: { width: 38, height: 38, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
   scroll: { paddingHorizontal: 24, paddingTop: 4 },
 
   heroCard: { borderRadius: 24, padding: 24, marginBottom: 18, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
-  heroGlow: { position: 'absolute', width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(45,202,114,0.16)', top: -40, right: -30 },
+  heroGlow: { position: 'absolute', width: 180, height: 180, borderRadius: 90, top: -40, right: -30 },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  heroLabel: { fontSize: 11, color: '#8E8E93', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 },
+  heroLabel: { fontSize: 11, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 },
   heroAmount: { fontSize: 34, fontWeight: '800', color: '#fff', letterSpacing: -1 },
-  heroSub: { fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 },
-  eyeBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center' },
+  heroSub: { fontSize: 11, marginTop: 4 },
+  eyeBtn: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   heroPills: { flexDirection: 'row', gap: 10 },
   heroPillGreen: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(45,202,114,0.1)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 },
   heroPillRed: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(244,63,94,0.1)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 },
@@ -641,21 +653,21 @@ const styles = StyleSheet.create({
   heroPillRedAmt: { fontSize: 13, fontWeight: '700', color: '#F43F5E' },
 
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 22 },
-  statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 18, padding: 16, borderWidth: 1 },
+  statCard: { flex: 1, borderRadius: 18, padding: 16, borderWidth: 1 },
   statIcon: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
-  statLabel: { fontSize: 11, color: '#8E8E93', fontWeight: '500', marginBottom: 4 },
-  statAmt: { fontSize: 20, fontWeight: '800', color: '#111' },
+  statLabel: { fontSize: 11, fontWeight: '500', marginBottom: 4 },
+  statAmt: { fontSize: 20, fontWeight: '800' },
 
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: '#111' },
+  sectionTitle: { fontSize: 16, fontWeight: '700' },
   toggleTxt: { fontSize: 12, fontWeight: '600', color: '#2DCA72' },
 
   addCta: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     paddingVertical: 16, borderRadius: 16,
-    borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#E5E5EA',
+    borderWidth: 1.5, borderStyle: 'dashed',
     marginTop: 8, marginBottom: 14,
   },
   addCtaTxt: { fontSize: 14, fontWeight: '600', color: '#2DCA72' },
-  footNote: { fontSize: 11, color: '#C7C7CC', textAlign: 'center', lineHeight: 17, paddingHorizontal: 12 },
+  footNote: { fontSize: 11, textAlign: 'center', lineHeight: 17, paddingHorizontal: 12 },
 });

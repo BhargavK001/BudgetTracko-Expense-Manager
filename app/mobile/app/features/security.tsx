@@ -1,226 +1,209 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Dimensions, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, StatusBar } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Container } from '../../components/Container';
-import { Button } from '../../components/Button';
-import Animated, { FadeInUp, FadeInDown, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence } from 'react-native-reanimated';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSecurity } from '@/context/SecurityContext';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInUp, FadeInDown, ZoomIn } from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useThemeStyles } from '@/components/more/DesignSystem';
+import { useSettings } from '@/context/SettingsContext';
+import { Spacing, BorderRadius } from '@/constants/Theme';
 
-const { width } = Dimensions.get('window');
-
-export default function SecurityFeature() {
+export default function SecurityScreen() {
     const router = useRouter();
-    const shieldPulse = useSharedValue(1);
+    const insets = useSafeAreaInsets();
+    const { isAppLockEnabled, setAppLockEnabled } = useSecurity();
+    const { tokens } = useThemeStyles();
+    const { isDarkMode } = useSettings();
+    const [analyticsEnabled, setAnalyticsEnabled] = useState(false);
+    const [offlineEnabled, setOfflineEnabled] = useState(false);
 
-    useEffect(() => {
-        shieldPulse.value = withRepeat(
-            withSequence(
-                withTiming(1.05, { duration: 1000 }),
-                withTiming(1, { duration: 1000 })
-            ),
-            -1,
-            true
-        );
+    React.useEffect(() => {
+        const loadSettings = async () => {
+            const analytics = await AsyncStorage.getItem('BT_analyticsEnabled');
+            const offline = await AsyncStorage.getItem('BT_offlineEnabled');
+            if (analytics) setAnalyticsEnabled(analytics === 'true');
+            if (offline) setOfflineEnabled(offline === 'true');
+        };
+        loadSettings();
     }, []);
 
-    const animatedShieldStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: shieldPulse.value }],
-    }));
+    const toggleAppLock = (v: boolean) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        setAppLockEnabled(v);
+    };
+
+    const toggleAnalytics = async (v: boolean) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        setAnalyticsEnabled(v);
+        await AsyncStorage.setItem('BT_analyticsEnabled', v.toString());
+    };
+
+    const toggleOffline = async (v: boolean) => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        setOfflineEnabled(v);
+        await AsyncStorage.setItem('BT_offlineEnabled', v.toString());
+    };
 
     return (
-        <Container backgroundColor="#1a1a1a">
-            <StatusBar style="light" />
+        <View style={[styles.root, { backgroundColor: tokens.bgPrimary, paddingTop: insets.top }]}>
+            <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+            
+            {/* Minimal Header */}
+            <Animated.View entering={FadeInDown.delay(50).duration(300)} style={[styles.header, { backgroundColor: tokens.bgPrimary }]}>
+                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                    <Ionicons name="arrow-back" size={24} color={tokens.textPrimary} />
+                </TouchableOpacity>
+                <Text style={[styles.headerTitle, { color: tokens.textPrimary }]}>Privacy & Security</Text>
+                <View style={{ width: 44 }} />
+            </Animated.View>
 
-            <View style={styles.content}>
-                {/* Visual Section */}
-                <View style={styles.visualContainer}>
-                    <View style={styles.shieldContainer}>
-                        {/* Background Circles */}
-                        <Animated.View style={[styles.pulseCircle, styles.pulseCircle1, animatedShieldStyle]} />
-                        <Animated.View style={[styles.pulseCircle, styles.pulseCircle2, animatedShieldStyle]} />
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+                
+                {/* Hero / Info Section */}
+                <Animated.View entering={ZoomIn.delay(100).duration(400).springify()}>
+                    <LinearGradient
+                        colors={isDarkMode ? ['#1A1C20', '#0F1014'] : ['#2DCA72', '#16A34A']}
+                        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                        style={styles.heroCard}
+                    >
+                        <MaterialCommunityIcons 
+                            name="shield-check" 
+                            size={48} 
+                            color={isDarkMode ? '#2DCA72' : '#fff'} 
+                            style={{ marginBottom: 12 }} 
+                        />
+                        <Text style={[styles.heroTitle, { color: '#fff' }]}>Bank-Grade Security</Text>
+                        <Text style={[styles.heroDesc, { color: isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.9)' }]}>
+                            Your financial data is encrypted, stored locally when possible, and never sold to third parties. You maintain full control.
+                        </Text>
+                    </LinearGradient>
+                </Animated.View>
 
-                        {/* Main Shield */}
-                        <Animated.View entering={ZoomIn.delay(200).springify()}>
-                            <View style={styles.shield}>
-                                <MaterialCommunityIcons name="shield-check" size={80} color="#1a1a1a" />
+                {/* App Protection Settings */}
+                <Animated.View entering={FadeInUp.delay(200).duration(400)}>
+                    <Text style={[styles.sectionLabel, { color: tokens.textMuted }]}>App Protection</Text>
+                    <View style={[styles.card, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
+                        <View style={styles.settingRow}>
+                            <View style={[styles.iconWrap, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F5F5F7' }]}>
+                                <Ionicons name="finger-print-outline" size={20} color={tokens.textPrimary} />
                             </View>
-                        </Animated.View>
-
-                        {/* Floating Badges */}
-                        <Animated.View entering={FadeInDown.delay(400).springify()}>
-                            <View style={[styles.badge, styles.badgeTopRight]}>
-                                <MaterialCommunityIcons name="lock" size={20} color="#FFFFFF" />
+                            <View style={styles.textWrap}>
+                                <Text style={[styles.settingTitle, { color: tokens.textPrimary }]}>Biometric App Lock</Text>
+                                <Text style={[styles.settingSub, { color: tokens.textMuted }]}>Require FaceID or Fingerprint on launch</Text>
                             </View>
-                        </Animated.View>
-                        <Animated.View entering={FadeInDown.delay(600).springify()}>
-                            <View style={[styles.badge, styles.badgeBottomLeft]}>
-                                <MaterialCommunityIcons name="eye-off" size={20} color="#FFFFFF" />
-                            </View>
-                        </Animated.View>
-                    </View>
-                </View>
-
-                {/* Text Content */}
-                <View style={styles.textContent}>
-                    <Animated.View entering={FadeInUp.delay(300)}>
-                        <View style={styles.stepContainer}>
-                            <Text style={styles.step}>03 / 04</Text>
+                            <Switch
+                                value={isAppLockEnabled}
+                                onValueChange={toggleAppLock}
+                                trackColor={{ false: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E5E5EA', true: '#2DCA72' }}
+                                thumbColor="#fff"
+                            />
                         </View>
-                    </Animated.View>
+                    </View>
+                </Animated.View>
 
-                    <Animated.View entering={FadeInUp.delay(400)}>
-                        <Text style={styles.title}>
-                            BANK-GRADE
-                            {'\n'}
-                            SECURITY.
-                        </Text>
-                    </Animated.View>
+                {/* Data Privacy Settings */}
+                <Animated.View entering={FadeInUp.delay(300).duration(400)}>
+                    <Text style={[styles.sectionLabel, { color: tokens.textMuted }]}>Data Handling</Text>
+                    <View style={[styles.card, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
+                        <View style={[styles.settingRow, { borderBottomWidth: 1, borderBottomColor: tokens.borderSubtle }]}>
+                            <View style={[styles.iconWrap, { backgroundColor: 'rgba(0,122,255,0.08)' }]}>
+                                <Ionicons name="analytics-outline" size={20} color="#007AFF" />
+                            </View>
+                            <View style={styles.textWrap}>
+                                <Text style={[styles.settingTitle, { color: tokens.textPrimary }]}>Analytics Collection</Text>
+                                <Text style={[styles.settingSub, { color: tokens.textMuted }]}>Share anonymous crash data</Text>
+                            </View>
+                            <Switch
+                                value={analyticsEnabled}
+                                onValueChange={toggleAnalytics}
+                                trackColor={{ false: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E5E5EA', true: '#2DCA72' }}
+                                thumbColor="#fff"
+                            />
+                        </View>
+                        <View style={styles.settingRow}>
+                            <View style={[styles.iconWrap, { backgroundColor: 'rgba(244,63,94,0.08)' }]}>
+                                <Ionicons name="cloud-offline-outline" size={20} color="#F43F5E" />
+                            </View>
+                            <View style={styles.textWrap}>
+                                <Text style={[styles.settingTitle, { color: tokens.textPrimary }]}>Offline Only Mode</Text>
+                                <Text style={[styles.settingSub, { color: tokens.textMuted }]}>Prevent data from leaving this device</Text>
+                            </View>
+                            <Switch
+                                value={offlineEnabled}
+                                onValueChange={toggleOffline}
+                                trackColor={{ false: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E5E5EA', true: '#2DCA72' }}
+                                thumbColor="#fff"
+                            />
+                        </View>
+                    </View>
+                </Animated.View>
 
-                    <Animated.View entering={FadeInUp.delay(500)}>
-                        <Text style={styles.description}>
-                            Your data is encrypted and 100% private. We never share your financial details.
-                        </Text>
-                    </Animated.View>
-                </View>
+                {/* Info List */}
+                <Animated.View entering={FadeInUp.delay(400).duration(400)}>
+                    <Text style={[styles.sectionLabel, { color: tokens.textMuted }]}>More Information</Text>
+                    <View style={[styles.card, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
+                        <TouchableOpacity style={[styles.infoRow]} onPress={() => router.push('/privacy-security')}>
+                            <Text style={[styles.infoTitle, { color: tokens.textPrimary }]}>Read Full Privacy Policy</Text>
+                            <Ionicons name="open-outline" size={16} color={tokens.textMuted} />
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
 
-                {/* Footer Navigation */}
-                <View style={styles.footer}>
-                    <Button
-                        title="Skip"
-                        onPress={() => router.push('/(auth)/login')}
-                        variant="outline"
-                        style={styles.skipButton}
-                        textStyle={{ color: '#FFFFFF', fontSize: 14 }}
-                    />
-                    <Button
-                        title="Next"
-                        onPress={() => router.push('/features/offline')}
-                        variant="primary" // Changed to primary (yellow) for contrast on dark bg
-                        style={styles.nextButton}
-                    />
-                </View>
-            </View>
-        </Container>
+                <View style={{ height: 60 }} />
+            </ScrollView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    content: {
-        flex: 1,
-        // Removed space-between
-        paddingVertical: Platform.OS === 'ios' ? 20 : 40,
+    root: { flex: 1 },
+    header: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        paddingHorizontal: 20, paddingVertical: 16,
+        zIndex: 10,
     },
-    visualContainer: {
-        // Removed flex: 1
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 10,
-        marginBottom: 10,
-        minHeight: 300, // Guarantee space for shield
+    backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'flex-start' },
+    headerTitle: { fontSize: 18, fontWeight: '800' },
+
+    scrollContent: { padding: 24, paddingTop: 10 },
+
+    heroCard: {
+        borderRadius: 24, padding: 28, marginBottom: 24,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.1, shadowRadius: 24, elevation: 6,
     },
-    shieldContainer: {
-        width: 200,
-        height: 200,
-        justifyContent: 'center',
-        alignItems: 'center',
+    heroTitle: { fontSize: 20, fontWeight: '900', marginBottom: 8 },
+    heroDesc: { fontSize: 13, lineHeight: 20 },
+
+    sectionLabel: {
+        fontSize: 12, fontWeight: '800',
+        textTransform: 'uppercase', letterSpacing: 1.2,
+        marginBottom: 10, marginLeft: 8,
     },
-    pulseCircle: {
-        position: 'absolute',
-        borderRadius: 999,
-        borderWidth: 2,
-        borderColor: '#333333',
+    card: {
+        borderRadius: 20,
+        marginBottom: 24, borderWidth: 1,
+        shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.03, shadowRadius: 8, elevation: 1,
     },
-    pulseCircle1: {
-        width: 240,
-        height: 240,
-        opacity: 0.5,
+    settingRow: {
+        flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14,
     },
-    pulseCircle2: {
-        width: 300,
-        height: 300,
-        opacity: 0.3,
+    iconWrap: {
+        width: 40, height: 40, borderRadius: 12,
+        justifyContent: 'center', alignItems: 'center',
     },
-    shield: {
-        width: 140,
-        height: 160,
-        backgroundColor: '#4ADE80',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderRadius: 30, // Shield-ish shape approximation
-        borderBottomLeftRadius: 70,
-        borderBottomRightRadius: 70,
-        borderWidth: 4,
-        borderColor: '#FFFFFF',
-        shadowColor: '#4ADE80',
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.5,
-        shadowRadius: 20,
-        elevation: 10,
+    textWrap: { flex: 1 },
+    settingTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
+    settingSub: { fontSize: 11, fontWeight: '500' },
+
+    infoRow: {
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        padding: 16,
     },
-    badge: {
-        position: 'absolute',
-        backgroundColor: '#333333',
-        padding: 12,
-        borderRadius: 16,
-        borderWidth: 2,
-        borderColor: '#FFFFFF',
-    },
-    badgeTopRight: {
-        top: 0,
-        right: 0,
-    },
-    badgeBottomLeft: {
-        bottom: 0,
-        left: 0,
-    },
-    textContent: {
-        paddingHorizontal: 24,
-        marginBottom: 30,
-        marginTop: 0,
-    },
-    stepContainer: {
-        backgroundColor: '#333333',
-        alignSelf: 'flex-start',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 4,
-        marginBottom: 16,
-    },
-    step: {
-        fontSize: 12,
-        fontWeight: '900',
-        color: '#FFFFFF',
-    },
-    title: {
-        fontSize: 48,
-        fontWeight: '900',
-        color: '#FFFFFF',
-        lineHeight: 44,
-        letterSpacing: -1,
-        marginBottom: 16,
-        textTransform: 'uppercase',
-    },
-    description: {
-        fontSize: 16,
-        lineHeight: 24,
-        color: '#AAAAAA', // Light gray for readability on dark
-        fontWeight: '500',
-        maxWidth: '90%',
-    },
-    footer: {
-        flexDirection: 'row',
-        paddingHorizontal: 24,
-        gap: 16,
-        marginBottom: 10,
-    },
-    skipButton: {
-        flex: 1,
-        borderWidth: 0,
-        backgroundColor: 'transparent',
-        borderColor: '#FFFFFF', // For type safety, though width 0 hides it
-    },
-    nextButton: {
-        flex: 2,
-    },
+    infoTitle: { fontSize: 14, fontWeight: '600' },
 });

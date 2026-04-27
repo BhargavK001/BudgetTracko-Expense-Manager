@@ -1,13 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useDebts, Debt } from '../../../context/DebtContext';
 import { useSettings } from '../../../context/SettingsContext';
+import { useThemeStyles } from '@/components/more/DesignSystem';
 
 export default function DebtsDashboard() {
+    const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { isDarkMode, tokens } = useThemeStyles();
     const { debts, markAsSettled, deleteDebt } = useDebts();
     const { triggerHaptic } = useSettings();
     const [filter, setFilter] = useState<'all' | 'lend' | 'borrow'>('all');
@@ -46,28 +49,33 @@ export default function DebtsDashboard() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={[styles.container, { paddingTop: insets.top, backgroundColor: tokens.bgPrimary }]}>
+            <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#111" />
+                <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: tokens.bgSecondary }]}>
+                    <Ionicons name="chevron-back" size={22} color={tokens.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Debts</Text>
-                <TouchableOpacity style={styles.helpButton}>
-                    <Ionicons name="help-circle-outline" size={24} color="#8E8E93" />
+                <Text style={[styles.headerTitle, { color: tokens.textPrimary }]}>Debts</Text>
+                <TouchableOpacity style={[styles.helpButton, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F5F5F7' }]}>
+                    <Ionicons name="help-circle-outline" size={24} color={tokens.textMuted} />
                 </TouchableOpacity>
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Tabs */}
                 <View 
-                    style={styles.tabsContainer}
+                    style={[styles.tabsContainer, { backgroundColor: tokens.bgSecondary }]}
                     onLayout={(e) => setTabWidth(e.nativeEvent.layout.width / 3)}
                 >
                     {tabWidth > 0 && (
                         <Animated.View style={[
                             styles.activeTabIndicator,
-                            { width: tabWidth - 8, transform: [{ translateX: slideAnim }] }
+                            { 
+                                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#111',
+                                width: tabWidth - 8, 
+                                transform: [{ translateX: slideAnim }] 
+                            }
                         ]} />
                     )}
                     {(['all', 'lend', 'borrow'] as const).map(tab => (
@@ -79,7 +87,11 @@ export default function DebtsDashboard() {
                                 triggerHaptic();
                             }}
                         >
-                            <Text style={[styles.tabText, filter === tab && styles.activeTabText]}>
+                            <Text style={[
+                                styles.tabText, 
+                                { color: tokens.textMuted },
+                                filter === tab && [styles.activeTabText, { color: isDarkMode ? '#fff' : '#fff' }]
+                            ]}>
                                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
                             </Text>
                         </TouchableOpacity>
@@ -88,14 +100,14 @@ export default function DebtsDashboard() {
 
                 {/* Summary Cards */}
                 <View style={styles.summaryContainer}>
-                    <View style={styles.summaryCard}>
-                        <Text style={styles.summaryLabel}>Payable</Text>
+                    <View style={[styles.summaryCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderDefault }]}>
+                        <Text style={[styles.summaryLabel, { color: tokens.textMuted }]}>Payable</Text>
                         <Text style={[styles.summaryValue, { color: '#FF453A' }]}>
                             {formatCurrency(totalPayable)}
                         </Text>
                     </View>
-                    <View style={styles.summaryCard}>
-                        <Text style={styles.summaryLabel}>Receivable</Text>
+                    <View style={[styles.summaryCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderDefault }]}>
+                        <Text style={[styles.summaryLabel, { color: tokens.textMuted }]}>Receivable</Text>
                         <Text style={[styles.summaryValue, { color: '#34C759' }]}>
                             {formatCurrency(totalReceivable)}
                         </Text>
@@ -105,15 +117,18 @@ export default function DebtsDashboard() {
                 {/* Debt List */}
                 <View style={styles.listContainer}>
                     {filteredDebts.length === 0 ? (
-                        <Text style={styles.emptyText}>No active debts found.</Text>
+                        <View style={styles.emptyContainer}>
+                            <Ionicons name="wallet-outline" size={64} color={tokens.borderDefault} />
+                            <Text style={[styles.emptyText, { color: tokens.textMuted }]}>No active debts found.</Text>
+                        </View>
                     ) : (
                         filteredDebts.map((debt: Debt) => (
                             <TouchableOpacity
                                 key={debt.id}
-                                style={styles.debtCard}
+                                style={[styles.debtCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderDefault }]}
                                 onPress={() => { /* Could open bottom sheet for actions like Settle */ }}
                             >
-                                <View style={[styles.debtIconContainer, { backgroundColor: debt.type === 'lend' ? '#1a2e25' : '#2e1a1e' }]}>
+                                <View style={[styles.debtIconContainer, { backgroundColor: debt.type === 'lend' ? (isDarkMode ? 'rgba(52,199,89,0.1)' : '#E8F5E9') : (isDarkMode ? 'rgba(255,69,58,0.1)' : '#FFEBEE') }]}>
                                     <Ionicons 
                                         name={debt.type === 'lend' ? 'arrow-up-circle' : 'arrow-down-circle'} 
                                         size={28} 
@@ -121,8 +136,8 @@ export default function DebtsDashboard() {
                                     />
                                 </View>
                                 <View style={styles.debtInfo}>
-                                    <Text style={styles.debtName}>{debt.personName}</Text>
-                                    <Text style={styles.debtDue}>{calculateDaysLeft(debt.dueDate)}</Text>
+                                    <Text style={[styles.debtName, { color: tokens.textPrimary }]}>{debt.personName}</Text>
+                                    <Text style={[styles.debtDue, { color: tokens.textMuted }]}>{calculateDaysLeft(debt.dueDate)}</Text>
                                 </View>
                                 <View style={styles.debtAmountContainer}>
                                     <Text style={[styles.debtOweLabel, { color: debt.type === 'lend' ? '#34C759' : '#FF453A' }]}>
@@ -139,17 +154,20 @@ export default function DebtsDashboard() {
             </ScrollView>
 
             {/* FAB */}
-            <TouchableOpacity style={styles.fab} onPress={() => router.push('/features/debts/add' as any)}>
+            <TouchableOpacity 
+                style={[styles.fab, { backgroundColor: tokens.purple.stroke || '#6366F1' }]} 
+                onPress={() => router.push('/features/debts/add' as any)}
+                activeOpacity={0.9}
+            >
                 <Ionicons name="add" size={32} color="#fff" />
             </TouchableOpacity>
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
     },
     header: {
         flexDirection: 'row',
@@ -159,31 +177,37 @@ const styles = StyleSheet.create({
         paddingVertical: 15,
     },
     backButton: {
-        padding: 5,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     headerTitle: {
         fontSize: 20,
-        fontWeight: '700',
-        color: '#111',
+        fontWeight: '800',
     },
     helpButton: {
-        padding: 5,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     scrollContent: {
         padding: 20,
-        paddingBottom: 100,
+        paddingBottom: 120,
     },
     tabsContainer: {
         flexDirection: 'row',
-        backgroundColor: '#F5F5F5',
         borderRadius: 20,
         padding: 4,
-        marginBottom: 20,
+        marginBottom: 24,
         position: 'relative',
     },
     tab: {
         flex: 1,
-        paddingVertical: 10,
+        paddingVertical: 12,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 16,
@@ -194,61 +218,61 @@ const styles = StyleSheet.create({
         top: 4,
         bottom: 4,
         left: 4,
-        backgroundColor: '#111',
         borderRadius: 16,
     },
     tabText: {
-        color: '#8E8E93',
-        fontWeight: '600',
+        fontSize: 14,
+        fontWeight: '700',
     },
     activeTabText: {
-        color: '#fff',
+        fontWeight: '800',
     },
     summaryContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 20,
-        gap: 10,
+        marginBottom: 24,
+        gap: 12,
     },
     summaryCard: {
         flex: 1,
-        backgroundColor: '#fff',
-        padding: 20,
-        borderRadius: 16,
+        padding: 16,
+        borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
     },
     summaryLabel: {
-        color: '#8E8E93',
-        fontSize: 14,
-        marginBottom: 8,
+        fontSize: 12,
+        fontWeight: '700',
+        marginBottom: 6,
     },
     summaryValue: {
-        fontSize: 24,
-        fontWeight: 'bold',
+        fontSize: 18,
+        fontWeight: '900',
     },
     listContainer: {
-        gap: 12,
+        gap: 16,
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 60,
+        gap: 16,
     },
     emptyText: {
-        color: '#8E8E93',
+        fontSize: 14,
+        fontWeight: '600',
         textAlign: 'center',
-        marginTop: 40,
-        fontSize: 16,
     },
     debtCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#fff',
         padding: 16,
-        borderRadius: 16,
+        borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
     },
     debtIconContainer: {
         width: 48,
         height: 48,
-        borderRadius: 12,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 16,
@@ -257,40 +281,39 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     debtName: {
-        color: '#111',
         fontSize: 16,
-        fontWeight: '600',
+        fontWeight: '800',
         marginBottom: 4,
     },
     debtDue: {
-        color: '#8E8E93',
         fontSize: 12,
+        fontWeight: '600',
     },
     debtAmountContainer: {
         alignItems: 'flex-end',
     },
     debtOweLabel: {
-        fontSize: 12,
+        fontSize: 10,
+        fontWeight: '700',
+        textTransform: 'uppercase',
         marginBottom: 4,
     },
     debtAmount: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '900',
     },
     fab: {
         position: 'absolute',
         bottom: 30,
-        right: 30,
+        right: 24,
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: '#111',
         alignItems: 'center',
         justifyContent: 'center',
-        elevation: 5,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 8 },
         shadowOpacity: 0.3,
-        shadowRadius: 4.65,
+        shadowRadius: 12,
+        elevation: 8,
     },
 });

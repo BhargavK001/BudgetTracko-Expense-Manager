@@ -2,7 +2,7 @@
   "expo": {
     "name": "BudgetTracko",
     "slug": "budgettracko",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/logo512.png",
     "scheme": "budgettracko",
@@ -29,7 +29,11 @@
       "package": "com.budgettracko.app",
       "backgroundColor": "#0A0A0A",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -61,6 +65,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6c69b101-a38b-47fc-a2bf-1be0432c8d0f"
+      }
+    },
+    "owner": "bhargavk001"
   }
 }

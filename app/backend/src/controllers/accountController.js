@@ -1,4 +1,5 @@
 const Account = require('../models/Account');
+const DeletionLog = require('../models/DeletionLog');
 
 // @desc    Get all accounts for user
 // @route   GET /api/accounts
@@ -65,6 +66,7 @@ exports.deleteAccount = async (req, res) => {
     try {
         const account = await Account.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
         if (!account) return res.status(404).json({ success: false, message: 'Account not found' });
+        await DeletionLog.create({ userId: req.user._id, entityType: 'account', entityId: req.params.id });
         res.json({ success: true, message: 'Account deleted' });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });

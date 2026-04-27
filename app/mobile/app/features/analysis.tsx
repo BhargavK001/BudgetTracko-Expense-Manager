@@ -7,6 +7,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTransactions, Category, CATEGORY_COLORS, CATEGORY_ICONS, mapCategoryIcon } from '@/context/TransactionContext';
+import { LucideCategoryIcon } from '@/app/features/categories';
 import { useSettings } from '@/context/SettingsContext';
 import DonutChart from '@/components/DonutChart';
 import Svg, { Rect, G, Text as SvgText, Circle, Path, Line } from 'react-native-svg';
@@ -244,16 +245,19 @@ const SavingsChart = ({ data, height = 160 }: { data: { label: string; value: nu
 };
 
 // ── Transaction Row ──────────────────────────────────────────
-const TransactionRow = React.memo(({ tx, index, formatCurrency }: { tx: any; index: number; formatCurrency: (n: number) => string }) => {
-    const rawIcon = CATEGORY_ICONS[tx.category as Category] || 'receipt-outline';
-    const iconName = rawIcon ? mapCategoryIcon(rawIcon) : 'receipt-outline';
-    const iconColor = CATEGORY_COLORS[tx.category as Category] || '#111';
+const TransactionRow = React.memo(({ tx, index, formatCurrency, getCategoryMeta }: { tx: any; index: number; formatCurrency: (n: number) => string; getCategoryMeta: (name: string) => { icon: string; color: string; isLucide: boolean } }) => {
+    const meta = getCategoryMeta(tx.category || 'Other');
+    const iconColor = meta.color;
 
     return (
         <Animated.View entering={FadeInDown.delay(50 + index * 30).duration(300)}>
             <TouchableOpacity style={s.txRow} activeOpacity={0.7} onPress={() => { }}>
                 <View style={[s.txIconWrap, { backgroundColor: iconColor + '15' }]}>
-                    <Ionicons name={iconName as any} size={20} color={iconColor} />
+                    {meta.isLucide ? (
+                        <LucideCategoryIcon name={meta.icon} size={20} color={iconColor} />
+                    ) : (
+                        <Ionicons name={mapCategoryIcon(meta.icon) as any} size={20} color={iconColor} />
+                    )}
                 </View>
                 <View style={s.txMid}>
                     <Text style={s.txTitle} numberOfLines={1}>{tx.title}</Text>
@@ -282,7 +286,7 @@ export default function AnalysisScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
     const { formatCurrency } = useSettings();
-    const { transactions } = useTransactions();
+    const { transactions, getCategoryMeta } = useTransactions();
 
     const [selectedFilter, setSelectedFilter] = useState<TimeFilter>('Month');
     const [viewMode, setViewMode] = useState<ViewMode>('spending');
@@ -361,9 +365,12 @@ export default function AnalysisScreen() {
                 map.set(cat, (map.get(cat) || 0) + t.amount);
             });
         return Array.from(map.entries())
-            .map(([name, amount]) => ({ name, amount, color: CATEGORY_COLORS[name] || '#795548', icon: CATEGORY_ICONS[name] || 'ellipsis-horizontal-circle-outline' }))
+            .map(([name, amount]) => {
+                const meta = getCategoryMeta(name);
+                return { name, amount, color: meta.color, icon: meta.icon, isLucide: meta.isLucide };
+            })
             .sort((a, b) => b.amount - a.amount);
-    }, [filtered, viewMode]);
+    }, [filtered, viewMode, getCategoryMeta]);
 
     const chartData = useMemo(() => categoryData.map(c => ({ value: c.amount, color: c.color, label: c.name })), [categoryData]);
     const totalCategoryAmt = useMemo(() => categoryData.reduce((s, c) => s + c.amount, 0), [categoryData]);
@@ -484,9 +491,14 @@ export default function AnalysisScreen() {
                     <Ionicons name="arrow-back" size={20} color="#111" />
                 </TouchableOpacity>
                 <Text style={s.hTitle}>Monthly Analysis</Text>
-                <TouchableOpacity style={s.exportBtn}>
-                    <Ionicons name="download-outline" size={18} color="#2DCA72" />
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <TouchableOpacity onPress={() => router.push('/features/pulse-ai')} style={s.exportBtn}>
+                        <Ionicons name="sparkles-outline" size={18} color="#2DCA72" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => router.push('/features/export')} style={s.exportBtn}>
+                        <Ionicons name="download-outline" size={18} color="#2DCA72" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
@@ -645,7 +657,11 @@ export default function AnalysisScreen() {
                                     {categoryData.map((cat, i) => (
                                         <Animated.View key={cat.name} entering={FadeInDown.delay(350 + i * 40).duration(300)} style={s.catRow}>
                                             <View style={[s.catIcon, { backgroundColor: cat.color + '14' }]}>
-                                                <Ionicons name={cat.icon as any} size={16} color={cat.color} />
+                                                {(cat as any).isLucide ? (
+                                                    <LucideCategoryIcon name={cat.icon} size={16} color={cat.color} />
+                                                ) : (
+                                                    <Ionicons name={cat.icon as any} size={16} color={cat.color} />
+                                                )}
                                             </View>
                                             <View style={{ flex: 1 }}>
                                                 <View style={s.catNameRow}>
@@ -762,7 +778,7 @@ export default function AnalysisScreen() {
                         ) : (
                             <View>
                                 {sortedFiltered.slice(0, showAllTx ? sortedFiltered.length : 5).map((tx, i) => (
-                                    <TransactionRow key={tx.id || tx._id || i} tx={tx} index={i} formatCurrency={formatCurrency} />
+                                    <TransactionRow key={tx.id || tx._id || i} tx={tx} index={i} formatCurrency={formatCurrency} getCategoryMeta={getCategoryMeta} />
                                 ))}
                                 {sortedFiltered.length > 5 && (
                                     <TouchableOpacity

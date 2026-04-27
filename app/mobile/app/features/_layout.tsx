@@ -9,14 +9,21 @@ export default function FeaturesLayout() {
             fullScreenGestureEnabled: true,
             contentStyle: { backgroundColor: '#fff' },
         }}>
+            <Stack.Screen name="settings" />
             <Stack.Screen name="track" />
             <Stack.Screen name="trends" />
             <Stack.Screen name="security" />
             <Stack.Screen name="offline" />
             <Stack.Screen name="budgets" />
             <Stack.Screen name="recurring-bills" />
-            <Stack.Screen name="ask-tracko" />
+            <Stack.Screen name="debts/index" />
+            <Stack.Screen name="debts/add" />
+            <Stack.Screen name="pulse-ai" />
             <Stack.Screen name="analysis" />
+            <Stack.Screen name="categories" />
+            <Stack.Screen name="export" />
+            <Stack.Screen name="share-app" />
+            <Stack.Screen name="help-support" />
             <Stack.Screen name="edit-profile" />
             <Stack.Screen name="razorpay-checkout" />
         </Stack>

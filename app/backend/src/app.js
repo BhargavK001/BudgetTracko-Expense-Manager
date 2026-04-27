@@ -19,6 +19,7 @@ const paymentRoutes = require('./routes/payments');
 const statusRoutes = require('./routes/status.routes');
 const contactRoutes = require('./routes/contact');
 const adminRoutes = require('./routes/adminRoutes');
+const syncRoutes = require('./routes/syncRoutes');
 const { getPublicVersion } = require('./controllers/adminController');
 const maintenanceMiddleware = require('./middleware/maintenanceMiddleware');
 
@@ -126,6 +127,13 @@ if (process.env.NODE_ENV !== 'production') {
 app.use(passport.initialize()); // Initialize Passport
 
 // ─── Cache-Control: prevent browsers from caching sensitive API responses ───
+app.use((req, res, next) => {
+    if (req.url.includes('sync')) {
+        console.log(`[DEBUG] Incoming request: ${req.method} ${req.originalUrl}`);
+    }
+    next();
+});
+
 app.use('/api', (req, res, next) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('Pragma', 'no-cache');
@@ -217,6 +225,7 @@ app.use('/api/accounts', accountRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/budgets', budgetRoutes);
+app.use('/api/sync', syncRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/recurring', require('./routes/recurring'));

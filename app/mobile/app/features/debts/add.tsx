@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Alert, Platform, StatusBar } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useDebts, DebtType } from '../../../context/DebtContext';
 import { useSettings } from '../../../context/SettingsContext';
 import { Button } from '../../../components/Button';
+import { useThemeStyles } from '@/components/more/DesignSystem';
 
 export default function AddDebt() {
+    const insets = useSafeAreaInsets();
     const router = useRouter();
+    const { isDarkMode, tokens } = useThemeStyles();
     const { addDebt } = useDebts();
     const { triggerHaptic } = useSettings();
 
@@ -58,53 +61,61 @@ export default function AddDebt() {
 
     const renderStep1 = () => (
         <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Select what you want to track:</Text>
-            <TouchableOpacity style={styles.typeCard} onPress={() => handleSelectType('lend')}>
-                <View style={[styles.typeIconContainer, { backgroundColor: '#1a2e25' }]}>
+            <Text style={[styles.stepTitle, { color: tokens.textMuted }]}>Select what you want to track:</Text>
+            <TouchableOpacity 
+                style={[styles.typeCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderDefault }]} 
+                onPress={() => handleSelectType('lend')}
+                activeOpacity={0.7}
+            >
+                <View style={[styles.typeIconContainer, { backgroundColor: isDarkMode ? 'rgba(52,199,89,0.1)' : '#E8F5E9' }]}>
                     <Ionicons name="arrow-up" size={24} color="#34C759" />
                 </View>
                 <View style={styles.typeTextContainer}>
-                    <Text style={styles.typeTitle}>Lend Money</Text>
-                    <Text style={styles.typeSubtitle}>Record money you've lent to someone.</Text>
+                    <Text style={[styles.typeTitle, { color: tokens.textPrimary }]}>Lend Money</Text>
+                    <Text style={[styles.typeSubtitle, { color: tokens.textMuted }]}>Record money you've lent to someone.</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+                <Ionicons name="chevron-forward" size={20} color={tokens.textMuted} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.typeCard} onPress={() => handleSelectType('borrow')}>
-                <View style={[styles.typeIconContainer, { backgroundColor: '#2e1a1e' }]}>
+            <TouchableOpacity 
+                style={[styles.typeCard, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderDefault }]} 
+                onPress={() => handleSelectType('borrow')}
+                activeOpacity={0.7}
+            >
+                <View style={[styles.typeIconContainer, { backgroundColor: isDarkMode ? 'rgba(255,69,58,0.1)' : '#FFEBEE' }]}>
                     <Ionicons name="arrow-down" size={24} color="#FF453A" />
                 </View>
                 <View style={styles.typeTextContainer}>
-                    <Text style={styles.typeTitle}>Borrow Money</Text>
-                    <Text style={styles.typeSubtitle}>Track money you owe to someone.</Text>
+                    <Text style={[styles.typeTitle, { color: tokens.textPrimary }]}>Borrow Money</Text>
+                    <Text style={[styles.typeSubtitle, { color: tokens.textMuted }]}>Track money you owe to someone.</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
+                <Ionicons name="chevron-forward" size={20} color={tokens.textMuted} />
             </TouchableOpacity>
         </View>
     );
 
     const renderStep2 = () => (
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             <View style={styles.inputGroup}>
-                <Text style={styles.label}>Name of the person</Text>
-                <View style={styles.inputWrapper}>
-                    <Ionicons name="person-outline" size={20} color="#8E8E93" style={styles.inputIcon} />
+                <Text style={[styles.label, { color: tokens.textMuted }]}>Name of the person</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderDefault }]}>
+                    <Ionicons name="person-outline" size={20} color={tokens.textMuted} style={styles.inputIcon} />
                     <TextInput
-                        style={styles.input}
+                        style={[styles.input, { color: tokens.textPrimary }]}
                         placeholder="Name"
-                        placeholderTextColor="#8E8E93"
+                        placeholderTextColor={tokens.textMuted}
                         value={personName}
                         onChangeText={setPersonName}
                     />
                 </View>
             </View>
             <View style={styles.inputGroup}>
-                <Text style={styles.label}>Amount (₹)</Text>
-                <View style={styles.inputWrapper}>
+                <Text style={[styles.label, { color: tokens.textMuted }]}>Amount (₹)</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderDefault }]}>
                     <Ionicons name="cash-outline" size={20} color={type === 'lend' ? '#34C759' : '#FF453A'} style={styles.inputIcon} />
                     <TextInput
-                        style={[styles.input, { fontSize: 24, fontWeight: 'bold' }]}
+                        style={[styles.input, { fontSize: 24, fontWeight: 'bold', color: tokens.textPrimary }]}
                         placeholder="0"
-                        placeholderTextColor="#8E8E93"
+                        placeholderTextColor={tokens.textMuted}
                         keyboardType="numeric"
                         value={amount}
                         onChangeText={setAmount}
@@ -112,10 +123,14 @@ export default function AddDebt() {
                 </View>
             </View>
             <View style={styles.inputGroup}>
-                <Text style={styles.label}>Due date for repayment</Text>
-                <TouchableOpacity style={styles.inputWrapper} onPress={() => setShowDatePicker(true)}>
-                    <Ionicons name="calendar-outline" size={20} color="#8E8E93" style={styles.inputIcon} />
-                    <Text style={[styles.inputText, !dueDate && { color: '#8E8E93' }]}>
+                <Text style={[styles.label, { color: tokens.textMuted }]}>Due date for repayment</Text>
+                <TouchableOpacity 
+                    style={[styles.inputWrapper, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderDefault }]} 
+                    onPress={() => setShowDatePicker(true)}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="calendar-outline" size={20} color={tokens.textMuted} style={styles.inputIcon} />
+                    <Text style={[styles.inputText, { color: tokens.textPrimary }, !dueDate && { color: tokens.textMuted }]}>
                         {dueDate ? dueDate.toLocaleDateString() : 'Not set'}
                     </Text>
                 </TouchableOpacity>
@@ -132,12 +147,12 @@ export default function AddDebt() {
                 />
             )}
             <View style={[styles.inputGroup, styles.lastInputGroup]}>
-                <Text style={styles.label}>Additional details</Text>
-                <View style={[styles.inputWrapper, { height: 100, alignItems: 'flex-start' }]}>
+                <Text style={[styles.label, { color: tokens.textMuted }]}>Additional details</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderDefault, height: 100, alignItems: 'flex-start', paddingVertical: 12 }]}>
                     <TextInput
-                        style={[styles.input, { height: '100%', textAlignVertical: 'top' }]}
+                        style={[styles.input, { color: tokens.textPrimary, height: '100%', textAlignVertical: 'top' }]}
                         placeholder="Write a note"
-                        placeholderTextColor="#8E8E93"
+                        placeholderTextColor={tokens.textMuted}
                         multiline
                         value={notes}
                         onChangeText={setNotes}
@@ -154,23 +169,23 @@ export default function AddDebt() {
     );
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => step === 2 ? setStep(1) : router.back()} style={styles.backButton}>
-                    <Ionicons name={step === 2 ? 'arrow-back' : 'close'} size={24} color="#111" />
+        <View style={[styles.container, { paddingTop: insets.top, backgroundColor: tokens.bgPrimary }]}>
+            <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
+            <View style={[styles.header, { borderBottomColor: tokens.borderDefault }]}>
+                <TouchableOpacity onPress={() => step === 2 ? setStep(1) : router.back()} style={[styles.backButton, { backgroundColor: tokens.bgSecondary }]}>
+                    <Ionicons name={step === 2 ? 'chevron-back' : 'close'} size={24} color={tokens.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Add debt</Text>
-                <View style={{ width: 24 }} />
+                <Text style={[styles.headerTitle, { color: tokens.textPrimary }]}>Add debt</Text>
+                <View style={{ width: 40 }} />
             </View>
             {step === 1 ? renderStep1() : renderStep2()}
-        </SafeAreaView>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
     },
     header: {
         flexDirection: 'row',
@@ -179,38 +194,38 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 15,
         borderBottomWidth: 1,
-        borderBottomColor: '#E2E8F0',
     },
     backButton: {
-        padding: 5,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     headerTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#111',
+        fontSize: 18,
+        fontWeight: '800',
     },
     stepContainer: {
-        padding: 20,
+        padding: 24,
     },
     stepTitle: {
-        fontSize: 16,
-        color: '#8E8E93',
-        marginBottom: 20,
+        fontSize: 14,
+        fontWeight: '700',
+        marginBottom: 24,
     },
     typeCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F5F5F5',
         padding: 16,
-        borderRadius: 16,
-        marginBottom: 12,
+        borderRadius: 20,
+        marginBottom: 16,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
     },
     typeIconContainer: {
-        width: 48,
-        height: 48,
-        borderRadius: 12,
+        width: 52,
+        height: 52,
+        borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: 16,
@@ -220,52 +235,50 @@ const styles = StyleSheet.create({
     },
     typeTitle: {
         fontSize: 16,
-        fontWeight: '600',
-        color: '#111',
+        fontWeight: '800',
         marginBottom: 4,
     },
     typeSubtitle: {
-        fontSize: 12,
-        color: '#8E8E93',
+        fontSize: 13,
+        fontWeight: '500',
     },
     scrollContent: {
-        padding: 20,
+        padding: 24,
         paddingBottom: 100,
     },
     inputGroup: {
-        marginBottom: 20,
+        marginBottom: 24,
     },
     lastInputGroup: {
         marginBottom: 40,
     },
     label: {
-        color: '#8E8E93',
-        fontSize: 14,
-        fontWeight: '500',
-        marginBottom: 8,
+        fontSize: 12,
+        fontWeight: '800',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: 10,
         marginLeft: 4,
     },
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F5F5F5',
-        borderRadius: 16,
+        borderRadius: 18,
         paddingHorizontal: 16,
-        height: 56,
+        height: 60,
         borderWidth: 1,
-        borderColor: '#E2E8F0',
     },
     inputIcon: {
         marginRight: 12,
     },
     input: {
         flex: 1,
-        color: '#111',
-        fontSize: 16,
+        fontSize: 15,
+        fontWeight: '700',
     },
     inputText: {
         flex: 1,
-        color: '#111',
-        fontSize: 16,
+        fontSize: 15,
+        fontWeight: '700',
     },
 });

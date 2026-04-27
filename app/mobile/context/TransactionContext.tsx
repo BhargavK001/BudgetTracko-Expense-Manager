@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import api from '@/services/api';
 import { useAuth } from './AuthContext';
+import * as localDB from '@/services/localDB';
 
 // ─── Types ───────────────────────────────────────────────
 export type TransactionType = 'income' | 'expense' | 'transfer';
@@ -90,17 +90,35 @@ export interface Transaction {
     toAccountId?: any;
     note?: string;
     attachments?: any[];
+    updatedAt?: string;
 }
 
 export interface Budget {
     id: string;
     _id?: string;
-    category: Category | string;
+    category: string;
     amount: number;
     period: 'weekly' | 'monthly' | 'yearly';
+    updatedAt?: string;
+}
+
+export interface CategoryItem {
+    _id: string;
+    name: string;
+    type: 'expense' | 'income' | 'both';
+    icon?: string;
+    color?: string;
+    userId: string;
+    updatedAt?: string;
 }
 
 // ─── Context Shape ───────────────────────────────────────
+export interface CategoryMeta {
+    icon: string;
+    color: string;
+    isLucide: boolean;
+}
+
 interface TransactionContextType {
     transactions: Transaction[];
     budgets: Budget[];
@@ -115,12 +133,19 @@ interface TransactionContextType {
     deleteBudget: (id: string) => Promise<void>;
     refreshBudgets: () => Promise<void>;
     getTotalBudget: (period: 'weekly' | 'monthly' | 'yearly') => number;
+    // Categories
+    categories: CategoryItem[];
+    refreshCategories: () => Promise<void>;
+    addCategory: (cat: Omit<CategoryItem, '_id' | 'userId'>) => Promise<void>;
+    updateCategory: (id: string, cat: Partial<CategoryItem>) => Promise<void>;
+    deleteCategory: (id: string) => Promise<void>;
+    getCategoryMeta: (categoryName: string) => CategoryMeta;
     // Analytics
     getTotalIncome: (month?: number, year?: number) => number;
     getTotalExpense: (month?: number, year?: number) => number;
     getBalance: () => number;
     getTransactionsForMonth: (month: number, year: number) => Transaction[];
-    getCategoryBreakdown: (month: number, year: number) => { name: string; amount: number; color: string; icon: string }[];
+    getCategoryBreakdown: (month: number, year: number) => { name: string; amount: number; color: string; icon: string; isLucide: boolean }[];
 }
 
 const TransactionContext = createContext<TransactionContextType | undefined>(undefined);
@@ -130,7 +155,6 @@ export function mapCategoryIcon(iconName: string): string {
     if (!iconName) return 'ellipsis-horizontal-circle-outline';
     if (!iconName.startsWith('Bs')) return iconName;
 
-    // Map common Bootstrap icons to Ionicons
     const mapping: Record<string, string> = {
         'BsHouse': 'home-outline',
         'BsShop': 'business-outline',
@@ -182,24 +206,31 @@ function normalizeTransaction(tx: any): Transaction {
         toAccountId: tx.toAccountId,
         note: tx.note,
         attachments: tx.attachments,
+        updatedAt: tx.updatedAt,
     };
+}
+
+// ─── Generate a local ID ────────────────────────────────
+function generateLocalId(): string {
+    return 'local_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 9);
 }
 
 // ─── Provider ────────────────────────────────────────────
 export function TransactionProvider({ children }: { children: React.ReactNode }) {
     const { isAuthenticated } = useAuth();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [categories, setCategories] = useState<CategoryItem[]>([]);
     const [budgets, setBudgets] = useState<Budget[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    // ── Load from local DB (synchronous MMKV reads) ─────
     const refreshTransactions = useCallback(async () => {
         try {
-            const res = await api.get('/api/transactions');
-            const raw = res.data;
-            const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
+            const raw = localDB.getTransactions();
+            const list = Array.isArray(raw) ? raw : [];
             setTransactions(list.map(normalizeTransaction));
         } catch (e) {
-            console.log('Failed to fetch transactions:', e);
+            console.log('Failed to load local transactions:', e);
         } finally {
             setIsLoading(false);
         }
@@ -207,77 +238,187 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
 
     const refreshBudgets = useCallback(async () => {
         try {
-            const res = await api.get('/api/budgets');
-            const data = res.data;
-            const fetchedBudgets = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+            const data = localDB.getBudgets();
+            const fetchedBudgets = Array.isArray(data) ? data : [];
             setBudgets(fetchedBudgets.map((b: any) => ({
                 id: b._id || b.id,
                 _id: b._id,
                 category: b.category,
                 amount: Math.abs(b.amount || 0),
-                period: b.period || 'monthly'
+                period: b.period || 'monthly',
+                updatedAt: b.updatedAt,
             })));
         } catch (e) {
-            console.log('Failed to fetch budgets:', e);
+            console.log('Failed to load local budgets:', e);
+        }
+    }, []);
+
+    const refreshCategories = useCallback(async () => {
+        try {
+            const raw = localDB.getCategories();
+            const list = Array.isArray(raw) ? raw : [];
+            setCategories(list);
+        } catch (e) {
+            console.log('Failed to load local categories:', e);
         }
     }, []);
 
     useEffect(() => {
         if (isAuthenticated) {
             refreshTransactions();
+            refreshCategories();
             refreshBudgets();
         } else {
             setTransactions([]);
+            setCategories([]);
             setBudgets([]);
             setIsLoading(false);
         }
-    }, [isAuthenticated, refreshTransactions, refreshBudgets]);
+    }, [isAuthenticated, refreshTransactions, refreshCategories, refreshBudgets]);
 
+    // ── Local-First CRUD: Transactions ──────────────────
     const addTransaction = useCallback(async (tx: Omit<Transaction, 'id'>) => {
-        // The AddTransactionModal now handles the API call directly.
-        // This is kept for backward compatibility with other screens.
+        const localId = generateLocalId();
+        const now = new Date().toISOString();
+        const newTx = {
+            ...tx,
+            _id: localId,
+            id: localId,
+            updatedAt: now,
+        };
+
+        // Write to local DB
+        localDB.upsertTransaction(newTx);
+
+        // Add to sync queue
+        localDB.addToSyncQueue({
+            id: localId,
+            action: 'create',
+            entityType: 'transaction',
+            data: newTx,
+            clientUpdatedAt: now,
+        });
+
+        // Refresh in-memory state
         await refreshTransactions();
     }, [refreshTransactions]);
 
     const deleteTransaction = useCallback(async (id: string) => {
-        try {
-            await api.delete(`/api/transactions/${id}`);
-            setTransactions(prev => prev.filter(t => t.id !== id && t._id !== id));
-        } catch (e: any) {
-            console.log('Failed to delete transaction:', e);
-            throw e;
-        }
+        const now = new Date().toISOString();
+
+        // Remove from local DB
+        localDB.removeTransaction(id);
+
+        // Add to sync queue
+        localDB.addToSyncQueue({
+            id,
+            action: 'delete',
+            entityType: 'transaction',
+            data: { _id: id },
+            clientUpdatedAt: now,
+        });
+
+        // Update in-memory state
+        setTransactions(prev => prev.filter(t => t.id !== id && t._id !== id));
     }, []);
 
+    // ── Local-First CRUD: Budgets ───────────────────────
     const addBudget = useCallback(async (b: Omit<Budget, 'id' | '_id'>) => {
-        try {
-            await api.post('/api/budgets', b);
-            await refreshBudgets();
-        } catch (e) {
-            console.log('Failed to add budget:', e);
-            throw e;
-        }
+        const localId = generateLocalId();
+        const now = new Date().toISOString();
+        const newBudget = { ...b, _id: localId, id: localId, updatedAt: now };
+
+        localDB.upsertBudget(newBudget);
+        localDB.addToSyncQueue({
+            id: localId,
+            action: 'create',
+            entityType: 'budget',
+            data: newBudget,
+            clientUpdatedAt: now,
+        });
+
+        await refreshBudgets();
     }, [refreshBudgets]);
 
     const updateBudget = useCallback(async (id: string, b: Omit<Budget, 'id' | '_id'>) => {
-        try {
-            await api.put(`/api/budgets/${id}`, b);
-            await refreshBudgets();
-        } catch (e) {
-            console.log('Failed to update budget:', e);
-            throw e;
-        }
+        const now = new Date().toISOString();
+        const updatedBudget = { ...b, _id: id, id, updatedAt: now };
+
+        localDB.upsertBudget(updatedBudget);
+        localDB.addToSyncQueue({
+            id,
+            action: 'update',
+            entityType: 'budget',
+            data: updatedBudget,
+            clientUpdatedAt: now,
+        });
+
+        await refreshBudgets();
     }, [refreshBudgets]);
 
     const deleteBudget = useCallback(async (id: string) => {
-        try {
-            await api.delete(`/api/budgets/${id}`);
-            setBudgets(prev => prev.filter(b => b.id !== id && b._id !== id));
-        } catch (e) {
-            console.log('Failed to delete budget:', e);
-            throw e;
-        }
+        const now = new Date().toISOString();
+
+        localDB.removeBudget(id);
+        localDB.addToSyncQueue({
+            id,
+            action: 'delete',
+            entityType: 'budget',
+            data: { _id: id },
+            clientUpdatedAt: now,
+        });
+
+        setBudgets(prev => prev.filter(b => b.id !== id && b._id !== id));
     }, []);
+
+    // ── Local-First CRUD: Categories ────────────────────
+    const addCategory = useCallback(async (cat: Omit<CategoryItem, '_id' | 'userId'>) => {
+        const localId = generateLocalId();
+        const now = new Date().toISOString();
+        const newCat = { ...cat, _id: localId, userId: '', updatedAt: now };
+
+        localDB.upsertCategory(newCat);
+        localDB.addToSyncQueue({
+            id: localId,
+            action: 'create',
+            entityType: 'category',
+            data: newCat,
+            clientUpdatedAt: now,
+        });
+
+        await refreshCategories();
+    }, [refreshCategories]);
+
+    const updateCategory = useCallback(async (id: string, cat: Partial<CategoryItem>) => {
+        const now = new Date().toISOString();
+        const updatedCat = { ...cat, _id: id, updatedAt: now };
+
+        localDB.upsertCategory(updatedCat);
+        localDB.addToSyncQueue({
+            id,
+            action: 'update',
+            entityType: 'category',
+            data: updatedCat,
+            clientUpdatedAt: now,
+        });
+
+        await refreshCategories();
+    }, [refreshCategories]);
+
+    const deleteCategory = useCallback(async (id: string) => {
+        const now = new Date().toISOString();
+
+        localDB.removeCategory(id);
+        localDB.addToSyncQueue({
+            id,
+            action: 'delete',
+            entityType: 'category',
+            data: { _id: id },
+            clientUpdatedAt: now,
+        });
+
+        await refreshCategories();
+    }, [refreshCategories]);
 
     const getTotalBudget = useCallback((period: 'weekly' | 'monthly' | 'yearly') => {
         return budgets.filter(b => b.period === period).reduce((sum, b) => sum + (b.amount || 0), 0);
@@ -310,6 +451,24 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
         return getTotalIncome() - getTotalExpense();
     }, [getTotalIncome, getTotalExpense]);
 
+    // ── Resolve category icon + color from dynamic list first, then hardcoded ──
+    const getCategoryMeta = useCallback((categoryName: string): CategoryMeta => {
+        const dynamicCat = categories.find(c => c.name === categoryName);
+        if (dynamicCat && dynamicCat.icon) {
+            const isLucide = /^[A-Z]/.test(dynamicCat.icon);
+            return {
+                icon: dynamicCat.icon,
+                color: dynamicCat.color || CATEGORY_COLORS[categoryName] || '#795548',
+                isLucide,
+            };
+        }
+        return {
+            icon: CATEGORY_ICONS[categoryName] || 'ellipsis-horizontal-circle-outline',
+            color: CATEGORY_COLORS[categoryName] || '#795548',
+            isLucide: false,
+        };
+    }, [categories]);
+
     const getCategoryBreakdown = useCallback(
         (month: number, year: number) => {
             const monthly = getTransactionsForMonth(month, year).filter(t => t.type === 'expense');
@@ -319,15 +478,19 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
                 map.set(cat, (map.get(cat) || 0) + t.amount);
             });
             return Array.from(map.entries())
-                .map(([name, amount]) => ({
-                    name,
-                    amount,
-                    color: CATEGORY_COLORS[name] || '#795548',
-                    icon: CATEGORY_ICONS[name] || 'ellipsis-horizontal-circle-outline',
-                }))
+                .map(([name, amount]) => {
+                    const meta = getCategoryMeta(name);
+                    return {
+                        name,
+                        amount,
+                        color: meta.color,
+                        icon: meta.icon,
+                        isLucide: meta.isLucide,
+                    };
+                })
                 .sort((a, b) => b.amount - a.amount);
         },
-        [getTransactionsForMonth]
+        [getTransactionsForMonth, getCategoryMeta]
     );
 
     return (
@@ -344,6 +507,12 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
                 deleteBudget,
                 refreshBudgets,
                 getTotalBudget,
+                categories,
+                refreshCategories,
+                addCategory,
+                updateCategory,
+                deleteCategory,
+                getCategoryMeta,
                 getTotalIncome,
                 getTotalExpense,
                 getBalance,

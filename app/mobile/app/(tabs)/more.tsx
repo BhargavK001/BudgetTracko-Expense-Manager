@@ -1,508 +1,323 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Alert, StatusBar, Switch, TextInput, Modal, Platform, Linking, Image,
+  Alert,
+  Linking,
+  Platform,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
+import {
+  BarChart2,
+  DollarSign,
+  Download,
+  HelpCircle,
+  Lock,
+  RefreshCw,
+  Settings,
+  Sparkles,
+  Star,
+  Sun,
+  Tag,
+  Users,
+  Clock,
+  HandCoins,
+  AlertCircle,
+  Moon,
+  LogOut,
+} from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
-import api, { API_BASE_URL } from '@/services/api';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
-import Animated, {
-  FadeInDown, FadeIn, SlideInLeft, BounceIn,
-  useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming,
-  Easing,
-} from 'react-native-reanimated';
+import { useDebts } from '@/context/DebtContext';
+import { useSettings } from '@/context/SettingsContext';
+import api from '@/services/api';
+import {
+  BentoTile,
+  BodySurface,
+  DangerZoneRow,
+  FooterLinks,
+  HeroProfileCard,
+  MiniTile,
+  ProBanner,
+  SectionHeader,
+  WideRow,
+  useThemeStyles,
+} from '@/components/more/DesignSystem';
 
-// ── Pulsing Badge ────────────────────────────────────────────
-const PulsingBadge = React.memo(({ text }: { text: string }) => {
-  const pulse = useSharedValue(1);
-  useEffect(() => {
-    pulse.value = withRepeat(
-      withSequence(
-        withTiming(1.15, { duration: 600, easing: Easing.inOut(Easing.ease) }),
-        withTiming(1, { duration: 600, easing: Easing.inOut(Easing.ease) }),
-      ), -1, true
-    );
-  }, []);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
-  return (
-    <Animated.View style={[s.badge, animStyle]}>
-      <Text style={s.badgeText}>{text}</Text>
-    </Animated.View>
-  );
-});
+const IOS_STORE_URL = 'https://apps.apple.com/app/id000000';
+const ANDROID_STORE_URL = 'market://details?id=com.budgettracko.app';
+const ANDROID_WEB_STORE_URL = 'https://play.google.com/store/apps/details?id=com.budgettracko.app';
 
-// ── Glowing Premium Icon ─────────────────────────────────────
-const GlowingIcon = React.memo(() => {
-  const glow = useSharedValue(0.15);
-  useEffect(() => {
-    glow.value = withRepeat(
-      withSequence(
-        withTiming(0.5, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.15, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
-      ), -1, true
-    );
-  }, []);
-  const animStyle = useAnimatedStyle(() => ({
-    shadowOpacity: glow.value, shadowColor: '#F59E0B', shadowRadius: 14,
-    shadowOffset: { width: 0, height: 0 },
-  }));
-  return (
-    <Animated.View style={[s.premiumIconWrap, animStyle]}>
-      <Ionicons name="diamond" size={20} color="#F59E0B" />
-    </Animated.View>
-  );
-});
+function compactINR(value: number) {
+  if (value >= 100000) return `Rs ${(value / 100000).toFixed(1)}L`;
+  if (value >= 1000) return `Rs ${(value / 1000).toFixed(1)}k`;
+  return `Rs ${Math.round(value)}`;
+}
 
-// ── Types ────────────────────────────────────────────────────
-type MenuItem = {
-  icon: React.ComponentProps<typeof Ionicons>['name'];
-  label: string;
-  subtitle?: string;
-  color: string;
-  route?: string;
-  badge?: string;
-  danger?: boolean;
-  toggle?: boolean;
-  toggleValue?: boolean;
-  onToggle?: (v: boolean) => void;
-  onPress?: () => void;
-};
-
-type MenuGroup = { title: string; items: MenuItem[]; delay: number };
-
-// ══════════════════════════════════════════════════════════════
 export default function MoreScreen() {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, logout, refreshUser } = useAuth();
+  const insets = useSafeAreaInsets();
+  const { user, logout } = useAuth();
+  const { appTheme, setAppTheme } = useSettings();
+  const { tokens, isDarkMode } = useThemeStyles();
 
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [deleteInput, setDeleteInput] = useState('');
-  const [recurringCount, setRecurringCount] = useState<string | undefined>(undefined);
+  // Handle appearance toggle
+  const handleToggleAppearance = async () => {
+    // Basic cycle or toggle logic.
+    if (appTheme === 'system') {
+      await setAppTheme(isDarkMode ? 'light' : 'dark');
+    } else if (appTheme === 'dark') {
+      await setAppTheme('light');
+    } else {
+      await setAppTheme('system'); // Or dark
+    }
+  };
 
-  // Refresh user data on mount to get latest subscription status
+  const currentThemeLabel = appTheme === 'system'
+    ? 'System'
+    : (appTheme === 'dark' ? 'Dark mode' : 'Light mode');
+  const { debts } = useDebts();
+
+  const [billsDue, setBillsDue] = useState('0');
+  const [overBudget, setOverBudget] = useState('0');
+
+  const initials = useMemo(() => {
+    const raw = user?.displayName || 'BT';
+    return raw
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('') || 'BT';
+  }, [user?.displayName]);
+
+  const owedToYouTotal = useMemo(
+    () =>
+      debts
+        .filter((debt) => debt.type === 'lend' && debt.status === 'active')
+        .reduce((sum, debt) => sum + Number(debt.amount || 0), 0),
+    [debts]
+  );
+
+  const appVersion = Constants.expoConfig?.version || '2.0.0';
+  const planLabel = user?.subscription?.plan
+    ? `${String(user.subscription.plan).toUpperCase()} PLAN`
+    : 'FREE PLAN';
+
   useEffect(() => {
-    refreshUser?.();
-  }, []);
-
-  // Fetch recurring bills count
-  useEffect(() => {
-    (async () => {
+    const loadStats = async () => {
       try {
-        const res = await api.get('/api/recurring');
-        if (res.data?.length > 0) setRecurringCount(String(res.data.length));
-      } catch (e) { /* ignore */ }
-    })();
+        const recurringRes = await api.get('/api/recurring');
+        const recurringList = Array.isArray(recurringRes.data)
+          ? recurringRes.data
+          : Array.isArray(recurringRes.data?.data)
+            ? recurringRes.data.data
+            : [];
+        setBillsDue(String(recurringList.length));
+      } catch {
+        setBillsDue('0');
+      }
+
+      try {
+        const budgetRes = await api.get('/api/budgets');
+        const budgets = Array.isArray(budgetRes.data)
+          ? budgetRes.data
+          : Array.isArray(budgetRes.data?.data)
+            ? budgetRes.data.data
+            : [];
+
+        const overBudgetCount = budgets.filter((budget: any) => {
+          const spent = Number(budget?.spent || budget?.currentSpent || 0);
+          const limit = Number(budget?.limit || budget?.amount || 0);
+          return limit > 0 && spent > limit;
+        }).length;
+
+        setOverBudget(String(overBudgetCount));
+      } catch {
+        setOverBudget('0');
+      }
+    };
+
+    loadStats();
   }, []);
 
-  const userPlan = user?.subscription?.plan
-    ? (user.subscription.plan.charAt(0).toUpperCase() + user.subscription.plan.slice(1))
-    : 'Free';
-  const isPaid = userPlan !== 'Free' && userPlan !== 'free';
 
-  // ── Handlers ────────────────────────────────────────────
-  const handleMenuPress = useCallback((item: MenuItem) => {
-    if (item.onPress) return item.onPress();
-    if (item.route) router.push(item.route as any);
-  }, [router]);
+  const openStoreReview = async () => {
+    const target = Platform.OS === 'ios' ? IOS_STORE_URL : ANDROID_STORE_URL;
+    const fallback = Platform.OS === 'ios' ? IOS_STORE_URL : ANDROID_WEB_STORE_URL;
 
-
-
-  const handleClearData = useCallback(() => {
-    Alert.alert(
-      '⚠️ Clear All Data',
-      'This will permanently delete ALL your transactions, accounts, categories, and budgets. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear Everything', style: 'destructive', onPress: async () => {
-            try {
-              const res = await api.delete('/api/user/data');
-              if (res.data?.success) {
-                const d = res.data.deleted;
-                Alert.alert('Done', `Cleared ${d.transactions} transactions, ${d.accounts} accounts, ${d.categories} categories, ${d.budgets} budgets.`);
-              } else {
-                Alert.alert('Error', 'Failed to clear data.');
-              }
-            } catch (e: any) {
-              Alert.alert('Error', e.response?.data?.message || 'Failed to clear data.');
-            }
-          }
-        },
-      ]
-    );
-  }, []);
-
-  const handleDeleteAccount = useCallback(() => { setDeleteInput(''); setDeleteModalVisible(true); }, []);
-
-  const confirmDeleteAccount = useCallback(async () => {
-    if (deleteInput !== 'DELETE') { Alert.alert('Error', 'Please type DELETE to confirm.'); return; }
-    setDeleteModalVisible(false);
     try {
-      await api.delete('/api/user/account');
-      await logout(); router.replace('/(auth)/login');
-    } catch (e: any) { Alert.alert('Error', e.response?.data?.message || 'Failed to delete account.'); }
-  }, [deleteInput, logout, router]);
-
-  const handleLogout = useCallback(() => {
-    Alert.alert('Log Out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Log Out', style: 'destructive',
-        onPress: async () => {
-          try { await logout(); router.replace('/(auth)/login'); }
-          catch (e) { console.error('Logout failed', e); }
-        },
-      },
-    ]);
-  }, [logout, router]);
-
-  const closeDeleteModal = useCallback(() => setDeleteModalVisible(false), []);
-
-  // ── Menu Data (memoized) ───────────────────────────────
-  const MENU_GROUPS: MenuGroup[] = useMemo(() => [
-    {
-      title: 'Account', delay: 100,
-      items: [
-        { icon: 'person-outline', label: 'Profile', subtitle: 'Edit your info', color: '#6366F1', route: '/features/edit-profile' },
-        { icon: 'settings-outline', label: 'Settings', subtitle: 'App preferences', color: '#8E8E93', route: '/features/settings' },
-        { icon: 'shield-checkmark-outline', label: 'Privacy & Security', subtitle: 'Keep your data safe', color: '#8B5CF6', route: '/features/security' },
-      ],
-    },
-    {
-      title: 'Preferences', delay: 200,
-      items: [
-        {
-          icon: darkModeEnabled ? 'moon-outline' : 'sunny-outline',
-          label: 'Appearance',
-          subtitle: darkModeEnabled ? 'Dark Mode' : 'Light Mode',
-          color: '#6366F1', toggle: true, toggleValue: darkModeEnabled,
-          onToggle: (v) => setDarkModeEnabled(v),
-        },
-        {
-          icon: 'notifications-outline', label: 'Notifications',
-          subtitle: notificationsEnabled ? 'Enabled' : 'Disabled',
-          color: '#F59E0B', toggle: true, toggleValue: notificationsEnabled,
-          onToggle: async (v) => {
-            setNotificationsEnabled(v);
-            try {
-              await api.put('/api/user/preferences', { notifications: v });
-            } catch (e) {
-              // Revert on failure
-              setNotificationsEnabled(!v);
-            }
-          },
-        },
-        { icon: 'grid-outline', label: 'Categories', subtitle: 'Manage expense & income categories', color: '#06B6D4', route: '/features/categories' },
-      ],
-    },
-    {
-      title: 'Finance', delay: 300,
-      items: [
-        { icon: 'pie-chart-outline', label: 'Budgets', subtitle: 'Track spending limits', color: '#10B981', route: '/features/budgets' },
-        { icon: 'calendar-outline', label: 'Recurring Bills', subtitle: 'Subscriptions & more', color: '#EC4899', route: '/features/recurring-bills', badge: recurringCount },
-        { icon: 'people-outline', label: 'Debts & Loans', subtitle: 'Track who owes you and what you owe', color: '#8B5CF6', route: '/features/debts' },
-      ],
-    },
-    {
-      title: 'Data', delay: 400,
-      items: [
-        { icon: 'document-text-outline', label: 'Export Data', subtitle: 'CSV & PDF Reports', color: '#06B6D4', route: '/features/export' },
-        { icon: 'trash-outline', label: 'Clear All Data', subtitle: 'Delete all transactions & budgets', color: '#F43F5E', danger: true, onPress: handleClearData },
-      ],
-    },
-    {
-      title: 'App', delay: 500,
-      items: [
-        { icon: 'help-circle-outline', label: 'Help & Support', subtitle: 'FAQs & contact', color: '#06B6D4', route: '/features/help-support' },
-        { icon: 'star-outline', label: 'Rate Us', subtitle: 'Share your feedback', color: '#FBBF24', onPress: () => { const url = Platform.OS === 'ios' ? 'https://apps.apple.com/app/budgettracko/id000000' : 'https://play.google.com/store/apps/details?id=com.budgettracko.app'; Linking.openURL(url); } },
-        { icon: 'share-social-outline', label: 'Share App', subtitle: 'Invite friends', color: '#EC4899', route: '/features/share-app' },
-      ],
-    },
-    {
-      title: 'Danger Zone', delay: 600,
-      items: [
-        { icon: 'person-remove-outline', label: 'Delete Account', subtitle: 'Permanently delete your account & data', color: '#EF4444', danger: true, onPress: handleDeleteAccount },
-      ],
-    },
-  ], [darkModeEnabled, notificationsEnabled, handleClearData, handleDeleteAccount]);
+      const supported = await Linking.canOpenURL(target);
+      await Linking.openURL(supported ? target : fallback);
+    } catch {
+      await Linking.openURL(fallback);
+    }
+  };
 
   return (
-    <View style={[s.root, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="dark-content" />
+    <View style={[styles.root, { backgroundColor: tokens.bgPrimary }]}>
+      <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={tokens.bgPrimary} />
 
-      {/* Header */}
-      <Animated.View entering={FadeIn.delay(50).duration(300)} style={s.header}>
-        <View>
-          <Text style={s.headerTitle}>More</Text>
-          <View style={s.headerAccent} />
-        </View>
-      </Animated.View>
+      <ScrollView
+        style={[styles.scroll, { backgroundColor: tokens.bgPrimary }]}
+        contentContainerStyle={{ paddingTop: insets.top + 8, paddingBottom: insets.bottom + 70 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <HeroProfileCard
+          initials={initials}
+          name={user?.displayName || 'BudgetTracko User'}
+          email={user?.email || 'Authenticated mode'}
+          planLabel={planLabel}
+          syncLabel="Synced"
+          avatarUrl={user?.avatar || (user as any)?.photoURL || null}
+          onPress={() => router.push('/features/edit-profile')}
+          onAvatarPress={() => router.push('/features/edit-profile')}
+          stats={[
+            { value: billsDue, label: 'Bills due', tone: 'warning', Icon: Clock },
+            { value: compactINR(owedToYouTotal), label: 'Owed to you', tone: 'positive', Icon: HandCoins },
+            { value: overBudget, label: 'Over budget', tone: 'neutral', Icon: AlertCircle },
+          ]}
+        />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scroll}>
+        <ProBanner onPress={() => router.push('/premium')} />
 
-        {/* ─── User Card ─── */}
-        <Animated.View entering={FadeInDown.delay(80).duration(500).springify()}>
-          <TouchableOpacity style={s.userCard} activeOpacity={0.8} onPress={() => router.push('/features/edit-profile')}>
-            <View style={s.avatarWrap}>
-              {user?.avatar ? (
-                <Image source={{ uri: user.avatar }} style={s.avatarImage} />
-              ) : (
-                <Ionicons name="person" size={22} color="#6366F1" />
-              )}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.userName}>{user?.displayName || 'BudgetTracko User'}</Text>
-              <Text style={s.userEmail} numberOfLines={1}>{user?.email || 'Authenticated mode'}</Text>
-            </View>
-            <View style={[s.planChip, isPaid && { backgroundColor: 'rgba(245,158,11,0.12)' }]}>
-              <Text style={[s.planText, isPaid && { color: '#F59E0B' }]}>{userPlan}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
-          </TouchableOpacity>
-        </Animated.View>
-
-        {/* ─── Premium Banner ─── */}
-        <Animated.View entering={SlideInLeft.delay(150).duration(500).springify()}>
-          <LinearGradient
-            colors={['#1A1C20', '#0F1014']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={s.premiumBanner}
-          >
-            <TouchableOpacity style={s.premiumInner} activeOpacity={0.8} onPress={() => router.push('/premium' as any)}>
-              <GlowingIcon />
-              <View style={{ flex: 1 }}>
-                <Text style={s.premiumTitle}>Upgrade to Premium</Text>
-                <Text style={s.premiumDesc}>Unlock analytics, budgets & more</Text>
-              </View>
-              <View style={s.premiumArrow}>
-                <Ionicons name="arrow-forward" size={16} color="#fff" />
-              </View>
-            </TouchableOpacity>
-          </LinearGradient>
-        </Animated.View>
-
-        {/* ─── Menu Groups ─── */}
-        {MENU_GROUPS.map((group) => (
-          <Animated.View key={group.title} entering={FadeInDown.delay(group.delay).duration(400).springify()} style={s.menuGroup}>
-            <Text style={s.menuGroupTitle}>{group.title}</Text>
-            <View style={[s.menuCard, group.title === 'Danger Zone' && s.dangerCard]}>
-              {group.items.map((item, idx) => (
-                <Animated.View key={idx} entering={FadeInDown.delay(group.delay + (idx + 1) * 50).duration(300)}>
-                  <TouchableOpacity
-                    style={[s.menuItem, idx < group.items.length - 1 && s.menuItemBorder]}
-                    onPress={() => handleMenuPress(item)}
-                    activeOpacity={0.6}
-                  >
-                    <View style={[s.menuIconWrap, { backgroundColor: item.danger ? 'rgba(244,63,94,0.08)' : item.color + '14' }]}>
-                      <Ionicons name={item.icon} size={18} color={item.danger ? '#F43F5E' : item.color} />
-                    </View>
-                    <View style={s.menuLabels}>
-                      <Text style={[s.menuLabel, item.danger && { color: '#F43F5E' }]}>{item.label}</Text>
-                      {item.subtitle && <Text style={s.menuSub}>{item.subtitle}</Text>}
-                    </View>
-                    {item.badge && <PulsingBadge text={item.badge} />}
-                    {item.toggle ? (
-                      <Switch
-                        value={item.toggleValue}
-                        onValueChange={item.onToggle}
-                        trackColor={{ false: '#E5E5EA', true: '#2DCA72' }}
-                        thumbColor="#fff"
-                        ios_backgroundColor="#E5E5EA"
-                      />
-                    ) : (
-                      !item.badge && <Ionicons name="chevron-forward" size={15} color="#C7C7CC" />
-                    )}
-                  </TouchableOpacity>
-                </Animated.View>
-              ))}
-            </View>
-          </Animated.View>
-        ))}
-
-        {/* ─── Logout ─── */}
-        <Animated.View entering={BounceIn.delay(700).duration(500)}>
-          <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
-            <Ionicons name="log-out-outline" size={18} color="#F43F5E" />
-            <Text style={s.logoutText}>Log Out</Text>
-          </TouchableOpacity>
-        </Animated.View>
-
-        <Animated.Text entering={FadeIn.delay(800).duration(500)} style={s.version}>
-          BudgetTracko v1.0.0 · Made with ❤️
-        </Animated.Text>
-
-        <View style={{ height: 120 }} />
-      </ScrollView>
-
-      {/* ─── Delete Account Modal ─── */}
-      <Modal visible={deleteModalVisible} transparent animationType="fade">
-        <View style={s.modalOverlay}>
-          <View style={s.modalContent}>
-            <View style={s.modalHeader}>
-              <View style={s.modalDangerIcon}>
-                <Ionicons name="warning" size={28} color="#EF4444" />
-              </View>
-              <Text style={s.modalTitle}>Delete Account?</Text>
-            </View>
-            <Text style={s.modalMsg}>
-              This will <Text style={{ fontWeight: '900', color: '#EF4444' }}>permanently delete</Text>{' '}your account and all data. This action cannot be undone.
-            </Text>
-            <Text style={s.modalHint}>Type <Text style={{ fontWeight: '900', color: '#EF4444' }}>DELETE</Text>{' '}to confirm:</Text>
-            <TextInput
-              style={s.modalInput}
-              placeholder="Type DELETE"
-              placeholderTextColor="#C7C7CC"
-              value={deleteInput}
-              onChangeText={setDeleteInput}
-              autoCapitalize="characters"
+        <BodySurface>
+          <SectionHeader title="Smart tools" />
+          <View style={styles.gridRow}>
+            <BentoTile
+              title="Ask Tracko AI"
+              subtitle="Smart finance assistant"
+              color={tokens.purple}
+              Icon={Sparkles}
+              onPress={() => router.push('/features/pulse-ai')}
+              showProBadge
             />
-            <View style={s.modalBtns}>
-              <TouchableOpacity style={s.modalCancelBtn} onPress={closeDeleteModal}>
-                <Text style={s.modalCancelTxt}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[s.modalDeleteBtn, deleteInput !== 'DELETE' && { opacity: 0.35 }]}
-                disabled={deleteInput !== 'DELETE'}
-                onPress={confirmDeleteAccount}
-              >
-                <Ionicons name="trash" size={14} color="#fff" />
-                <Text style={s.modalDeleteTxt}>Delete Forever</Text>
-              </TouchableOpacity>
-            </View>
+            <BentoTile
+              title="Budgets"
+              subtitle="Limit and monitor"
+              color={tokens.teal}
+              Icon={BarChart2}
+              onPress={() => router.push('/features/budgets')}
+            />
           </View>
-        </View>
-      </Modal>
+          <View style={styles.gridRow}>
+            <BentoTile
+              title="Recurring bills"
+              subtitle="Never miss due dates"
+              color={tokens.amber}
+              Icon={RefreshCw}
+              onPress={() => router.push('/features/recurring-bills')}
+            />
+            <BentoTile
+              title="Debts"
+              subtitle="Loans and settlements"
+              color={tokens.coral}
+              Icon={DollarSign}
+              onPress={() => router.push('/features/debts')}
+            />
+          </View>
+
+          <SectionHeader title="Configuration" />
+          <WideRow
+            title="App settings"
+            subtitle="Currency, alerts, and haptics"
+            color={tokens.blue}
+            Icon={Settings}
+            onPress={() => router.push('/features/settings')}
+          />
+          <WideRow
+            title="Privacy & security"
+            subtitle="Lock and permissions"
+            color={tokens.green}
+            Icon={Lock}
+            onPress={() => router.push('/features/security')}
+          />
+          <WideRow
+            title="Categories"
+            subtitle="Edit spending labels"
+            color={tokens.pink}
+            Icon={Tag}
+            onPress={() => router.push('/features/categories')}
+          />
+
+          <SectionHeader title="Appearance & data" />
+          <View style={styles.gridRow}>
+            <MiniTile
+              title="Appearance"
+              subtitle="Light mode"
+              color={tokens.gray}
+              Icon={isDarkMode ? Moon : Sun}
+              onPress={handleToggleAppearance}
+            />
+            <MiniTile
+              title="Export data"
+              subtitle="CSV and PDF"
+              color={tokens.teal}
+              Icon={Download}
+              onPress={() => router.push('/features/export')}
+            />
+          </View>
+
+          <SectionHeader title="Community" />
+          <WideRow
+            title="Invite friends"
+            subtitle="Share BudgetTracko"
+            color={tokens.purple}
+            Icon={Users}
+            onPress={() => router.push('/features/share-app')}
+          />
+          <WideRow
+            title="Rate Tracko"
+            subtitle="Support with a store review"
+            color={tokens.amber}
+            Icon={Star}
+            onPress={openStoreReview}
+          />
+          <WideRow
+            title="Help & support"
+            subtitle="FAQ and assistance"
+            color={tokens.gray}
+            Icon={HelpCircle}
+            onPress={() => router.push('/features/help-support')}
+          />
+
+          <WideRow 
+            title="Log out" 
+            subtitle="End your session securely" 
+            color={tokens.red} 
+            Icon={LogOut} 
+            onPress={async () => {
+              await logout();
+              router.replace('/(auth)/login');
+            }} 
+          />
+
+          <FooterLinks
+            version={`v${appVersion}`}
+            onPrivacy={() => router.push('/privacy-security')}
+            onTerms={() => Linking.openURL('https://budgettracko.app/terms')}
+          />
+        </BodySurface>
+      </ScrollView>
     </View>
   );
 }
 
-// ══════════════════════════════════════════════════════════════
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#fff' },
-
-  // Header
-  header: { paddingHorizontal: 24, paddingVertical: 14 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#111' },
-  headerAccent: { width: 40, height: 3, backgroundColor: '#2DCA72', borderRadius: 2, marginTop: 6 },
-
-  scroll: { paddingHorizontal: 24, paddingTop: 8 },
-
-  // User Card
-  userCard: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#fff', borderRadius: 18, padding: 16,
-    marginBottom: 16, borderWidth: 1, borderColor: '#F2F2F7',
-    ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8 }, android: { elevation: 2 } }),
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: '#0E0E12',
   },
-  avatarWrap: {
-    width: 48, height: 48, borderRadius: 16,
-    backgroundColor: 'rgba(99,102,241,0.08)',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: 'rgba(99,102,241,0.15)',
-    overflow: 'hidden',
+  scroll: {
+    flex: 1,
+    backgroundColor: '#0E0E12',
   },
-  avatarImage: {
-    width: '100%', height: '100%', resizeMode: 'cover',
+  gridRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
   },
-  userName: { fontSize: 14, fontWeight: '800', color: '#111', marginBottom: 2 },
-  userEmail: { fontSize: 10, color: '#8E8E93', fontWeight: '500' },
-  planChip: {
-    paddingHorizontal: 8, paddingVertical: 4,
-    backgroundColor: '#F5F5F5', borderRadius: 20,
-    borderWidth: 1, borderColor: '#F2F2F7',
-  },
-  planText: { fontSize: 10, fontWeight: '700', color: '#8E8E93', textTransform: 'uppercase', letterSpacing: 0.5 },
-
-  // Premium Banner (stays dark — intentional contrast)
-  premiumBanner: {
-    borderRadius: 20, marginBottom: 20, overflow: 'hidden',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
-  },
-  premiumInner: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
-  premiumIconWrap: {
-    width: 42, height: 42, borderRadius: 14,
-    backgroundColor: 'rgba(245,158,11,0.15)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  premiumTitle: { fontSize: 14, fontWeight: '800', color: '#fff', marginBottom: 2 },
-  premiumDesc: { fontSize: 10, color: 'rgba(255,255,255,0.55)', fontWeight: '500' },
-  premiumArrow: {
-    width: 32, height: 32, borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-
-  // Menu Groups
-  menuGroup: { marginBottom: 20 },
-  menuGroupTitle: {
-    fontSize: 10, fontWeight: '700', color: '#8E8E93',
-    textTransform: 'uppercase', letterSpacing: 1.2,
-    marginBottom: 8, paddingHorizontal: 4,
-  },
-  menuCard: {
-    backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden',
-    borderWidth: 1, borderColor: '#F2F2F7',
-    ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 8 }, android: { elevation: 2 } }),
-  },
-  dangerCard: { borderColor: 'rgba(239,68,68,0.15)' },
-  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
-  menuItemBorder: { borderBottomWidth: 1, borderBottomColor: '#F2F2F7' },
-  menuIconWrap: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  menuLabels: { flex: 1 },
-  menuLabel: { fontSize: 14, fontWeight: '700', color: '#111', marginBottom: 1 },
-  menuSub: { fontSize: 10, color: '#8E8E93', fontWeight: '500' },
-  badge: { paddingHorizontal: 8, paddingVertical: 3, backgroundColor: '#F43F5E', borderRadius: 20 },
-  badgeText: { fontSize: 10, fontWeight: '800', color: '#fff' },
-
-  // Logout
-  logoutBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 8, padding: 16,
-    backgroundColor: 'rgba(244,63,94,0.06)', borderRadius: 16,
-    marginBottom: 16, borderWidth: 1, borderColor: 'rgba(244,63,94,0.12)',
-  },
-  logoutText: { fontSize: 14, fontWeight: '800', color: '#F43F5E' },
-  version: { fontSize: 10, color: '#C7C7CC', textAlign: 'center', marginBottom: 16, fontWeight: '500' },
-
-  // Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  modalContent: {
-    width: '100%', backgroundColor: '#fff', borderRadius: 24, padding: 24,
-    borderWidth: 1, borderColor: 'rgba(239,68,68,0.15)',
-    ...Platform.select({ ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.1, shadowRadius: 24 }, android: { elevation: 8 } }),
-  },
-  modalHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
-  modalDangerIcon: {
-    width: 46, height: 46, borderRadius: 14,
-    backgroundColor: 'rgba(239,68,68,0.08)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  modalTitle: { fontSize: 20, fontWeight: '900', color: '#111' },
-  modalMsg: { fontSize: 13, fontWeight: '500', color: '#8E8E93', lineHeight: 20, marginBottom: 16 },
-  modalHint: { fontSize: 12, fontWeight: '600', color: '#8E8E93', marginBottom: 8 },
-  modalInput: {
-    backgroundColor: '#F5F5F5', borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 16, fontWeight: '800', color: '#111', letterSpacing: 3,
-    borderWidth: 1, borderColor: '#F2F2F7', marginBottom: 20,
-  },
-  modalBtns: { flexDirection: 'row', gap: 10 },
-  modalCancelBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: 14,
-    borderRadius: 14, backgroundColor: '#F5F5F5',
-  },
-  modalCancelTxt: { fontSize: 14, fontWeight: '800', color: '#3A3A3C' },
-  modalDeleteBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 6, paddingVertical: 14, borderRadius: 14, backgroundColor: '#EF4444',
-  },
-  modalDeleteTxt: { fontSize: 13, fontWeight: '800', color: '#fff', textTransform: 'uppercase', letterSpacing: 0.5 },
 });

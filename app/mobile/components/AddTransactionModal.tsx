@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     View, Text, StyleSheet, Modal, TouchableOpacity, TextInput,
     ScrollView, KeyboardAvoidingView, Platform, Alert, Image,
-    Dimensions, ActivityIndicator,
+    Dimensions, ActivityIndicator, Animated as RNAnimated,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -13,7 +13,9 @@ import Animated, {
     interpolateColor, useAnimatedProps,
 } from 'react-native-reanimated';
 import api from '@/services/api';
-import { CATEGORY_ICONS as CTX_ICONS, CATEGORY_COLORS as CTX_COLORS, mapCategoryIcon, useTransactions } from '@/context/TransactionContext';
+import * as localDB from '@/services/localDB';
+import { mapCategoryIcon, useTransactions, CategoryItem } from '@/context/TransactionContext';
+import { LucideCategoryIcon } from '@/app/features/categories';
 import { ScanData } from '@/context/QuickActionContext';
 import { useSettings } from '@/context/SettingsContext';
 import { compressImage } from '@/utils/imageCompressor';
@@ -29,13 +31,7 @@ interface BackendAccount {
     balance: number;
 }
 
-interface BackendCategory {
-    _id: string;
-    name: string;
-    icon?: string;
-    color?: string;
-    type?: string;
-}
+// Deleted local BackendCategory type since we use CategoryItem from context
 
 // ─── Constants ───────────────────────────────────────────
 const SCREEN_W = Dimensions.get('window').width;
@@ -45,24 +41,9 @@ const PILL_TYPES: { key: TxType; label: string; icon: string; color: string }[] 
     { key: 'transfer', label: 'Transfer', icon: 'swap-horizontal-outline', color: '#007AFF' },
 ];
 
-const DEFAULT_EXPENSE_CATS = [
-    { name: 'Food and Dining', icon: 'restaurant-outline', color: '#FF9800' },
-    { name: 'Transport', icon: 'car-outline', color: '#2196F3' },
-    { name: 'Shopping', icon: 'cart-outline', color: '#E91E63' },
-    { name: 'Entertainment', icon: 'headset-outline', color: '#4CAF50' },
-    { name: 'Bills & Utilities', icon: 'receipt-outline', color: '#9C27B0' },
-    { name: 'Health', icon: 'heart-outline', color: '#F44336' },
-    { name: 'Education', icon: 'school-outline', color: '#00BCD4' },
-    { name: 'Other', icon: 'ellipsis-horizontal-circle-outline', color: '#795548' },
-];
-
-const DEFAULT_INCOME_CATS = [
-    { name: 'Salary', icon: 'briefcase-outline', color: '#4CAF50' },
-    { name: 'Freelance', icon: 'laptop-outline', color: '#7C4DFF' },
-    { name: 'Investment', icon: 'trending-up-outline', color: '#FF5722' },
-    { name: 'Gift', icon: 'gift-outline', color: '#FFD700' },
-    { name: 'Other', icon: 'ellipsis-horizontal-circle-outline', color: '#795548' },
-];
+// Standard defaults are handled by the backend and context now
+const DEFAULT_EXPENSE_CATS: any[] = [];
+const DEFAULT_INCOME_CATS: any[] = [];
 // ─── Date helpers ────────────────────────────────────────
 function isToday(d: Date): boolean {
     const now = new Date();
@@ -248,24 +229,24 @@ const calStyles = StyleSheet.create({
 // ─── Sliding Pill Toggle ─────────────────────────────────
 function SlidingPillToggle({ active, onChange }: { active: TxType; onChange: (t: TxType) => void }) {
     const pillW = (SCREEN_W - 48 - 8) / 3; // Container padding 24*2, internal gap
-    const slideX = useSharedValue(0);
+    const slideX = useRef(new RNAnimated.Value(0)).current;
 
     useEffect(() => {
         const idx = PILL_TYPES.findIndex(p => p.key === active);
-        slideX.value = withSpring(idx * pillW, { damping: 18, stiffness: 200 });
+        RNAnimated.spring(slideX, {
+            toValue: idx * pillW,
+            useNativeDriver: true,
+            bounciness: 4,
+            speed: 12
+        }).start();
     }, [active, pillW]);
-
-    const indicatorStyle = useAnimatedStyle(() => ({
-        transform: [{ translateX: slideX.value }],
-        width: pillW,
-    }));
 
     const activeColor = PILL_TYPES.find(p => p.key === active)?.color || '#F43F5E';
 
     return (
         <View style={pill.container}>
             {/* Sliding background */}
-            <Animated.View style={[pill.indicator, indicatorStyle, { backgroundColor: activeColor }]} />
+            <RNAnimated.View style={[pill.indicator, { backgroundColor: activeColor, width: pillW, transform: [{ translateX: slideX }] }]} />
             {/* Labels */}
             {PILL_TYPES.map(p => {
                 const isActive = active === p.key;
@@ -326,7 +307,7 @@ interface Props {
 }
 
 export default function AddTransactionModal({ visible, onClose, editingTransaction, onEditSuccess, initialType, scanData }: Props) {
-    const { deleteTransaction } = useTransactions();
+    const { addTransaction, deleteTransaction, categories: contextCategories, refreshCategories } = useTransactions();
     const { formatCurrency, currency, triggerHaptic } = useSettings();
 
     // ── State ──
@@ -348,34 +329,44 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
 
     // Backend data
     const [accounts, setAccounts] = useState<BackendAccount[]>([]);
-    const [categories, setCategories] = useState<BackendCategory[]>([]);
     const [loadingData, setLoadingData] = useState(true);
 
     const fetchData = useCallback(async () => {
         setLoadingData(true);
         try {
-            const [accRes, catRes] = await Promise.all([
-                api.get('/api/accounts'),
-                api.get('/api/categories'),
-            ]);
-            const accRaw = accRes.data;
-            const accs = Array.isArray(accRaw) ? accRaw : Array.isArray(accRaw?.data) ? accRaw.data : [];
-            setAccounts(accs);
-            if (accs.length > 0 && !accountId) {
-                setAccountId(accs[0]._id);
-                setFromAccountId(accs[0]._id);
-                if (accs.length > 1) setToAccountId(accs[1]._id);
+            // Read accounts from local DB first (fast, offline-capable)
+            const localAccounts = localDB.getAccounts();
+            if (localAccounts.length > 0) {
+                setAccounts(localAccounts);
+                if (!accountId) {
+                    setAccountId(localAccounts[0]._id);
+                    setFromAccountId(localAccounts[0]._id);
+                    if (localAccounts.length > 1) setToAccountId(localAccounts[1]._id);
+                }
+            } else {
+                // Fallback to API if local cache is empty
+                try {
+                    const accRes = await api.get('/api/accounts');
+                    const accRaw = accRes.data;
+                    const accs = Array.isArray(accRaw) ? accRaw : Array.isArray(accRaw?.data) ? accRaw.data : [];
+                    setAccounts(accs);
+                    if (accs.length > 0 && !accountId) {
+                        setAccountId(accs[0]._id);
+                        setFromAccountId(accs[0]._id);
+                        if (accs.length > 1) setToAccountId(accs[1]._id);
+                    }
+                } catch (e) {
+                    console.log('Failed to load accounts:', e);
+                }
             }
-
-            const catRaw = catRes.data;
-            const cats = Array.isArray(catRaw) ? catRaw : Array.isArray(catRaw?.data) ? catRaw.data : [];
-            setCategories(cats);
+            // Refresh categories in background to ensure latest
+            refreshCategories();
         } catch (e) {
-            console.log('Failed to load form data:', e);
+            console.log('Failed to load accounts:', e);
         } finally {
             setLoadingData(false);
         }
-    }, [accountId]);
+    }, [accountId, refreshCategories]);
 
     useEffect(() => {
         if (visible) fetchData();
@@ -440,22 +431,20 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
 
     // ── Derived ──
     const getDisplayCategories = () => {
-        const backendCats = categories.filter(c => {
-            if (type === 'expense') return c.type === 'expense' || !c.type;
-            if (type === 'income') return c.type === 'income' || !c.type;
+        return contextCategories.filter(c => {
+            if (type === 'expense') return c.type === 'expense' || c.type === 'both';
+            if (type === 'income') return c.type === 'income' || c.type === 'both';
             return false;
-        });
-
-        if (backendCats.length > 0) return backendCats.map(c => {
-            const rawIcon = c.icon || (CTX_ICONS as any)[c.name];
+        }).map(c => {
+            const rawIcon = c.icon || 'ellipsis-horizontal-circle-outline';
+            const isLucide = /^[A-Z]/.test(rawIcon);
             return {
                 name: c.name,
-                icon: rawIcon ? mapCategoryIcon(rawIcon) : 'ellipsis-horizontal-circle-outline',
-                color: c.color || (CTX_COLORS as any)[c.name] || '#795548',
+                icon: isLucide ? rawIcon : mapCategoryIcon(rawIcon),
+                color: c.color || '#6366F1',
+                isLucide,
             };
         });
-
-        return type === 'expense' ? DEFAULT_EXPENSE_CATS : DEFAULT_INCOME_CATS;
     };
 
     const displayCats = getDisplayCategories();
@@ -523,46 +512,69 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
 
         setSaving(true);
         try {
-            const formData = new FormData();
-            formData.append('type', type);
-            formData.append('text', title.trim());
-            formData.append('amount', String(num));
-            formData.append('date', date.toISOString());
             const timeStr = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-            formData.append('time', timeStr);
-            if (notes.trim()) formData.append('note', notes.trim());
-
-            if (isTransfer) {
-                formData.append('fromAccountId', fromAccountId!);
-                formData.append('toAccountId', toAccountId!);
-            } else {
-                if (category) formData.append('category', category);
-                if (accountId) formData.append('accountId', accountId);
-            }
-
-            // Attach new images
-            images.forEach((uri, i) => {
-                const name = uri.split('/').pop() || `receipt_${i}.jpg`;
-                const ext = name.split('.').pop()?.toLowerCase() || 'jpg';
-                const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
-                formData.append('attachments', {
-                    uri,
-                    name,
-                    type: mimeType,
-                } as any);
-            });
 
             if (editingTransaction && (editingTransaction._id || editingTransaction.id)) {
+                // For edits, use API directly (supports file uploads + existing attachments)
+                const formData = new FormData();
+                formData.append('type', type);
+                formData.append('text', title.trim());
+                formData.append('amount', String(num));
+                formData.append('date', date.toISOString());
+                formData.append('time', timeStr);
+                if (notes.trim()) formData.append('note', notes.trim());
+
+                if (isTransfer) {
+                    formData.append('fromAccountId', fromAccountId!);
+                    formData.append('toAccountId', toAccountId!);
+                } else {
+                    if (category) formData.append('category', category);
+                    if (accountId) formData.append('accountId', accountId);
+                }
+
+                images.forEach((uri, i) => {
+                    const name = uri.split('/').pop() || `receipt_${i}.jpg`;
+                    const ext = name.split('.').pop()?.toLowerCase() || 'jpg';
+                    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+                    formData.append('attachments', { uri, name, type: mimeType } as any);
+                });
+
                 await api.put(`/api/transactions/${editingTransaction._id || editingTransaction.id}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' },
                     timeout: 30000,
                 });
+
+                // Update local DB after successful API edit
+                localDB.upsertTransaction({
+                    _id: editingTransaction._id || editingTransaction.id,
+                    type, text: title.trim(), amount: num, category: isTransfer ? 'Transfer' : category,
+                    date: date.toISOString(), time: timeStr, note: notes.trim(),
+                    accountId, fromAccountId, toAccountId,
+                    updatedAt: new Date().toISOString(),
+                });
+
                 if (onEditSuccess) onEditSuccess();
             } else {
-                await api.post('/api/transactions', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                    timeout: 30000,
-                });
+                // For new transactions, use context (local-first)
+                await addTransaction({
+                    _id: undefined,
+                    title: title.trim(),
+                    text: title.trim(),
+                    amount: num,
+                    type,
+                    category: isTransfer ? 'Transfer' : (category || 'Other'),
+                    date: date.toISOString(),
+                    month: date.getMonth(),
+                    year: date.getFullYear(),
+                    day: date.getDate(),
+                    time: timeStr,
+                    account: '',
+                    accountId: isTransfer ? undefined : accountId,
+                    fromAccountId: isTransfer ? fromAccountId : undefined,
+                    toAccountId: isTransfer ? toAccountId : undefined,
+                    note: notes.trim(),
+                    attachments: images.length > 0 ? images.map((uri) => ({ url: uri, name: uri.split('/').pop() || 'receipt.jpg' })) : [],
+                } as any);
             }
 
             reset();
@@ -724,7 +736,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
                                 <Animated.View entering={FadeInDown.delay(200).duration(350)} style={styles.fieldGroup}>
                                     <Text style={styles.fieldLabel}>Category</Text>
                                     <View style={styles.catGrid}>
-                                        {displayCats.map((cat, i) => {
+                                        {displayCats.map((cat: any, i: number) => {
                                             const sel = category === cat.name;
                                             return (
                                                 <Animated.View key={cat.name} entering={FadeInDown.delay(220 + i * 20).duration(280)}>
@@ -732,7 +744,11 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
                                                         style={[styles.catChip, sel && { borderColor: cat.color, backgroundColor: cat.color + '18' }]}
                                                         onPress={() => setCategory(cat.name)}
                                                     >
-                                                        <Ionicons name={cat.icon as any} size={14} color={sel ? cat.color : '#8E8E93'} />
+                                                        {cat.isLucide ? (
+                                                            <LucideCategoryIcon name={cat.icon} size={14} color={sel ? cat.color : '#8E8E93'} />
+                                                        ) : (
+                                                            <Ionicons name={cat.icon as any} size={14} color={sel ? cat.color : '#8E8E93'} />
+                                                        )}
                                                         <Text style={[styles.catChipTxt, sel && { color: cat.color }]} numberOfLines={1}>{cat.name}</Text>
                                                     </TouchableOpacity>
                                                 </Animated.View>
@@ -748,7 +764,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
                                     <Text style={styles.fieldLabel}>Account</Text>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                                         <View style={styles.accRow}>
-                                            {accounts.map(acc => {
+                                            {accounts.map((acc: any) => {
                                                 const sel = accountId === acc._id;
                                                 return (
                                                     <TouchableOpacity
@@ -772,7 +788,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
                                     <Text style={styles.fieldLabel}>From Account</Text>
                                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
                                         <View style={styles.accRow}>
-                                            {accounts.map(acc => {
+                                            {accounts.map((acc: any) => {
                                                 const sel = fromAccountId === acc._id;
                                                 return (
                                                     <TouchableOpacity
