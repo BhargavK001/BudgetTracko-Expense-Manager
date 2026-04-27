@@ -1,5 +1,6 @@
 const Transaction = require('../models/Transaction');
 const Account = require('../models/Account');
+const DeletionLog = require('../models/DeletionLog');
 const { cloudinary } = require('../config/cloudinary');
 
 // @desc    Get all transactions for user (with optional filters)
@@ -247,6 +248,15 @@ exports.deleteTransaction = async (req, res) => {
             // If income is deleted, subtract amount. If expense is deleted, add amount back (expense stored as negative)
             await Account.findByIdAndUpdate(transaction.accountId, { $inc: { balance: -transaction.amount } });
         }
+
+        await transaction.deleteOne();
+
+        // Log deletion for sync
+        await DeletionLog.create({
+            userId: req.user._id,
+            entityType: 'transaction',
+            entityId: req.params.id
+        });
 
         res.json({ success: true, message: 'Transaction deleted' });
     } catch (err) {

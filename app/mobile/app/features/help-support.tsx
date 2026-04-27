@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Platform, StatusBar } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeInUp, ZoomIn, Layout } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Haptics from 'expo-haptics';
+import { useThemeStyles } from '@/components/more/DesignSystem';
+import { useSettings } from '@/context/SettingsContext';
+import { Spacing, BorderRadius } from '@/constants/Theme';
 
 const FAQS = [
     {
@@ -33,6 +36,8 @@ const FAQS = [
 export default function HelpSupportScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { tokens } = useThemeStyles();
+    const { isDarkMode } = useSettings();
     const [openId, setOpenId] = useState<number | null>(0); // First one open by default
 
     const handleEmailSupport = () => {
@@ -48,13 +53,15 @@ export default function HelpSupportScreen() {
     };
 
     return (
-        <View style={[styles.root, { paddingTop: insets.top }]}>
+        <View style={[styles.root, { backgroundColor: tokens.bgPrimary, paddingTop: insets.top }]}>
+            <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+            
             {/* Minimal Header */}
-            <Animated.View entering={FadeInDown.delay(50).duration(300)} style={styles.header}>
+            <Animated.View entering={FadeInDown.delay(50).duration(300)} style={[styles.header, { backgroundColor: tokens.bgPrimary }]}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-                    <Ionicons name="arrow-back" size={24} color="#111" />
+                    <Ionicons name="arrow-back" size={24} color={tokens.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Help & Support</Text>
+                <Text style={[styles.headerTitle, { color: tokens.textPrimary }]}>Help & Support</Text>
                 <View style={{ width: 44 }} />
             </Animated.View>
 
@@ -63,7 +70,7 @@ export default function HelpSupportScreen() {
                 {/* Hero / Contact Section */}
                 <Animated.View entering={ZoomIn.delay(100).duration(400).springify()}>
                     <LinearGradient
-                        colors={['#111111', '#1A1C20']}
+                        colors={isDarkMode ? ['#1A1C20', '#0F1014'] : ['#111111', '#2D2D2D']}
                         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                         style={styles.heroCard}
                     >
@@ -83,31 +90,35 @@ export default function HelpSupportScreen() {
 
                 {/* FAQs */}
                 <Animated.View entering={FadeInUp.delay(200).duration(400)}>
-                    <Text style={styles.sectionLabel}>Frequently Asked Questions</Text>
+                    <Text style={[styles.sectionLabel, { color: tokens.textMuted }]}>Frequently Asked Questions</Text>
                     <View style={styles.faqList}>
                         {FAQS.map((faq, idx) => {
                             const isOpen = openId === idx;
                             return (
                                 <Animated.View key={idx} layout={Layout.springify().damping(18)}>
-                                    <View style={[styles.faqItem, isOpen && styles.faqOpenItem]}>
+                                    <View style={[
+                                        styles.faqItem, 
+                                        { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle },
+                                        isOpen && { borderColor: 'rgba(6, 182, 212, 0.3)' }
+                                    ]}>
                                         <TouchableOpacity
                                             style={styles.faqHeader}
                                             activeOpacity={0.6}
                                             onPress={() => toggleFaq(idx)}
                                         >
-                                            <Text style={[styles.faqQ, isOpen && { color: '#06B6D4' }]}>{faq.q}</Text>
-                                            <View style={[styles.faqIcon, isOpen && styles.faqIconOpen]}>
+                                            <Text style={[styles.faqQ, { color: tokens.textPrimary }, isOpen && { color: '#06B6D4' }]}>{faq.q}</Text>
+                                            <View style={[styles.faqIcon, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F5F5F7' }, isOpen && styles.faqIconOpen]}>
                                                 <Ionicons
                                                     name="chevron-down"
                                                     size={16}
-                                                    color={isOpen ? '#06B6D4' : '#8E8E93'}
+                                                    color={isOpen ? '#06B6D4' : tokens.textMuted}
                                                     style={{ transform: [{ rotate: isOpen ? '180deg' : '0deg' }] }}
                                                 />
                                             </View>
                                         </TouchableOpacity>
 
                                         {isOpen && (
-                                            <Animated.Text entering={FadeInDown.duration(200)} style={styles.faqA}>
+                                            <Animated.Text entering={FadeInDown.duration(200)} style={[styles.faqA, { color: tokens.textMuted }]}>
                                                 {faq.a}
                                             </Animated.Text>
                                         )}
@@ -120,15 +131,19 @@ export default function HelpSupportScreen() {
 
                 {/* Legal Links */}
                 <Animated.View entering={FadeInUp.delay(300).duration(400)}>
-                    <Text style={styles.sectionLabel}>Legal</Text>
-                    <View style={styles.legalList}>
-                        <TouchableOpacity style={[styles.legalBtn, styles.borderBottom]} onPress={() => router.push('/privacy-security')} activeOpacity={0.7}>
-                            <Text style={styles.legalTxt}>Privacy Policy</Text>
-                            <Ionicons name="open-outline" size={16} color="#8E8E93" />
+                    <Text style={[styles.sectionLabel, { color: tokens.textMuted }]}>Legal</Text>
+                    <View style={[styles.legalList, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
+                        <TouchableOpacity 
+                            style={[styles.legalBtn, { borderBottomWidth: 1, borderBottomColor: tokens.borderSubtle }]} 
+                            onPress={() => router.push('/privacy-security')} 
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[styles.legalTxt, { color: tokens.textPrimary }]}>Privacy Policy</Text>
+                            <Ionicons name="open-outline" size={16} color={tokens.textMuted} />
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.legalBtn} activeOpacity={0.7}>
-                            <Text style={styles.legalTxt}>Terms & Conditions</Text>
-                            <Ionicons name="open-outline" size={16} color="#8E8E93" />
+                            <Text style={[styles.legalTxt, { color: tokens.textPrimary }]}>Terms & Conditions</Text>
+                            <Ionicons name="open-outline" size={16} color={tokens.textMuted} />
                         </TouchableOpacity>
                     </View>
                 </Animated.View>
@@ -140,14 +155,14 @@ export default function HelpSupportScreen() {
 }
 
 const styles = StyleSheet.create({
-    root: { flex: 1, backgroundColor: '#FAFAFC' },
+    root: { flex: 1 },
     header: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
         paddingHorizontal: 20, paddingVertical: 16,
-        backgroundColor: '#FAFAFC', zIndex: 10,
+        zIndex: 10,
     },
     backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'flex-start' },
-    headerTitle: { fontSize: 18, fontWeight: '800', color: '#111' },
+    headerTitle: { fontSize: 18, fontWeight: '800' },
 
     scrollContent: { padding: 24, paddingTop: 10 },
 
@@ -172,45 +187,40 @@ const styles = StyleSheet.create({
     emailTxt: { fontSize: 14, fontWeight: '800', color: '#111' },
 
     sectionLabel: {
-        fontSize: 12, fontWeight: '800', color: '#8E8E93',
+        fontSize: 12, fontWeight: '800',
         textTransform: 'uppercase', letterSpacing: 1.2,
         marginBottom: 10, marginLeft: 8,
     },
 
     faqList: { marginBottom: 32 },
     faqItem: {
-        backgroundColor: '#fff',
-        borderWidth: 1, borderColor: '#F2F2F7',
+        borderWidth: 1,
         borderRadius: 20, marginBottom: 16, overflow: 'hidden',
         shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.03, shadowRadius: 8, elevation: 1,
-    },
-    faqOpenItem: {
-        borderColor: 'rgba(6, 182, 212, 0.3)',
     },
     faqHeader: {
         flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
         padding: 16, gap: 12,
     },
-    faqQ: { flex: 1, fontSize: 14, fontWeight: '700', color: '#111', lineHeight: 22 },
+    faqQ: { flex: 1, fontSize: 14, fontWeight: '700', lineHeight: 22 },
     faqIcon: {
         width: 32, height: 32, borderRadius: 16,
-        backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center',
+        justifyContent: 'center', alignItems: 'center',
     },
     faqIconOpen: { backgroundColor: 'rgba(6, 182, 212, 0.08)' },
     faqA: {
-        fontSize: 13, color: '#8E8E93', fontWeight: '500',
+        fontSize: 13, fontWeight: '500',
         paddingHorizontal: 16, paddingBottom: 20, paddingTop: 0,
         lineHeight: 22,
     },
 
     legalList: {
-        backgroundColor: '#fff', borderRadius: 20,
-        borderWidth: 1, borderColor: '#F2F2F7', overflow: 'hidden',
+        borderRadius: 20,
+        borderWidth: 1, overflow: 'hidden',
         shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.03, shadowRadius: 8, elevation: 1,
     },
     legalBtn: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
-    borderBottom: { borderBottomWidth: 1, borderBottomColor: '#F2F2F7' },
-    legalTxt: { fontSize: 14, fontWeight: '700', color: '#111' },
+    legalTxt: { fontSize: 14, fontWeight: '700' },
 });

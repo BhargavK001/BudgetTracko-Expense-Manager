@@ -16,6 +16,8 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useTransactions, CATEGORY_ICONS, CATEGORY_COLORS, Category, mapCategoryIcon } from '@/context/TransactionContext';
 import AddTransactionModal from '@/components/AddTransactionModal';
 import { useSettings } from '@/context/SettingsContext';
+import { LucideCategoryIcon } from '@/app/features/categories';
+import { useThemeStyles } from '@/components/more/DesignSystem';
 
 function fmt(n: number, formatCurrency: (n: number) => string): string {
     return formatCurrency(Math.abs(n));
@@ -33,12 +35,10 @@ const FILTERS = [
     { key: 'transfer', label: 'Transfer' },
 ];
 
-const TransactionRow = React.memo(({ tx, index, onPress, formatCurrency }: { tx: any; index: number; onPress: () => void; formatCurrency: (n: number) => string }) => {
-    const rawIcon = CATEGORY_ICONS[tx.category as Category] || 'receipt-outline';
-    const iconName = rawIcon ? mapCategoryIcon(rawIcon) : 'receipt-outline';
-    const iconColor = CATEGORY_COLORS[tx.category as Category] || '#111';
+const TransactionRow = React.memo(({ tx, index, onPress, formatCurrency, getCategoryMeta, tokens }: { tx: any; index: number; onPress: () => void; formatCurrency: (n: number) => string; getCategoryMeta: (name: string) => { icon: string; color: string; isLucide: boolean }; tokens: any }) => {
+    const meta = getCategoryMeta(tx.category || 'Other');
+    const iconColor = meta.color;
 
-    // Only animate the first 10 items to prevent off-screen layout jitter
     const isInitial = index < 10;
 
     return (
@@ -46,22 +46,26 @@ const TransactionRow = React.memo(({ tx, index, onPress, formatCurrency }: { tx:
             entering={isInitial ? FadeInDown.delay(50 + index * 30).duration(300) : undefined}
         >
             <TouchableOpacity
-                style={styles.txRow}
+                style={[styles.txRow, { borderBottomColor: tokens.borderSubtle }]}
                 onPress={onPress}
                 activeOpacity={0.7}
             >
                 <View style={[styles.txIconWrap, { backgroundColor: iconColor + '15' }]}>
-                    <Ionicons name={iconName as any} size={20} color={iconColor} />
+                    {meta.isLucide ? (
+                        <LucideCategoryIcon name={meta.icon} size={20} color={iconColor} />
+                    ) : (
+                        <Ionicons name={mapCategoryIcon(meta.icon) as any} size={20} color={iconColor} />
+                    )}
                 </View>
                 <View style={styles.txMid}>
-                    <Text style={styles.txTitle} numberOfLines={1}>{tx.title}</Text>
+                    <Text style={[styles.txTitle, { color: tokens.textPrimary }]} numberOfLines={1}>{tx.title}</Text>
                     <View style={styles.txMeta}>
-                        <Text style={styles.txCat}>{tx.category || 'General'}</Text>
-                        <Text style={styles.txDot}>·</Text>
-                        <Text style={styles.txDate}>{fmtDate(tx.day, tx.month, tx.year)}</Text>
+                        <Text style={[styles.txCat, { color: tokens.textMuted }]}>{tx.category || 'General'}</Text>
+                        <Text style={[styles.txDot, { color: tokens.borderSubtle }]}>·</Text>
+                        <Text style={[styles.txDate, { color: tokens.textMuted }]}>{fmtDate(tx.day, tx.month, tx.year)}</Text>
                     </View>
                 </View>
-                <Text style={[styles.txAmt, { color: tx.type === 'income' ? '#2DCA72' : '#111' }]}>
+                <Text style={[styles.txAmt, { color: tx.type === 'income' ? '#2DCA72' : tokens.textPrimary }]}>
                     {tx.type === 'income' ? '+' : '−'}{fmt(tx.amount, formatCurrency)}
                 </Text>
             </TouchableOpacity>
@@ -72,8 +76,9 @@ const TransactionRow = React.memo(({ tx, index, onPress, formatCurrency }: { tx:
 export default function TransactionsScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { formatCurrency } = useSettings();
-    const { transactions, refreshTransactions } = useTransactions();
+    const { tokens } = useThemeStyles();
+    const { formatCurrency, isDarkMode } = useSettings();
+    const { transactions, refreshTransactions, getCategoryMeta } = useTransactions();
     const [filter, setFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [dateFilter, setDateFilter] = useState<Date | null>(null);
@@ -118,24 +123,33 @@ export default function TransactionsScreen() {
     }, []);
 
     const renderItem = useCallback(({ item: tx, index: i }: { item: any; index: number }) => {
-        return <TransactionRow tx={tx} index={i} onPress={() => handleRowPress(tx)} formatCurrency={formatCurrency} />;
-    }, [handleRowPress, formatCurrency]);
+        return (
+            <TransactionRow
+                tx={tx}
+                index={i}
+                onPress={() => handleRowPress(tx)}
+                formatCurrency={formatCurrency}
+                getCategoryMeta={getCategoryMeta}
+                tokens={tokens}
+            />
+        );
+    }, [handleRowPress, formatCurrency, getCategoryMeta, tokens]);
 
     const keyExtractor = useCallback((item: any) => item.id || item._id, []);
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <StatusBar barStyle="dark-content" />
+        <View style={[styles.container, { backgroundColor: tokens.bgPrimary, paddingTop: insets.top }]}>
+            <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
             {/* Header */}
-            <Animated.View entering={FadeIn} style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton} activeOpacity={0.7}>
-                    <Ionicons name="arrow-back" size={20} color="#111" />
+            <Animated.View entering={FadeIn} style={[styles.header, { borderBottomColor: tokens.borderSubtle }]}>
+                <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: tokens.bgSecondary }]} activeOpacity={0.7}>
+                    <Ionicons name="arrow-back" size={20} color={tokens.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>All Transactions</Text>
-                <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePickerBtn}>
-                    <Ionicons name="calendar-outline" size={20} color={dateFilter ? "#fff" : "#111"} />
-                    {dateFilter && <View style={styles.datePickerDot} />}
+                <Text style={[styles.headerTitle, { color: tokens.textPrimary }]}>All Transactions</Text>
+                <TouchableOpacity onPress={() => setShowDatePicker(true)} style={[styles.datePickerBtn, { backgroundColor: dateFilter ? '#6366F1' : tokens.bgSecondary }]}>
+                    <Ionicons name="calendar-outline" size={20} color={dateFilter ? "#fff" : tokens.textPrimary} />
+                    {dateFilter && <View style={[styles.datePickerDot, { borderColor: tokens.bgPrimary }]} />}
                 </TouchableOpacity>
             </Animated.View>
 
@@ -153,12 +167,12 @@ export default function TransactionsScreen() {
             )}
 
             {/* Search Bar */}
-            <View style={styles.searchContainer}>
-                <Ionicons name="search" size={18} color="#8E8E93" style={styles.searchIcon} />
+            <View style={[styles.searchContainer, { backgroundColor: tokens.bgSecondary }]}>
+                <Ionicons name="search" size={18} color={tokens.textMuted} style={styles.searchIcon} />
                 <TextInput
-                    style={styles.searchInput}
+                    style={[styles.searchInput, { color: tokens.textPrimary }]}
                     placeholder="Search transactions..."
-                    placeholderTextColor="#8E8E93"
+                    placeholderTextColor={tokens.textMuted}
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     returnKeyType="search"
@@ -168,22 +182,33 @@ export default function TransactionsScreen() {
                         onPress={() => { setSearchQuery(''); setDateFilter(null); }}
                         style={styles.clearSearchBtn}
                     >
-                        <Ionicons name="close-circle" size={16} color="#8E8E93" />
+                        <Ionicons name="close-circle" size={16} color={tokens.textMuted} />
                     </TouchableOpacity>
                 )}
             </View>
 
             {/* Filters */}
             <View style={styles.filterContainer}>
-                {FILTERS.map(f => (
-                    <TouchableOpacity
-                        key={f.key}
-                        style={[styles.filterBtn, filter === f.key && styles.filterBtnActive]}
-                        onPress={() => setFilter(f.key)}
-                    >
-                        <Text style={[styles.filterTxt, filter === f.key && styles.filterTxtActive]}>{f.label}</Text>
-                    </TouchableOpacity>
-                ))}
+                {FILTERS.map(f => {
+                    const isActive = filter === f.key;
+                    return (
+                        <TouchableOpacity
+                            key={f.key}
+                            style={[
+                                styles.filterBtn,
+                                { backgroundColor: isActive ? (isDarkMode ? tokens.textPrimary : '#111') : tokens.bgSecondary }
+                            ]}
+                            onPress={() => setFilter(f.key)}
+                        >
+                            <Text style={[
+                                styles.filterTxt,
+                                { color: isActive ? (isDarkMode ? tokens.bgPrimary : '#fff') : tokens.textMuted }
+                            ]}>
+                                {f.label}
+                            </Text>
+                        </TouchableOpacity>
+                    );
+                })}
             </View>
 
             {/* List */}
@@ -200,9 +225,9 @@ export default function TransactionsScreen() {
                 updateCellsBatchingPeriod={50}
                 ListEmptyComponent={
                     <View style={styles.emptyState}>
-                        <Ionicons name="receipt-outline" size={48} color="#E5E5EA" />
-                        <Text style={styles.emptyTitle}>No transactions found</Text>
-                        <Text style={styles.emptyDesc}>You don't have any matching transactions.</Text>
+                        <Ionicons name="receipt-outline" size={48} color={tokens.borderSubtle} />
+                        <Text style={[styles.emptyTitle, { color: tokens.textPrimary }]}>No transactions found</Text>
+                        <Text style={[styles.emptyDesc, { color: tokens.textMuted }]}>You don't have any matching transactions.</Text>
                     </View>
                 }
             />
@@ -226,7 +251,6 @@ export default function TransactionsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
     },
     header: {
         flexDirection: 'row',
@@ -235,26 +259,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: 24,
         paddingVertical: 14,
         borderBottomWidth: 1,
-        borderBottomColor: '#F2F2F7',
     },
     backButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#F5F5F5',
         justifyContent: 'center',
         alignItems: 'center',
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: '800',
-        color: '#111',
     },
     datePickerBtn: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#F5F5F5',
         justifyContent: 'center',
         alignItems: 'center',
         position: 'relative'
@@ -267,13 +287,11 @@ const styles = StyleSheet.create({
         height: 8,
         borderRadius: 4,
         backgroundColor: '#F43F5E',
-        borderWidth: 1,
-        borderColor: '#fff'
+        borderWidth: 2,
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F5F5F5',
         marginHorizontal: 24,
         marginTop: 16,
         borderRadius: 12,
@@ -286,7 +304,6 @@ const styles = StyleSheet.create({
     searchInput: {
         flex: 1,
         fontSize: 15,
-        color: '#111',
     },
     clearSearchBtn: {
         padding: 4,
@@ -301,18 +318,10 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: '#F5F5F5',
-    },
-    filterBtnActive: {
-        backgroundColor: '#111',
     },
     filterTxt: {
         fontSize: 13,
         fontWeight: '600',
-        color: '#8E8E93',
-    },
-    filterTxtActive: {
-        color: '#fff',
     },
     listContent: {
         paddingHorizontal: 24,
@@ -323,7 +332,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 14,
         borderBottomWidth: 1,
-        borderBottomColor: '#F9F9FB',
     },
     txIconWrap: {
         width: 44,
@@ -339,7 +347,6 @@ const styles = StyleSheet.create({
     txTitle: {
         fontSize: 15,
         fontWeight: '700',
-        color: '#111',
         marginBottom: 3,
     },
     txMeta: {
@@ -349,16 +356,13 @@ const styles = StyleSheet.create({
     },
     txCat: {
         fontSize: 11,
-        color: '#8E8E93',
         fontWeight: '500',
     },
     txDot: {
         fontSize: 11,
-        color: '#C7C7CC',
     },
     txDate: {
         fontSize: 11,
-        color: '#8E8E93',
         fontWeight: '500',
     },
     txAmt: {
@@ -374,10 +378,8 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#111',
     },
     emptyDesc: {
         fontSize: 14,
-        color: '#8E8E93',
     },
 });

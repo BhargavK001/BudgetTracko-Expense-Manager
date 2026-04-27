@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
 import Animated, { FadeInDown, FadeIn, ZoomIn } from 'react-native-reanimated';
 import { useSettings } from '@/context/SettingsContext';
+import { useThemeStyles } from '@/components/more/DesignSystem';
 
 const PLANS = [
     {
@@ -123,15 +124,21 @@ export default function PremiumScreen() {
             setLoading(false);
         }
     };
+    const { isDarkMode, tokens } = useThemeStyles();
+
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <StatusBar barStyle="dark-content" />
+        <View style={[styles.container, { paddingTop: insets.top, backgroundColor: tokens.bgPrimary }]}>
+            <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} />
 
             <Animated.View entering={FadeIn.delay(50).duration(300)} style={[styles.header, { paddingHorizontal: horizontalPadding }]}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-                    <Ionicons name="arrow-back" size={20} color="#111" />
+                <TouchableOpacity 
+                    onPress={() => router.back()} 
+                    style={[styles.backBtn, { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderDefault }]} 
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="arrow-back" size={20} color={tokens.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Upgrade to Pro</Text>
+                <Text style={[styles.headerTitle, { color: tokens.textPrimary }]}>Upgrade to Pro</Text>
                 <View style={{ width: 40 }} />
             </Animated.View>
 
@@ -151,32 +158,32 @@ export default function PremiumScreen() {
                     {/* Hero */}
                     <Animated.View entering={FadeInDown.delay(100).duration(600)}>
                         <View style={styles.heroSection}>
-                            <View style={styles.heroBadge}>
+                            <View style={[styles.heroBadge, { backgroundColor: isDarkMode ? 'rgba(245,158,11,0.15)' : 'rgba(245,158,11,0.1)' }]}>
                                 <Ionicons name="sparkles" size={12} color="#F59E0B" />
                                 <Text style={styles.heroBadgeText}>PREMIUM FEATURES</Text>
                             </View>
-                            <Text style={styles.heroTitle}>Upgrade to Pro</Text>
-                            <Text style={styles.heroDesc}>
+                            <Text style={[styles.heroTitle, { color: tokens.textPrimary }]}>Upgrade to Pro</Text>
+                            <Text style={[styles.heroDesc, { color: tokens.textMuted }]}>
                                 Unleash the full potential of your finances with advanced AI insights and unlimited tracking.
                             </Text>
                         </View>
                     </Animated.View>
 
                     {/* Billing Toggle */}
-                    <Animated.View entering={FadeIn.delay(200).duration(400)} style={styles.toggleContainer}>
+                    <Animated.View entering={FadeIn.delay(200).duration(400)} style={[styles.toggleContainer, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F5F5F5' }]}>
                         <TouchableOpacity
-                            style={[styles.toggleBtn, billingPeriod === 'monthly' && styles.toggleBtnActive]}
+                            style={[styles.toggleBtn, billingPeriod === 'monthly' && [styles.toggleBtnActive, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#fff' }]]}
                             onPress={() => setBillingPeriod('monthly')}
                             activeOpacity={0.8}
                         >
-                            <Text style={[styles.toggleText, billingPeriod === 'monthly' && styles.toggleTextActive]}>Monthly</Text>
+                            <Text style={[styles.toggleText, billingPeriod === 'monthly' && [styles.toggleTextActive, { color: tokens.textPrimary }]]}>Monthly</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={[styles.toggleBtn, billingPeriod === 'yearly' && styles.toggleBtnActive]}
+                            style={[styles.toggleBtn, billingPeriod === 'yearly' && [styles.toggleBtnActive, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#fff' }]]}
                             onPress={() => setBillingPeriod('yearly')}
                             activeOpacity={0.8}
                         >
-                            <Text style={[styles.toggleText, billingPeriod === 'yearly' && styles.toggleTextActive]}>Yearly</Text>
+                            <Text style={[styles.toggleText, billingPeriod === 'yearly' && [styles.toggleTextActive, { color: tokens.textPrimary }]]}>Yearly</Text>
                             <View style={styles.discountBadge}>
                                 <Text style={styles.discountBadgeText}>-20%</Text>
                             </View>
@@ -197,8 +204,9 @@ export default function PremiumScreen() {
                                         activeOpacity={0.9}
                                         style={[
                                             styles.planCard,
-                                            isSelected && styles.planCardActive,
-                                            plan.isPopular && styles.planCardPopular
+                                            { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderDefault },
+                                            isSelected && [styles.planCardActive, { borderColor: tokens.purple.stroke || '#6366F1' }],
+                                            plan.isPopular && [styles.planCardPopular, { backgroundColor: isDarkMode ? '#1e1b4b' : '#1E293B', borderColor: isDarkMode ? tokens.purple.stroke : '#1E293B' }]
                                         ]}
                                     >
                                         {plan.isPopular && (
@@ -214,30 +222,30 @@ export default function PremiumScreen() {
                                         <View style={styles.planHeader}>
                                             <View style={{ flex: 1 }}>
                                                 <View style={styles.planTitleRow}>
-                                                    <Text style={[styles.planName, plan.isPopular && styles.planNamePopular]}>{plan.name}</Text>
-                                                    {plan.id === 'pro' && <Ionicons name="ribbon" size={16} color={plan.isPopular ? "#F59E0B" : "#6366F1"} style={{ marginLeft: 6 }} />}
+                                                    <Text style={[styles.planName, { color: tokens.textPrimary }, plan.isPopular && styles.planNamePopular]}>{plan.name}</Text>
+                                                    {plan.id === 'pro' && <Ionicons name="ribbon" size={16} color="#F59E0B" style={{ marginLeft: 6 }} />}
                                                 </View>
-                                                <Text style={[styles.planDesc, plan.isPopular && styles.planDescPopular]}>{plan.desc}</Text>
+                                                <Text style={[styles.planDesc, { color: tokens.textMuted }, plan.isPopular && styles.planDescPopular]}>{plan.desc}</Text>
                                             </View>
                                             <View style={styles.priceWrap}>
-                                                <Text style={[styles.planPrice, plan.isPopular && styles.planPricePopular]}>
+                                                <Text style={[styles.planPrice, { color: tokens.textPrimary }, plan.isPopular && styles.planPricePopular]}>
                                                     {price === 0 ? 'Free' : formatCurrency(price as number)}
                                                 </Text>
-                                                <Text style={[styles.planPeriod, plan.isPopular && styles.planPeriodPopular]}>{periodText}</Text>
+                                                <Text style={[styles.planPeriod, { color: tokens.textMuted }, plan.isPopular && styles.planPeriodPopular]}>{periodText}</Text>
                                             </View>
                                         </View>
 
                                         <View style={styles.featuresList}>
                                             {plan.features.map((feature, i) => (
                                                 <View key={i} style={styles.featureRow}>
-                                                    <View style={[styles.checkCircle, plan.isPopular && styles.checkCirclePopular]}>
+                                                    <View style={[styles.checkCircle, { backgroundColor: isDarkMode ? 'rgba(99,102,241,0.15)' : 'rgba(99,102,241,0.1)' }, plan.isPopular && styles.checkCirclePopular]}>
                                                         <Ionicons
                                                             name="checkmark"
                                                             size={12}
-                                                            color={plan.isPopular ? '#fff' : '#6366F1'}
+                                                            color={plan.isPopular ? '#fff' : (tokens.purple.stroke || '#6366F1')}
                                                         />
                                                     </View>
-                                                    <Text style={[styles.featureText, plan.isPopular && styles.featureTextPopular]}>
+                                                    <Text style={[styles.featureText, { color: tokens.textSecondary }, plan.isPopular && styles.featureTextPopular]}>
                                                         {feature}
                                                     </Text>
                                                 </View>
@@ -252,8 +260,13 @@ export default function PremiumScreen() {
             </ScrollView>
 
             {/* Bottom CTA */}
-            <View style={[styles.bottomCard, { paddingBottom: Math.max(insets.bottom, 24) }]}>
-                <TouchableOpacity style={styles.ctaButton} activeOpacity={0.9} onPress={handleUpgrade} disabled={loading}>
+            <View style={[styles.bottomCard, { 
+                paddingBottom: Math.max(insets.bottom, 24),
+                backgroundColor: tokens.bgPrimary,
+                borderTopColor: tokens.borderDefault,
+                shadowColor: isDarkMode ? '#000' : tokens.shadowColor
+            }]}>
+                <TouchableOpacity style={[styles.ctaButton, { backgroundColor: tokens.purple.stroke || '#6366F1', shadowColor: tokens.purple.stroke || '#6366F1' }]} activeOpacity={0.9} onPress={handleUpgrade} disabled={loading}>
                     {loading ? (
                         <ActivityIndicator color="#fff" size="small" />
                     ) : (
@@ -266,10 +279,10 @@ export default function PremiumScreen() {
                     )}
                 </TouchableOpacity>
                 <View style={styles.trustRow}>
-                    <Ionicons name="shield-checkmark" size={12} color="#8E8E93" />
-                    <Text style={styles.trustText}>Secure payment • Cancel anytime</Text>
+                    <Ionicons name="shield-checkmark" size={12} color={tokens.textMuted} />
+                    <Text style={[styles.trustText, { color: tokens.textMuted }]}>Secure payment • Cancel anytime</Text>
                 </View>
-                <Text style={styles.termsText}>
+                <Text style={[styles.termsText, { color: tokens.textMuted }]}>
                     By upgrading, you agree to our Terms & Privacy Policy.
                 </Text>
             </View>
@@ -280,7 +293,6 @@ export default function PremiumScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFAFC',
     },
     header: {
         flexDirection: 'row',
@@ -292,16 +304,13 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#fff',
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: '#F2F2F7',
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: '800',
-        color: '#111',
     },
     scrollView: {
         flex: 1,
@@ -340,13 +349,11 @@ const styles = StyleSheet.create({
     heroTitle: {
         fontSize: 28,
         fontWeight: '900',
-        color: '#111',
         marginBottom: 10,
         textAlign: 'center',
     },
     heroDesc: {
         fontSize: 14,
-        color: '#8E8E93',
         textAlign: 'center',
         lineHeight: 20,
         paddingHorizontal: 20,
@@ -354,7 +361,6 @@ const styles = StyleSheet.create({
     },
     toggleContainer: {
         flexDirection: 'row',
-        backgroundColor: '#F5F5F5',
         marginHorizontal: 20,
         padding: 4,
         borderRadius: 24,
@@ -369,7 +375,6 @@ const styles = StyleSheet.create({
         borderRadius: 20,
     },
     toggleBtnActive: {
-        backgroundColor: '#fff',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
@@ -379,10 +384,8 @@ const styles = StyleSheet.create({
     toggleText: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#8E8E93',
     },
     toggleTextActive: {
-        color: '#111',
     },
     discountBadge: {
         backgroundColor: '#2DCA72',
@@ -401,11 +404,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
     },
     planCard: {
-        backgroundColor: '#fff',
         borderRadius: 24,
         padding: 24,
         borderWidth: 1.5,
-        borderColor: '#F2F2F7',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.03,
@@ -413,13 +414,10 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     planCardActive: {
-        borderColor: '#6366F1',
         shadowOpacity: 0.08,
         shadowRadius: 15,
     },
     planCardPopular: {
-        backgroundColor: '#1E293B',
-        borderColor: '#1E293B',
     },
     popularBadge: {
         position: 'absolute',
@@ -450,14 +448,12 @@ const styles = StyleSheet.create({
     planName: {
         fontSize: 20,
         fontWeight: '900',
-        color: '#111',
     },
     planNamePopular: {
         color: '#fff',
     },
     planDesc: {
         fontSize: 13,
-        color: '#8E8E93',
         marginTop: 4,
         lineHeight: 18,
         fontWeight: '500',
@@ -471,14 +467,12 @@ const styles = StyleSheet.create({
     planPrice: {
         fontSize: 24,
         fontWeight: '900',
-        color: '#111',
     },
     planPricePopular: {
         color: '#fff',
     },
     planPeriod: {
         fontSize: 12,
-        color: '#8E8E93',
         fontWeight: '700',
     },
     planPeriodPopular: {
@@ -505,7 +499,6 @@ const styles = StyleSheet.create({
     },
     featureText: {
         fontSize: 14,
-        color: '#4B5563',
         fontWeight: '500',
     },
     featureTextPopular: {
@@ -516,22 +509,18 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'rgba(255,255,255,0.95)',
         paddingTop: 16,
         paddingHorizontal: 24,
         borderTopWidth: 1,
-        borderTopColor: '#F2F2F7',
     },
     ctaButton: {
         width: '100%',
         height: 56,
         borderRadius: 18,
-        backgroundColor: '#6366F1',
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 10,
-        shadowColor: '#6366F1',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 10,
@@ -545,7 +534,6 @@ const styles = StyleSheet.create({
     },
     termsText: {
         fontSize: 11,
-        color: '#A1A1AA',
         textAlign: 'center',
         lineHeight: 16,
         fontWeight: '500',
@@ -559,7 +547,6 @@ const styles = StyleSheet.create({
     },
     trustText: {
         fontSize: 12,
-        color: '#8E8E93',
         fontWeight: '600',
     },
 });

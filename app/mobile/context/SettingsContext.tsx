@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import { useColorScheme } from 'react-native';
 
 export type CurrencySymbol = '₹' | '$' | '€' | '£' | '¥';
+export type AppTheme = 'light' | 'dark' | 'system';
 
 interface SettingsContextType {
     currency: CurrencySymbol;
@@ -11,6 +13,9 @@ interface SettingsContextType {
     hapticEnabled: boolean;
     setHapticEnabled: (enabled: boolean) => Promise<void>;
     triggerHaptic: (style?: Haptics.ImpactFeedbackStyle) => void;
+    appTheme: AppTheme;
+    setAppTheme: (theme: AppTheme) => Promise<void>;
+    isDarkMode: boolean;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -18,6 +23,9 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
     const [currency, setCurrencyState] = useState<CurrencySymbol>('₹');
     const [hapticEnabled, setHapticEnabledState] = useState(true);
+    const [appTheme, setAppThemeState] = useState<AppTheme>('system');
+    
+    const systemColorScheme = useColorScheme();
 
     useEffect(() => {
         const loadSettings = async () => {
@@ -29,6 +37,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
                 const storedHaptic = await AsyncStorage.getItem('hapticEnabled');
                 if (storedHaptic !== null) {
                     setHapticEnabledState(storedHaptic === 'true');
+                }
+                const storedTheme = await AsyncStorage.getItem('appTheme');
+                if (storedTheme) {
+                    setAppThemeState(storedTheme as AppTheme);
                 }
             } catch (error) {
                 console.error('Failed to load settings', error);
@@ -55,6 +67,15 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const setAppTheme = async (theme: AppTheme) => {
+        try {
+            await AsyncStorage.setItem('appTheme', theme);
+            setAppThemeState(theme);
+        } catch (error) {
+            console.error('Failed to save app theme', error);
+        }
+    };
+
     const triggerHaptic = (style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Light) => {
         if (hapticEnabled) {
             Haptics.impactAsync(style);
@@ -63,24 +84,29 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     const formatCurrency = (amount: number, showDecimals = false) => {
         const val = amount || 0;
-
-        // Formatter options
         const opts: Intl.NumberFormatOptions = {
             minimumFractionDigits: showDecimals ? 2 : 0,
             maximumFractionDigits: showDecimals ? 2 : 0,
         };
-
-        // If it's INR, use South Asian numbering system
         if (currency === '₹') {
             return `${currency}${val.toLocaleString('en-IN', opts)}`;
         }
-
-        // Otherwise use standard US/Global numbering
         return `${currency}${val.toLocaleString('en-US', opts)}`;
     };
 
+    const isDarkMode = useMemo(() => {
+        if (appTheme === 'system') {
+            return systemColorScheme === 'dark';
+        }
+        return appTheme === 'dark';
+    }, [appTheme, systemColorScheme]);
+
     return (
-            <SettingsContext.Provider value={{ currency, setCurrency, formatCurrency, hapticEnabled, setHapticEnabled, triggerHaptic }}>
+        <SettingsContext.Provider value={{ 
+            currency, setCurrency, formatCurrency, 
+            hapticEnabled, setHapticEnabled, triggerHaptic,
+            appTheme, setAppTheme, isDarkMode
+        }}>
             {children}
         </SettingsContext.Provider>
     );

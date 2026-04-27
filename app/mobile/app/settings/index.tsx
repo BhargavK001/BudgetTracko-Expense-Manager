@@ -5,20 +5,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
+import { useSettings } from '@/context/SettingsContext';
 import api from '@/services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import { useThemeStyles } from '@/components/more/DesignSystem';
 
 export default function SettingsScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { width } = useWindowDimensions();
     const { isBiometricSupported, hasBiometricKey, enableBiometricLogin, disableBiometricLogin } = useAuth();
+    const { isDarkMode, appTheme, setAppTheme } = useSettings();
+    const { tokens } = useThemeStyles();
+    
     const isCompact = width < 360;
     const isTablet = width >= 768;
     const horizontalPadding = isTablet ? 32 : isCompact ? 16 : 24;
-
-    const [darkMode, setDarkMode] = React.useState(false);
 
     // Persisted general settings
     const CURRENCIES = ['INR (₹)', 'USD ($)', 'EUR (€)', 'GBP (£)', 'JPY (¥)', 'AUD (A$)', 'CAD (C$)'];
@@ -81,13 +84,13 @@ export default function SettingsScreen() {
     ];
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <StatusBar barStyle="dark-content" />
+        <View style={[styles.container, { backgroundColor: tokens.bgPrimary, paddingTop: insets.top }]}>
+            <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
             <Animated.View entering={FadeIn.delay(50).duration(300)} style={[styles.header, { paddingHorizontal: horizontalPadding }]}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-                    <Ionicons name="arrow-back" size={20} color="#111" />
+                <TouchableOpacity onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F5F5F5' }]} activeOpacity={0.7}>
+                    <Ionicons name="arrow-back" size={20} color={tokens.textPrimary} />
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>Settings</Text>
+                <Text style={[styles.headerTitle, { color: tokens.textPrimary }]}>Settings</Text>
                 <View style={{ width: 40 }} />
             </Animated.View>
 
@@ -105,24 +108,24 @@ export default function SettingsScreen() {
                 <View style={[styles.contentInner, isTablet && styles.contentInnerTablet]}>
                     <Animated.View entering={FadeInDown.delay(100).duration(400).springify()}>
                         <LinearGradient
-                            colors={['#111', '#1A1C20']}
+                            colors={isDarkMode ? ['#1C1C1E', '#0E0E12'] : ['#111', '#1A1C20']}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
-                            style={[styles.topCard, isCompact && styles.topCardCompact]}
+                            style={[styles.topCard, isCompact && styles.topCardCompact, { borderColor: tokens.borderSubtle }]}
                         >
-                            <View style={styles.topCardIconWrap}>
+                            <View style={[styles.topCardIconWrap, { backgroundColor: isDarkMode ? 'rgba(45,202,114,0.1)' : 'rgba(45,202,114,0.15)' }]}>
                                 <Ionicons name="settings-outline" size={18} color="#2DCA72" />
                             </View>
                             <View style={styles.topCardTextWrap}>
                                 <Text style={styles.topCardTitle}>Preferences & Security</Text>
-                                <Text style={styles.topCardDesc}>Manage app behavior, reminders, and data controls.</Text>
+                                <Text style={[styles.topCardDesc, { color: 'rgba(255,255,255,0.6)' }]}>Manage app behavior, reminders, and data controls.</Text>
                             </View>
                         </LinearGradient>
                     </Animated.View>
 
                     <Animated.View entering={FadeInDown.delay(150).duration(400)}>
-                        <Text style={styles.sectionTitle}>General</Text>
-                        <View style={styles.settingsGroup}>
+                        <Text style={[styles.sectionTitle, { color: tokens.textMuted }]}>General</Text>
+                        <View style={[styles.settingsGroup, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
                             {generalSettings.map((item, index) => (
                                 <SettingItem
                                     key={item.label}
@@ -131,21 +134,26 @@ export default function SettingsScreen() {
                                     value={item.value}
                                     onPress={item.onPress}
                                     isLast={index === generalSettings.length - 1}
+                                    tokens={tokens}
                                 />
                             ))}
                         </View>
                     </Animated.View>
 
                     <Animated.View entering={FadeInDown.delay(200).duration(400)}>
-                        <Text style={styles.sectionTitle}>Preferences</Text>
-                        <View style={styles.settingsGroup}>
+                        <Text style={[styles.sectionTitle, { color: tokens.textMuted }]}>Preferences</Text>
+                        <View style={[styles.settingsGroup, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
                             <ToggleSettingRow
                                 icon="moon-outline"
                                 iconColor="#8B5CF6"
                                 iconTint="rgba(139,92,246,0.12)"
                                 label="Dark Mode"
-                                value={darkMode}
-                                onValueChange={setDarkMode}
+                                value={isDarkMode}
+                                onValueChange={async (v) => {
+                                    await setAppTheme(v ? 'dark' : 'light');
+                                }}
+                                tokens={tokens}
+                                isDarkMode={isDarkMode}
                             />
                             <ToggleSettingRow
                                 icon="finger-print-outline"
@@ -167,14 +175,16 @@ export default function SettingsScreen() {
                                         await disableBiometricLogin();
                                     }
                                 }}
+                                tokens={tokens}
+                                isDarkMode={isDarkMode}
                                 isLast
                             />
                         </View>
                     </Animated.View>
 
                     <Animated.View entering={FadeInDown.delay(250).duration(400)}>
-                        <Text style={styles.sectionTitle}>Notifications</Text>
-                        <View style={styles.settingsGroup}>
+                        <Text style={[styles.sectionTitle, { color: tokens.textMuted }]}>Notifications</Text>
+                        <View style={[styles.settingsGroup, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
                             <SettingItem
                                 icon="notifications-outline"
                                 iconColor="#F59E0B"
@@ -182,13 +192,14 @@ export default function SettingsScreen() {
                                 label="Reminders"
                                 onPress={() => router.push('/settings/reminders' as any)}
                                 isLast
+                                tokens={tokens}
                             />
                         </View>
                     </Animated.View>
 
                     <Animated.View entering={FadeInDown.delay(300).duration(400)}>
-                        <Text style={styles.sectionTitle}>Data Management</Text>
-                        <View style={styles.settingsGroup}>
+                        <Text style={[styles.sectionTitle, { color: tokens.textMuted }]}>Data Management</Text>
+                        <View style={[styles.settingsGroup, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
                             {dataSettings.map((item, index) => (
                                 <SettingItem
                                     key={item.label}
@@ -197,6 +208,7 @@ export default function SettingsScreen() {
                                     color={item.color}
                                     onPress={item.onPress}
                                     isLast={index === dataSettings.length - 1}
+                                    tokens={tokens}
                                 />
                             ))}
                         </View>
@@ -206,9 +218,9 @@ export default function SettingsScreen() {
 
             {/* Picker Modal */}
             <Modal visible={pickerVisible} transparent animationType="fade">
-                <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setPickerVisible(false)}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalTitle}>{pickerTitle}</Text>
+                <TouchableOpacity style={[styles.modalOverlay, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.4)' }]} activeOpacity={1} onPress={() => setPickerVisible(false)}>
+                    <View style={[styles.modalContent, { backgroundColor: isDarkMode ? '#1C1C1E' : '#fff' }]}>
+                        <Text style={[styles.modalTitle, { color: tokens.textPrimary }]}>{pickerTitle}</Text>
                         <FlatList
                             data={pickerOptions}
                             keyExtractor={(item) => item}
@@ -219,10 +231,10 @@ export default function SettingsScreen() {
                                 ) === item;
                                 return (
                                     <TouchableOpacity
-                                        style={[styles.pickerItem, isSelected && styles.pickerItemActive]}
+                                        style={[styles.pickerItem, isSelected && { backgroundColor: isDarkMode ? 'rgba(99,102,241,0.1)' : 'rgba(99,102,241,0.06)' }, { borderBottomColor: tokens.borderSubtle }]}
                                         onPress={() => { pickerOnSelect(item); setPickerVisible(false); }}
                                     >
-                                        <Text style={[styles.pickerItemText, isSelected && { color: '#6366F1', fontWeight: '800' }]}>{item}</Text>
+                                        <Text style={[styles.pickerItemText, { color: tokens.textPrimary }, isSelected && { color: '#6366F1', fontWeight: '800' }]}>{item}</Text>
                                         {isSelected && <Ionicons name="checkmark-circle" size={20} color="#6366F1" />}
                                     </TouchableOpacity>
                                 );
@@ -235,7 +247,7 @@ export default function SettingsScreen() {
     );
 }
 
-function SettingItem({ icon, iconColor, iconTint, label, value, onPress, color, isLast }: {
+function SettingItem({ icon, iconColor, iconTint, label, value, onPress, color, isLast, tokens }: {
     icon: string;
     iconColor?: string;
     iconTint?: string;
@@ -244,21 +256,22 @@ function SettingItem({ icon, iconColor, iconTint, label, value, onPress, color, 
     onPress: () => void;
     color?: string;
     isLast?: boolean;
+    tokens: any;
 }) {
-    const finalIconColor = color || iconColor || '#8E8E93';
-    const finalBgColor = color ? color + '15' : iconTint || '#F5F5F5';
+    const finalIconColor = color || iconColor || tokens.textSecondary;
+    const finalBgColor = color ? color + '15' : iconTint || tokens.bgTertiary;
 
     return (
-        <TouchableOpacity style={[styles.settingRow, isLast && styles.settingRowLast]} onPress={onPress} activeOpacity={0.7}>
+        <TouchableOpacity style={[styles.settingRow, { borderBottomColor: tokens.borderSubtle }, isLast && styles.settingRowLast]} onPress={onPress} activeOpacity={0.7}>
             <View style={styles.settingLeft}>
                 <View style={[styles.settingIcon, { backgroundColor: finalBgColor }]}>
                     <Ionicons name={icon as any} size={18} color={finalIconColor} />
                 </View>
-                <Text style={[styles.settingLabel, color ? { color } : {}]}>{label}</Text>
+                <Text style={[styles.settingLabel, { color: tokens.textPrimary }, color ? { color } : {}]}>{label}</Text>
             </View>
             <View style={styles.settingRight}>
-                {value && <Text style={styles.settingValue}>{value}</Text>}
-                <Ionicons name="chevron-forward" size={16} color="#C7C7CC" />
+                {value && <Text style={[styles.settingValue, { color: tokens.textSecondary }]}>{value}</Text>}
+                <Ionicons name="chevron-forward" size={16} color={tokens.textMuted} />
             </View>
         </TouchableOpacity>
     );
@@ -272,6 +285,8 @@ function ToggleSettingRow({
     value,
     onValueChange,
     isLast,
+    tokens,
+    isDarkMode
 }: {
     icon: string;
     iconColor: string;
@@ -280,21 +295,23 @@ function ToggleSettingRow({
     value: boolean;
     onValueChange: (value: boolean) => void;
     isLast?: boolean;
+    tokens: any;
+    isDarkMode: boolean;
 }) {
     return (
-        <View style={[styles.settingRow, isLast && styles.settingRowLast]}>
+        <View style={[styles.settingRow, { borderBottomColor: tokens.borderSubtle }, isLast && styles.settingRowLast]}>
             <View style={styles.settingLeft}>
                 <View style={[styles.settingIcon, { backgroundColor: iconTint }]}>
                     <Ionicons name={icon as any} size={18} color={iconColor} />
                 </View>
-                <Text style={styles.settingLabel}>{label}</Text>
+                <Text style={[styles.settingLabel, { color: tokens.textPrimary }]}>{label}</Text>
             </View>
             <Switch
                 value={value}
                 onValueChange={onValueChange}
-                trackColor={{ false: '#E5E5EA', true: '#2DCA72' }}
+                trackColor={{ false: isDarkMode ? 'rgba(255,255,255,0.1)' : '#E5E5EA', true: '#2DCA72' }}
                 thumbColor="#fff"
-                ios_backgroundColor="#E5E5EA"
+                ios_backgroundColor={isDarkMode ? 'rgba(255,255,255,0.1)' : '#E5E5EA'}
             />
         </View>
     );
@@ -303,7 +320,6 @@ function ToggleSettingRow({
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
     },
     header: {
         flexDirection: 'row',
@@ -315,14 +331,12 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#F5F5F5',
         justifyContent: 'center',
         alignItems: 'center',
     },
     headerTitle: {
         fontSize: 18,
         fontWeight: '800',
-        color: '#111',
     },
     scrollView: { flex: 1 },
     scrollContent: {
@@ -343,7 +357,6 @@ const styles = StyleSheet.create({
         padding: 24,
         marginBottom: 24,
         borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.08)',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
@@ -359,9 +372,6 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(45,202,114,0.15)',
-        borderWidth: 1,
-        borderColor: 'rgba(45,202,114,0.3)',
     },
     topCardTextWrap: {
         flex: 1,
@@ -374,14 +384,12 @@ const styles = StyleSheet.create({
     },
     topCardDesc: {
         fontSize: 12,
-        color: 'rgba(255,255,255,0.6)',
         fontWeight: '500',
         lineHeight: 18,
     },
     sectionTitle: {
         fontSize: 11,
         fontWeight: '800',
-        color: '#8E8E93',
         marginBottom: 8,
         marginTop: 4,
         textTransform: 'uppercase',
@@ -389,10 +397,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: 8,
     },
     settingsGroup: {
-        backgroundColor: '#fff',
         borderRadius: 20,
         borderWidth: 1,
-        borderColor: '#F2F2F7',
         overflow: 'hidden',
         marginBottom: 24,
         shadowColor: '#000',
@@ -407,7 +413,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#F2F2F7',
     },
     settingRowLast: {
         borderBottomWidth: 0,
@@ -427,7 +432,6 @@ const styles = StyleSheet.create({
     },
     settingLabel: {
         fontSize: 15,
-        color: '#111',
         fontWeight: '600',
         flexShrink: 1,
     },
@@ -438,33 +442,30 @@ const styles = StyleSheet.create({
     },
     settingValue: {
         fontSize: 14,
-        color: '#8E8E93',
         fontWeight: '500',
     },
     modalOverlay: {
-        flex: 1, backgroundColor: 'rgba(0,0,0,0.4)',
+        flex: 1,
         justifyContent: 'flex-end',
     },
     modalContent: {
-        backgroundColor: '#fff', borderTopLeftRadius: 28,
+        borderTopLeftRadius: 28,
         borderTopRightRadius: 28, padding: 24,
         maxHeight: '60%',
     },
     modalTitle: {
-        fontSize: 18, fontWeight: '900', color: '#111',
+        fontSize: 18, fontWeight: '900',
         marginBottom: 16, textAlign: 'center',
     },
     pickerItem: {
         flexDirection: 'row', justifyContent: 'space-between',
         alignItems: 'center', paddingVertical: 16,
         paddingHorizontal: 8, borderBottomWidth: 1,
-        borderBottomColor: '#F2F2F7',
     },
     pickerItemActive: {
-        backgroundColor: 'rgba(99,102,241,0.06)',
         borderRadius: 12,
     },
     pickerItemText: {
-        fontSize: 16, fontWeight: '600', color: '#111',
+        fontSize: 16, fontWeight: '600',
     },
 });

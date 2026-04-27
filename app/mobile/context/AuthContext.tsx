@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import api from '../services/api';
+import * as localDB from '@/services/localDB';
 
 interface User {
     id: string;
@@ -146,6 +147,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = async () => {
         try {
+            // Clear local sync cache
+            localDB.clearAll();
             await AsyncStorage.multiRemove(['token', 'user']);
             setToken(null);
             setUser(null);

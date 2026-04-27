@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     View, Text, StyleSheet, Modal, TouchableOpacity, TextInput,
     ScrollView, KeyboardAvoidingView, Platform, Alert, Image,
-    Dimensions, ActivityIndicator,
+    Dimensions, ActivityIndicator, Animated as RNAnimated,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -13,7 +13,9 @@ import Animated, {
     interpolateColor, useAnimatedProps,
 } from 'react-native-reanimated';
 import api from '@/services/api';
+import * as localDB from '@/services/localDB';
 import { mapCategoryIcon, useTransactions, CategoryItem } from '@/context/TransactionContext';
+import { LucideCategoryIcon } from '@/app/features/categories';
 import { ScanData } from '@/context/QuickActionContext';
 import { useSettings } from '@/context/SettingsContext';
 import { compressImage } from '@/utils/imageCompressor';
@@ -227,24 +229,24 @@ const calStyles = StyleSheet.create({
 // ─── Sliding Pill Toggle ─────────────────────────────────
 function SlidingPillToggle({ active, onChange }: { active: TxType; onChange: (t: TxType) => void }) {
     const pillW = (SCREEN_W - 48 - 8) / 3; // Container padding 24*2, internal gap
-    const slideX = useSharedValue(0);
+    const slideX = useRef(new RNAnimated.Value(0)).current;
 
     useEffect(() => {
         const idx = PILL_TYPES.findIndex(p => p.key === active);
-        slideX.value = withSpring(idx * pillW, { damping: 18, stiffness: 200 });
+        RNAnimated.spring(slideX, {
+            toValue: idx * pillW,
+            useNativeDriver: true,
+            bounciness: 4,
+            speed: 12
+        }).start();
     }, [active, pillW]);
-
-    const indicatorStyle = useAnimatedStyle(() => ({
-        transform: [{ translateX: slideX.value }],
-        width: pillW,
-    }));
 
     const activeColor = PILL_TYPES.find(p => p.key === active)?.color || '#F43F5E';
 
     return (
         <View style={pill.container}>
             {/* Sliding background */}
-            <Animated.View style={[pill.indicator, indicatorStyle, { backgroundColor: activeColor }]} />
+            <RNAnimated.View style={[pill.indicator, { backgroundColor: activeColor, width: pillW, transform: [{ translateX: slideX }] }]} />
             {/* Labels */}
             {PILL_TYPES.map(p => {
                 const isActive = active === p.key;
@@ -305,7 +307,7 @@ interface Props {
 }
 
 export default function AddTransactionModal({ visible, onClose, editingTransaction, onEditSuccess, initialType, scanData }: Props) {
-    const { deleteTransaction, categories: contextCategories, refreshCategories } = useTransactions();
+    const { addTransaction, deleteTransaction, categories: contextCategories, refreshCategories } = useTransactions();
     const { formatCurrency, currency, triggerHaptic } = useSettings();
 
     // ── State ──
@@ -332,14 +334,30 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
     const fetchData = useCallback(async () => {
         setLoadingData(true);
         try {
-            const accRes = await api.get('/api/accounts');
-            const accRaw = accRes.data;
-            const accs = Array.isArray(accRaw) ? accRaw : Array.isArray(accRaw?.data) ? accRaw.data : [];
-            setAccounts(accs);
-            if (accs.length > 0 && !accountId) {
-                setAccountId(accs[0]._id);
-                setFromAccountId(accs[0]._id);
-                if (accs.length > 1) setToAccountId(accs[1]._id);
+            // Read accounts from local DB first (fast, offline-capable)
+            const localAccounts = localDB.getAccounts();
+            if (localAccounts.length > 0) {
+                setAccounts(localAccounts);
+                if (!accountId) {
+                    setAccountId(localAccounts[0]._id);
+                    setFromAccountId(localAccounts[0]._id);
+                    if (localAccounts.length > 1) setToAccountId(localAccounts[1]._id);
+                }
+            } else {
+                // Fallback to API if local cache is empty
+                try {
+                    const accRes = await api.get('/api/accounts');
+                    const accRaw = accRes.data;
+                    const accs = Array.isArray(accRaw) ? accRaw : Array.isArray(accRaw?.data) ? accRaw.data : [];
+                    setAccounts(accs);
+                    if (accs.length > 0 && !accountId) {
+                        setAccountId(accs[0]._id);
+                        setFromAccountId(accs[0]._id);
+                        if (accs.length > 1) setToAccountId(accs[1]._id);
+                    }
+                } catch (e) {
+                    console.log('Failed to load accounts:', e);
+                }
             }
             // Refresh categories in background to ensure latest
             refreshCategories();
@@ -417,11 +435,16 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
             if (type === 'expense') return c.type === 'expense' || c.type === 'both';
             if (type === 'income') return c.type === 'income' || c.type === 'both';
             return false;
-        }).map(c => ({
-            name: c.name,
-            icon: mapCategoryIcon(c.icon || 'ellipsis-horizontal-circle-outline'),
-            color: c.color || '#6366F1',
-        }));
+        }).map(c => {
+            const rawIcon = c.icon || 'ellipsis-horizontal-circle-outline';
+            const isLucide = /^[A-Z]/.test(rawIcon);
+            return {
+                name: c.name,
+                icon: isLucide ? rawIcon : mapCategoryIcon(rawIcon),
+                color: c.color || '#6366F1',
+                isLucide,
+            };
+        });
     };
 
     const displayCats = getDisplayCategories();
@@ -489,46 +512,69 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
 
         setSaving(true);
         try {
-            const formData = new FormData();
-            formData.append('type', type);
-            formData.append('text', title.trim());
-            formData.append('amount', String(num));
-            formData.append('date', date.toISOString());
             const timeStr = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-            formData.append('time', timeStr);
-            if (notes.trim()) formData.append('note', notes.trim());
-
-            if (isTransfer) {
-                formData.append('fromAccountId', fromAccountId!);
-                formData.append('toAccountId', toAccountId!);
-            } else {
-                if (category) formData.append('category', category);
-                if (accountId) formData.append('accountId', accountId);
-            }
-
-            // Attach new images
-            images.forEach((uri, i) => {
-                const name = uri.split('/').pop() || `receipt_${i}.jpg`;
-                const ext = name.split('.').pop()?.toLowerCase() || 'jpg';
-                const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
-                formData.append('attachments', {
-                    uri,
-                    name,
-                    type: mimeType,
-                } as any);
-            });
 
             if (editingTransaction && (editingTransaction._id || editingTransaction.id)) {
+                // For edits, use API directly (supports file uploads + existing attachments)
+                const formData = new FormData();
+                formData.append('type', type);
+                formData.append('text', title.trim());
+                formData.append('amount', String(num));
+                formData.append('date', date.toISOString());
+                formData.append('time', timeStr);
+                if (notes.trim()) formData.append('note', notes.trim());
+
+                if (isTransfer) {
+                    formData.append('fromAccountId', fromAccountId!);
+                    formData.append('toAccountId', toAccountId!);
+                } else {
+                    if (category) formData.append('category', category);
+                    if (accountId) formData.append('accountId', accountId);
+                }
+
+                images.forEach((uri, i) => {
+                    const name = uri.split('/').pop() || `receipt_${i}.jpg`;
+                    const ext = name.split('.').pop()?.toLowerCase() || 'jpg';
+                    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+                    formData.append('attachments', { uri, name, type: mimeType } as any);
+                });
+
                 await api.put(`/api/transactions/${editingTransaction._id || editingTransaction.id}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' },
                     timeout: 30000,
                 });
+
+                // Update local DB after successful API edit
+                localDB.upsertTransaction({
+                    _id: editingTransaction._id || editingTransaction.id,
+                    type, text: title.trim(), amount: num, category: isTransfer ? 'Transfer' : category,
+                    date: date.toISOString(), time: timeStr, note: notes.trim(),
+                    accountId, fromAccountId, toAccountId,
+                    updatedAt: new Date().toISOString(),
+                });
+
                 if (onEditSuccess) onEditSuccess();
             } else {
-                await api.post('/api/transactions', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                    timeout: 30000,
-                });
+                // For new transactions, use context (local-first)
+                await addTransaction({
+                    _id: undefined,
+                    title: title.trim(),
+                    text: title.trim(),
+                    amount: num,
+                    type,
+                    category: isTransfer ? 'Transfer' : (category || 'Other'),
+                    date: date.toISOString(),
+                    month: date.getMonth(),
+                    year: date.getFullYear(),
+                    day: date.getDate(),
+                    time: timeStr,
+                    account: '',
+                    accountId: isTransfer ? undefined : accountId,
+                    fromAccountId: isTransfer ? fromAccountId : undefined,
+                    toAccountId: isTransfer ? toAccountId : undefined,
+                    note: notes.trim(),
+                    attachments: images.length > 0 ? images.map((uri) => ({ url: uri, name: uri.split('/').pop() || 'receipt.jpg' })) : [],
+                } as any);
             }
 
             reset();
@@ -698,7 +744,11 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
                                                         style={[styles.catChip, sel && { borderColor: cat.color, backgroundColor: cat.color + '18' }]}
                                                         onPress={() => setCategory(cat.name)}
                                                     >
-                                                        <Ionicons name={cat.icon as any} size={14} color={sel ? cat.color : '#8E8E93'} />
+                                                        {cat.isLucide ? (
+                                                            <LucideCategoryIcon name={cat.icon} size={14} color={sel ? cat.color : '#8E8E93'} />
+                                                        ) : (
+                                                            <Ionicons name={cat.icon as any} size={14} color={sel ? cat.color : '#8E8E93'} />
+                                                        )}
                                                         <Text style={[styles.catChipTxt, sel && { color: cat.color }]} numberOfLines={1}>{cat.name}</Text>
                                                     </TouchableOpacity>
                                                 </Animated.View>
