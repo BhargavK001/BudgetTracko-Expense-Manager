@@ -17,14 +17,11 @@ export default function SyncOnLogin() {
     useEffect(() => {
         if (isAuthenticated && !hasInitialSynced.current) {
             hasInitialSynced.current = true;
-            console.log('[SyncOnLogin] User authenticated, triggering initial sync...');
 
             (async () => {
                 const success = await triggerFullSync();
-                console.log(`[SyncOnLogin] Full sync ${success ? 'succeeded' : 'failed'}`);
                 if (success) {
                     // Refresh in-memory state from local DB after sync
-                    console.log('[SyncOnLogin] Refreshing local contexts...');
                     await Promise.all([
                         refreshTransactions(),
                         refreshBudgets(),

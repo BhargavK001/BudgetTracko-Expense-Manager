@@ -49,9 +49,7 @@ function getArray<T>(key: string): T[] {
 }
 
 function setArray<T>(key: string, data: T[]): void {
-    const json = JSON.stringify(data || []);
-    console.log(`[localDB] Setting ${key} with ${data?.length || 0} items`);
-    getStorage().set(key, json);
+    getStorage().set(key, JSON.stringify(data || []));
 }
 
 // ─── Transactions ────────────────────────────────────────

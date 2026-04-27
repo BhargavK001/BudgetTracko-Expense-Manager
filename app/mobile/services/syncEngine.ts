@@ -25,16 +25,12 @@ export type SyncStatus = 'idle' | 'syncing' | 'error' | 'offline';
 // ─── Full Sync (on login) ────────────────────────────────
 export async function performFullSync(): Promise<{ success: boolean; error?: string }> {
     try {
-        console.log('[syncEngine] Starting full sync...');
         const response = await api.get<PullResponse>('/api/sync/pull');
         const { data, serverTime } = response.data;
 
         if (!response.data.success) {
-            console.error('[syncEngine] Server returned success:false');
             return { success: false, error: 'Server returned unsuccessful response' };
         }
-
-        console.log(`[syncEngine] Received data: ${data.transactions?.length || 0} txs, ${data.accounts?.length || 0} accounts`);
 
         // Store all data locally
         localDB.setTransactions(data.transactions || []);
@@ -50,7 +46,7 @@ export async function performFullSync(): Promise<{ success: boolean; error?: str
 
         return { success: true };
     } catch (error: any) {
-        console.error('[syncEngine] Full sync failed:', error.message, error.response?.data);
+        console.error('Full sync failed:', error.message);
         return { success: false, error: error.message };
     }
 }

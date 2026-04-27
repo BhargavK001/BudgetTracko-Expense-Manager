@@ -16,8 +16,9 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { ChevronLeft, Cloud, Star } from 'lucide-react-native';
+import { ChevronLeft, Cloud, RefreshCcw, Star } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
+import { useSync } from '@/context/SyncContext';
 import api from '@/services/api';
 import { SectionHeader, WideRow, useThemeStyles } from '@/components/more/DesignSystem';
 
@@ -26,11 +27,13 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, refreshUser } = useAuth();
+  const { syncStatus, lastSynced, pendingChanges, triggerSync, isOnline } = useSync();
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [email, setEmail] = useState(user?.email || '');
   const [avatarUri, setAvatarUri] = useState<string | null>((user as any)?.avatar || null);
   const [saving, setSaving] = useState(false);
+  const [isManualSyncing, setIsManualSyncing] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -163,6 +166,43 @@ export default function EditProfileScreen() {
     ? String(user.subscription.plan).toUpperCase()
     : 'FREE';
 
+  const onManualSync = async () => {
+    if (!isOnline) {
+      Alert.alert('Offline', 'Please check your internet connection to sync.');
+      return;
+    }
+    setIsManualSyncing(true);
+    try {
+      await triggerSync();
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('Sync complete', ToastAndroid.SHORT);
+      }
+    } catch {
+      Alert.alert('Sync Error', 'Failed to synchronize data.');
+    } finally {
+      setIsManualSyncing(false);
+    }
+  };
+
+  const formatSyncTime = (date: Date | null) => {
+    if (!date) return 'Never';
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return date.toLocaleDateString();
+  };
+
+  const getSyncStatusText = () => {
+    if (syncStatus === 'syncing') return 'Syncing...';
+    if (!isOnline) return 'Offline';
+    if (pendingChanges > 0) return `${pendingChanges} unsynced`;
+    return 'Synced';
+  };
+
   return (
     <View style={[styles.root, { paddingTop: insets.top, backgroundColor: tokens.bgSecondary }]}> 
       <StatusBar barStyle={isDarkMode ? "light-content" : "dark-content"} backgroundColor={tokens.bgSecondary} />
@@ -221,13 +261,27 @@ export default function EditProfileScreen() {
           <SectionHeader title="Account" />
           <WideRow
             title="Sync status"
-            subtitle="Cloud backup"
+            subtitle={getSyncStatusText()}
             color={tokens.teal}
             Icon={Cloud}
-            value="Last synced 2h ago"
+            value={formatSyncTime(lastSynced)}
             showChevron={false}
-            onPress={() => null}
+            onPress={onManualSync}
           />
+          
+          <Pressable 
+            onPress={onManualSync} 
+            disabled={syncStatus === 'syncing' || isManualSyncing}
+            style={[
+              styles.syncButton, 
+              { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F1F0F5', borderColor: tokens.borderDefault }
+            ]}
+          >
+            <RefreshCcw size={14} color={tokens.teal.stroke} style={{ marginRight: 8 }} />
+            <Text style={[styles.syncButtonText, { color: tokens.textPrimary }]}>
+              {syncStatus === 'syncing' || isManualSyncing ? 'Syncing...' : 'Sync now'}
+            </Text>
+          </Pressable>
           <WideRow
             title="Plan & billing"
             subtitle="Manage subscription"
@@ -345,5 +399,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  syncButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: -4,
+    marginBottom: 16,
+  },
+  syncButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
