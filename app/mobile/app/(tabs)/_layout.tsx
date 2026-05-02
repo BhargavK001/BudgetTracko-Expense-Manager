@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useRouter } from 'expo-router';
+import { Home, PieChart, Wallet, LayoutGrid, Plus } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue, useAnimatedStyle,
@@ -12,20 +12,17 @@ import { useQuickAction } from '@/context/QuickActionContext';
 import { useSettings } from '@/context/SettingsContext';
 import { useThemeStyles } from '@/components/more/DesignSystem';
 
-type TabIconName = React.ComponentProps<typeof Ionicons>['name'];
-
 type TabConfig = {
   name: string;
   title: string;
-  icon: TabIconName;
-  iconFocused: TabIconName;
+  icon: any;
 };
 
 const TABS: TabConfig[] = [
-  { name: 'index', title: 'Home', icon: 'home-outline', iconFocused: 'home' },
-  { name: 'analysis', title: 'Analytics', icon: 'pie-chart-outline', iconFocused: 'pie-chart' },
-  { name: 'accounts', title: 'Accounts', icon: 'wallet-outline', iconFocused: 'wallet' },
-  { name: 'more', title: 'More', icon: 'grid-outline', iconFocused: 'grid' },
+  { name: 'index', title: 'Home', icon: Home },
+  { name: 'analysis', title: 'Analytics', icon: PieChart },
+  { name: 'accounts', title: 'Accounts', icon: Wallet },
+  { name: 'more', title: 'More', icon: LayoutGrid },
 ];
 
 // ── Bouncy tab item ──────────────────────────────────────────
@@ -40,10 +37,10 @@ const TabItem = React.memo(function TabItem({ tab, isFocused, onPress }: { tab: 
   return (
     <TouchableOpacity style={styles.tabItem} onPress={press} activeOpacity={1}>
       <Animated.View style={[styles.tabItemInner, animStyle]}>
-        <Ionicons
-          name={isFocused ? tab.iconFocused : tab.icon}
-          size={21}
+        <tab.icon
+          size={22}
           color={isFocused ? tokens.textPrimary : tokens.textMuted}
+          strokeWidth={isFocused ? 2.5 : 2}
         />
         {isFocused && <View style={[styles.activeDot, { backgroundColor: '#2DCA72' }]} />}
         <Text style={[
@@ -77,7 +74,7 @@ const FabButton = React.memo(function FabButton({ onPress }: { onPress: () => vo
           shadowColor: isDarkMode ? tokens.purple.stroke : '#111'
         }
       ]}>
-        <Ionicons name="add" size={28} color="#fff" />
+        <Plus size={32} color="#fff" strokeWidth={3} />
       </Animated.View>
     </TouchableOpacity>
   );

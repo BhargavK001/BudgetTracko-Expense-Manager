@@ -107,7 +107,7 @@ export function getTransactions(): any[] {
     }
 
     let years = getAvailableYears();
-    
+
     // Self-repair: If no VALID years are found, check if common years (2020-2030) have data
     if (years.length === 0) {
         const foundYears: number[] = [];
@@ -139,7 +139,7 @@ export function getTransactions(): any[] {
     }
 
     if (years.length === 0) return [];
-    
+
     // Merge all years, strictly filtering out any accidental junk
     return years
         .filter(y => y !== null && typeof y === 'number' && !isNaN(y))
@@ -213,7 +213,7 @@ export function batchUpsertTransactions(txs: any[]): void {
     Object.entries(incomingByYear).forEach(([yearStr, incomingList]) => {
         const year = parseInt(yearStr);
         const currentList = getTransactionsByYear(year);
-        
+
         // Merge incoming into current
         const mergedList = [...currentList];
         incomingList.forEach(newTx => {
@@ -225,14 +225,10 @@ export function batchUpsertTransactions(txs: any[]): void {
                 mergedList.push(newTx);
             }
         });
-        
+
         setTransactionsForYear(year, mergedList);
     });
 
-    // 4. Special Case: If we are NOT in a full sync (where we might clear/overwrite), 
-    // we should technically check if these IDs exist in OTHER years and remove them.
-    // However, for performance, we'll only do this for single upserts.
-    // In batch/full sync, the server data is the source of truth.
 }
 
 export function upsertTransaction(tx: any): void {
@@ -262,7 +258,7 @@ export function upsertTransaction(tx: any): void {
     // Now upsert in the correct year
     const list = getTransactionsByYear(year);
     const idx = list.findIndex((t: any) => (t._id || t.id) === id);
-    
+
     if (idx >= 0) {
         list[idx] = { ...list[idx], ...tx };
     } else {
@@ -454,7 +450,7 @@ export function setDebts(debts: any[]): void {
 export function upsertDebt(debt: any): void {
     const y = new Date(debt.createdAt || debt.date || Date.now()).getFullYear();
     const id = debt._id || debt.id;
-    
+
     // Remove from other years if exists
     getAvailableDebtYears().forEach(yr => {
         if (yr !== y) {
@@ -478,7 +474,7 @@ export function removeDebt(id: string, year?: number): void {
     const yr = year || new Date().getFullYear(); // Fallback if year not provided
     const list = getDebtsByYear(yr).filter(d => (d._id || d.id) !== id);
     setArray(`${KEYS.DEBTS_PREFIX}${yr}`, list);
-    
+
     // Also scan all other years just in case
     getAvailableDebtYears().forEach(y => {
         if (y !== yr) {
@@ -501,7 +497,7 @@ async function getLegacyAsyncStorageQueue(): Promise<SyncQueueItem[]> {
         if (!raw) return [];
         const legacy = JSON.parse(raw);
         await AsyncStorage.removeItem('offline_queue'); // Cleanup immediately
-        
+
         return legacy.map((it: any) => ({
             id: it.id || String(Date.now()),
             action: it.method === 'delete' ? 'delete' : (it.method === 'put' ? 'update' : 'create'),

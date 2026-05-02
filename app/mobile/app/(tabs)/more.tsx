@@ -70,7 +70,7 @@ export default function MoreScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
-  const { appTheme, setAppTheme } = useSettings();
+  const { appTheme, setAppTheme, triggerHaptic } = useSettings();
   const { tokens, isDarkMode } = useThemeStyles();
 
   const currentThemeLabel = useMemo(() => appTheme === 'system'
@@ -100,6 +100,7 @@ export default function MoreScreen() {
   }, [user?.displayName]);
 
   const handleToggleAppearance = useCallback(async () => {
+    triggerHaptic('light' as any);
     if (appTheme === 'system') {
       await setAppTheme(isDarkMode ? 'light' : 'dark');
     } else if (appTheme === 'dark') {
@@ -107,7 +108,7 @@ export default function MoreScreen() {
     } else {
       await setAppTheme('system');
     }
-  }, [appTheme, isDarkMode, setAppTheme]);
+  }, [appTheme, isDarkMode, setAppTheme, triggerHaptic]);
 
   const appVersion = useMemo(() => Constants.expoConfig?.version || '2.0.0', []);
   const planLabel = useMemo(() => user?.subscription?.plan
@@ -262,7 +263,7 @@ export default function MoreScreen() {
           <View style={styles.gridRow}>
             <MiniTile
               title="Appearance"
-              subtitle="Light mode"
+              subtitle={currentThemeLabel}
               color={tokens.gray}
               Icon={isDarkMode ? Moon : Sun}
               onPress={handleToggleAppearance}

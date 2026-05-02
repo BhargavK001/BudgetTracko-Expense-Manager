@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { LucideIcon, ChevronRight, FileText, Info, Shield, Star, Trash2, Clock, HandCoins, AlertCircle, Sparkles } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeIn, FadeOut, ZoomIn, ZoomOut } from 'react-native-reanimated';
 import { useSettings } from '@/context/SettingsContext';
 import { useMemo } from 'react';
 
@@ -206,7 +207,9 @@ export function MiniTile({
   return (
     <Pressable onPress={onPress} style={styles.miniTile}>
       <View style={[styles.iconBox38, { backgroundColor: color.fill }]}> 
-        <Icon size={17} color={color.stroke} strokeWidth={1.7} />
+        <Animated.View key={title + (typeof Icon === 'function' ? Icon.name : '')} entering={ZoomIn.duration(300)} exiting={ZoomOut.duration(200)}>
+          <Icon size={17} color={color.stroke} strokeWidth={1.7} />
+        </Animated.View>
       </View>
       <Text style={styles.miniTitle}>{title}</Text>
       <Text style={styles.miniSubtitle}>{subtitle}</Text>
