@@ -3,13 +3,17 @@ import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
-import { useNetworkStatus } from '@/services/offlineManager';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useSync } from '@/context/SyncContext';
 
 export default function NetworkBanner() {
-    const { isConnected, pendingCount } = useNetworkStatus();
+    const { isConnected, isInternetReachable } = useNetworkStatus();
+    const { pendingChanges } = useSync();
     const insets = useSafeAreaInsets();
 
-    if (isConnected && pendingCount === 0) return null;
+    const isOnline = isConnected && isInternetReachable;
+
+    if (isOnline && pendingChanges === 0) return null;
 
     return (
         <Animated.View
@@ -18,18 +22,18 @@ export default function NetworkBanner() {
             style={[
                 styles.banner,
                 { paddingTop: Platform.OS === 'ios' ? insets.top + 4 : 4 },
-                !isConnected ? styles.offlineBanner : styles.syncBanner,
+                !isOnline ? styles.offlineBanner : styles.syncBanner,
             ]}
         >
             <Ionicons
-                name={!isConnected ? 'cloud-offline-outline' : 'sync-outline'}
+                name={!isOnline ? 'cloud-offline-outline' : 'sync-outline'}
                 size={16}
                 color="#fff"
             />
             <Text style={styles.bannerText}>
-                {!isConnected
-                    ? `You're offline${pendingCount > 0 ? ` · ${pendingCount} pending` : ''}`
-                    : `Syncing ${pendingCount} item${pendingCount !== 1 ? 's' : ''}…`
+                {!isOnline
+                    ? `You're offline${pendingChanges > 0 ? ` · ${pendingChanges} pending` : ''}`
+                    : `Syncing ${pendingChanges} item${pendingChanges !== 1 ? 's' : ''}…`
                 }
             </Text>
         </Animated.View>

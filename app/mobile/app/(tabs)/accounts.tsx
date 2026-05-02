@@ -2,7 +2,9 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   StatusBar, Modal, TextInput, Alert, Platform, FlatList, ActivityIndicator,
+  InteractionManager,
 } from 'react-native';
+
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,7 +18,11 @@ import Animated, {
 
 import { useSettings } from '@/context/SettingsContext';
 import { useThemeStyles } from '@/components/more/DesignSystem';
+import { useAccounts, Account } from '@/context/AccountContext';
+import { useTransactions } from '@/context/TransactionContext';
+import { useIsFocused } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
+
 
 // ── Floating glow ────────────────────────────────────────
 function useFloat() {
@@ -348,40 +354,27 @@ const hm = StyleSheet.create({
 });
 
 export default function AccountsScreen() {
+
+  const isFocused = useIsFocused();
+  // Removed isReady/InteractionManager to ensure instant navigation
+
+
+
+
   const insets = useSafeAreaInsets();
   const { tokens } = useThemeStyles();
   const { isDarkMode, formatCurrency } = useSettings();
+  const { accounts: allAccounts, isLoading: accountsLoading, addAccount, updateAccount, deleteAccount } = useAccounts();
+  const { transactions, isLoading: transactionsLoading } = useTransactions();
+
   const [showBalance, setShowBalance] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState<any>(null);
   const [historyTarget, setHistoryTarget] = useState<any>(null);
-  const [allAccounts, setAllAccounts] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const floatStyle = useFloat();
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [accRes, txnRes] = await Promise.all([
-        api.get('/api/accounts'),
-        api.get('/api/transactions'),
-      ]);
-      const accRaw = accRes.data;
-      const accs = Array.isArray(accRaw) ? accRaw : Array.isArray(accRaw?.data) ? accRaw.data : [];
-      setAllAccounts(accs);
-
-      const txnRaw = txnRes.data;
-      const txns = Array.isArray(txnRaw) ? txnRaw : Array.isArray(txnRaw?.data) ? txnRaw.data : [];
-      setTransactions(txns);
-    } catch (e) {
-      console.log('Failed to fetch accounts:', e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const loading = accountsLoading;
 
   // Map backend type to form type (credit_card -> credit)
   const toFormType = (t: string) => t === 'credit_card' ? 'credit' : t;
@@ -396,19 +389,15 @@ export default function AccountsScreen() {
     }));
   }, [allAccounts]);
 
-  const totalBalance = accounts.reduce((s, a) => s + a.balance, 0);
-  const totalAssets = accounts.reduce((s, a) => s + Math.max(a.balance, 0), 0);
-  const totalLiabilities = accounts.reduce((s, a) => s + Math.abs(Math.min(a.balance, 0)), 0);
+  const totalBalance = useMemo(() => accounts.reduce((s, a) => s + a.balance, 0), [accounts]);
+  const totalAssets = useMemo(() => accounts.reduce((s, a) => s + Math.max(a.balance, 0), 0), [accounts]);
+  const totalLiabilities = useMemo(() => accounts.reduce((s, a) => s + Math.abs(Math.min(a.balance, 0)), 0), [accounts]);
 
   // ── Handlers ──
   const defaultForm = { name: '', type: 'bank', balance: '', color: '#007AFF', creditLimit: '' };
 
   const handleOpenAdd = useCallback(() => { setEditTarget(null); setShowForm(true); }, []);
-
-  const handleOpenEdit = useCallback((acc: any) => {
-    setEditTarget(acc);
-    setShowForm(true);
-  }, []);
+  const handleOpenEdit = useCallback((acc: any) => { setEditTarget(acc); setShowForm(true); }, []);
 
   const handleFormSubmit = useCallback(async (data: AccountFormData) => {
     setSaving(true);
@@ -421,39 +410,38 @@ export default function AccountsScreen() {
     };
 
     try {
-      if (editTarget?._id) {
-        await api.put(`/api/accounts/${editTarget._id}`, payload);
+      if (editTarget?._id || editTarget?.id) {
+        await updateAccount(editTarget._id || editTarget.id, payload);
       } else {
-        await api.post('/api/accounts', payload);
+        await addAccount(payload as any);
       }
       setShowForm(false); setEditTarget(null);
-      await fetchData();
     } catch (e: any) {
-      Alert.alert('Error', e.response?.data?.message || 'Failed to save account.');
+      Alert.alert('Error', 'Failed to save account.');
     } finally {
       setSaving(false);
     }
-  }, [editTarget, fetchData]);
+  }, [editTarget, addAccount, updateAccount]);
 
   const handleDelete = useCallback(() => {
-    if (!editTarget?._id) return;
+    const id = editTarget?._id || editTarget?.id;
+    if (!id) return;
     Alert.alert('Delete Account', `Are you sure you want to delete "${editTarget.name}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete', style: 'destructive', onPress: async () => {
           try {
-            await api.delete(`/api/accounts/${editTarget._id}`);
+            await deleteAccount(id);
             setShowForm(false); setEditTarget(null);
-            await fetchData();
           } catch (e: any) {
-            Alert.alert('Error', e.response?.data?.message || 'Failed to delete account.');
+            Alert.alert('Error', 'Failed to delete account.');
           }
         }
       },
     ]);
-  }, [editTarget, fetchData]);
+  }, [editTarget, deleteAccount]);
 
-  const handleLongPress = (acc: any, index: number) => {
+  const handleLongPress = useCallback((acc: any) => {
     const buttons: any[] = [
       { text: 'Edit', onPress: () => handleOpenEdit(acc) },
       {
@@ -463,10 +451,9 @@ export default function AccountsScreen() {
             {
               text: 'Delete', style: 'destructive', onPress: async () => {
                 try {
-                  await api.delete(`/api/accounts/${acc._id}`);
-                  await fetchData();
+                  await deleteAccount(acc._id || acc.id);
                 } catch (e: any) {
-                  Alert.alert('Error', e.response?.data?.message || 'Failed to delete.');
+                  Alert.alert('Error', 'Failed to delete.');
                 }
               }
             },
@@ -476,9 +463,26 @@ export default function AccountsScreen() {
       { text: 'Cancel', style: 'cancel' },
     ];
     Alert.alert(acc.name, 'What would you like to do?', buttons);
-  };
+  }, [handleOpenEdit, deleteAccount]);
 
-  if (loading) {
+  const renderAccountItem = useCallback(({ item: acc, index }: { item: any, index: number }) => (
+    <Animated.View entering={FadeIn.delay(index * 20).duration(200)}>
+
+      <AccountCard
+        name={acc.name}
+        type={acc.type}
+        balance={formatCurrency(acc.balance)}
+        balanceNum={acc.balance}
+        color={acc.color}
+        masked={!showBalance}
+        creditLimit={acc.creditLimit}
+        onPress={() => setHistoryTarget(acc)}
+        onLongPress={() => handleLongPress(acc)}
+      />
+    </Animated.View>
+  ), [showBalance, formatCurrency, handleLongPress]);
+
+  if (accountsLoading) {
     return (
       <View style={[styles.root, { backgroundColor: tokens.bgPrimary, paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
@@ -487,123 +491,120 @@ export default function AccountsScreen() {
     );
   }
 
+
   return (
     <View style={[styles.root, { backgroundColor: tokens.bgPrimary, paddingTop: insets.top }]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
-      {/* Header */}
-      <Animated.View entering={FadeIn.delay(50).duration(350)} style={styles.header}>
-        <View>
-          <Text style={[styles.headerSub, { color: tokens.textMuted }]}>Overview</Text>
-          <Text style={[styles.headerTitle, { color: tokens.textPrimary }]}>My Accounts</Text>
-        </View>
-        <Bounce onPress={handleOpenAdd} style={[styles.addHeaderBtn, { backgroundColor: tokens.textPrimary }]}>
-          <Ionicons name="add" size={20} color={tokens.bgPrimary} />
-        </Bounce>
-      </Animated.View>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-
-        {/* ═══ Net Worth Hero ═══ */}
-        <Animated.View entering={FadeInDown.delay(80).duration(500).springify()}>
-          <LinearGradient
-            colors={isDarkMode ? ['#1A1C20', '#0F1014'] : ['#111111', '#2D2D2D']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={styles.heroCard}
-          >
-            <Animated.View style={[styles.heroGlow, floatStyle, { backgroundColor: isDarkMode ? 'rgba(45,202,114,0.1)' : 'rgba(45,202,114,0.16)' }]} />
-            <View style={styles.heroTop}>
+      <FlatList
+        data={accounts}
+        keyExtractor={(item) => item._id || item.name}
+        renderItem={renderAccountItem}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <>
+            {/* Header */}
+            <Animated.View entering={FadeIn.delay(50).duration(350)} style={styles.header}>
               <View>
-                <Text style={[styles.heroLabel, { color: tokens.textMuted }]}>Net Worth</Text>
-                <Animated.Text entering={ZoomIn.delay(250).duration(380)} style={styles.heroAmount}>
-                  {showBalance ? formatCurrency(totalBalance) : `${formatCurrency(0).charAt(0)} ••••••`}
-                </Animated.Text>
-                <Text style={[styles.heroSub, { color: isDarkMode ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.35)' }]}>Across {accounts.length} accounts</Text>
+                <Text style={[styles.headerSub, { color: tokens.textMuted }]}>Overview</Text>
+                <Text style={[styles.headerTitle, { color: tokens.textPrimary }]}>My Accounts</Text>
               </View>
-              <TouchableOpacity style={[styles.eyeBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.08)' }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowBalance(!showBalance); }}>
-                <Ionicons name={showBalance ? 'eye-outline' : 'eye-off-outline'} size={20} color={tokens.textMuted} />
-              </TouchableOpacity>
-            </View>
-
-            <Animated.View entering={FadeInUp.delay(300).duration(400)} style={styles.heroPills}>
-              <View style={styles.heroPillGreen}>
-                <Ionicons name="trending-up" size={14} color="#2DCA72" />
-                <Text style={styles.heroPillLabel}>Assets</Text>
-                <Text style={styles.heroPillGreenAmt}>{showBalance ? formatCurrency(totalAssets) : '••••'}</Text>
-              </View>
-              <View style={styles.heroPillRed}>
-                <Ionicons name="trending-down" size={14} color="#F43F5E" />
-                <Text style={styles.heroPillLabel}>Liabilities</Text>
-                <Text style={styles.heroPillRedAmt}>{showBalance ? formatCurrency(totalLiabilities) : '••••'}</Text>
-              </View>
+              <Bounce onPress={handleOpenAdd} style={[styles.addHeaderBtn, { backgroundColor: tokens.textPrimary }]}>
+                <Ionicons name="add" size={20} color={tokens.bgPrimary} />
+              </Bounce>
             </Animated.View>
-          </LinearGradient>
-        </Animated.View>
 
-        {/* ═══ Quick Stats ═══ */}
-        <View style={styles.statsRow}>
-          <Animated.View entering={FadeInUp.delay(200).duration(400)} style={[styles.statCard, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(45,202,114,0.12)' }]}>
-              <Ionicons name="wallet-outline" size={18} color="#2DCA72" />
+            {/* ═══ Net Worth Hero ═══ */}
+            <Animated.View entering={FadeInDown.delay(80).duration(500).springify()}>
+              <LinearGradient
+                colors={isDarkMode ? ['#1A1C20', '#0F1014'] : ['#111111', '#2D2D2D']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={styles.heroCard}
+              >
+                <Animated.View style={[styles.heroGlow, floatStyle, { backgroundColor: isDarkMode ? 'rgba(45,202,114,0.1)' : 'rgba(45,202,114,0.16)' }]} />
+                <View style={styles.heroTop}>
+                  <View>
+                    <Text style={[styles.heroLabel, { color: tokens.textMuted }]}>Net Worth</Text>
+                    <Animated.Text entering={ZoomIn.delay(250).duration(380)} style={styles.heroAmount}>
+                      {showBalance ? formatCurrency(totalBalance) : `${formatCurrency(0).charAt(0)} ••••••`}
+                    </Animated.Text>
+                    <Text style={[styles.heroSub, { color: isDarkMode ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.35)' }]}>Across {accounts.length} accounts</Text>
+                  </View>
+                  <TouchableOpacity style={[styles.eyeBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.08)' }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowBalance(!showBalance); }}>
+                    <Ionicons name={showBalance ? 'eye-outline' : 'eye-off-outline'} size={20} color={tokens.textMuted} />
+                  </TouchableOpacity>
+                </View>
+
+                <Animated.View entering={FadeInUp.delay(300).duration(400)} style={styles.heroPills}>
+                  <View style={styles.heroPillGreen}>
+                    <Ionicons name="trending-up" size={14} color="#2DCA72" />
+                    <Text style={styles.heroPillLabel}>Assets</Text>
+                    <Text style={styles.heroPillGreenAmt}>{showBalance ? formatCurrency(totalAssets) : '••••'}</Text>
+                  </View>
+                  <View style={styles.heroPillRed}>
+                    <Ionicons name="trending-down" size={14} color="#F43F5E" />
+                    <Text style={styles.heroPillLabel}>Liabilities</Text>
+                    <Text style={styles.heroPillRedAmt}>{showBalance ? formatCurrency(totalLiabilities) : '••••'}</Text>
+                  </View>
+                </Animated.View>
+              </LinearGradient>
+            </Animated.View>
+
+            {/* ═══ Quick Stats ═══ */}
+            <View style={styles.statsRow}>
+              <Animated.View entering={FadeInUp.delay(200).duration(400)} style={[styles.statCard, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
+                <View style={[styles.statIcon, { backgroundColor: 'rgba(45,202,114,0.12)' }]}>
+                  <Ionicons name="wallet-outline" size={18} color="#2DCA72" />
+                </View>
+                <Text style={[styles.statLabel, { color: tokens.textMuted }]}>Available</Text>
+                <Text style={[styles.statAmt, { color: tokens.textPrimary }]}>{showBalance ? formatCurrency(totalBalance) : '••••'}</Text>
+              </Animated.View>
+              <Animated.View entering={FadeInUp.delay(280).duration(400)} style={[styles.statCard, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
+                <View style={[styles.statIcon, { backgroundColor: 'rgba(0,122,255,0.1)' }]}>
+                  <MaterialCommunityIcons name="bank-outline" size={18} color="#007AFF" />
+                </View>
+                <Text style={[styles.statLabel, { color: tokens.textMuted }]}>Accounts</Text>
+                <Text style={[styles.statAmt, { color: tokens.textPrimary }]}>{accounts.length}</Text>
+              </Animated.View>
             </View>
-            <Text style={[styles.statLabel, { color: tokens.textMuted }]}>Available</Text>
-            <Text style={[styles.statAmt, { color: tokens.textPrimary }]}>{showBalance ? formatCurrency(totalBalance) : '••••'}</Text>
-          </Animated.View>
-          <Animated.View entering={FadeInUp.delay(280).duration(400)} style={[styles.statCard, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(0,122,255,0.1)' }]}>
-              <MaterialCommunityIcons name="bank-outline" size={18} color="#007AFF" />
-            </View>
-            <Text style={[styles.statLabel, { color: tokens.textMuted }]}>Accounts</Text>
-            <Text style={[styles.statAmt, { color: tokens.textPrimary }]}>{accounts.length}</Text>
-          </Animated.View>
-        </View>
 
-        {/* ═══ All Accounts ═══ */}
-        <Animated.View entering={FadeIn.delay(320).duration(350)} style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>All Accounts</Text>
-          <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowBalance(!showBalance); }}>
-            <Text style={styles.toggleTxt}>{showBalance ? 'Hide' : 'Show'} balances</Text>
-          </TouchableOpacity>
-        </Animated.View>
+            {/* ═══ All Accounts ═══ */}
+            <Animated.View entering={FadeIn.delay(320).duration(350)} style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>All Accounts</Text>
+              <TouchableOpacity onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowBalance(!showBalance); }}>
+                <Text style={styles.toggleTxt}>{showBalance ? 'Hide' : 'Show'} balances</Text>
+              </TouchableOpacity>
+            </Animated.View>
 
-        {accounts.length === 0 && (
-          <View style={{ alignItems: 'center', paddingVertical: 40, gap: 12 }}>
-            <MaterialCommunityIcons name="bank-off-outline" size={48} color={tokens.borderSubtle} />
-            <Text style={{ fontSize: 16, fontWeight: '700', color: tokens.textMuted }}>No accounts yet</Text>
-            <Text style={{ fontSize: 13, color: tokens.textMuted, textAlign: 'center' }}>Add your first account to start tracking balances.</Text>
-          </View>
-        )}
+            {accounts.length === 0 && (
+              <View style={{ alignItems: 'center', paddingVertical: 40, gap: 12 }}>
+                <MaterialCommunityIcons name="bank-off-outline" size={48} color={tokens.borderSubtle} />
+                <Text style={{ fontSize: 16, fontWeight: '700', color: tokens.textMuted }}>No accounts yet</Text>
+                <Text style={{ fontSize: 13, color: tokens.textMuted, textAlign: 'center' }}>Add your first account to start tracking balances.</Text>
+              </View>
+            )}
+          </>
+        }
+        ListFooterComponent={
+          <>
+            {/* ═══ Add Account CTA ═══ */}
+            <Animated.View entering={FadeInDown.delay(100).duration(380)}>
+              <TouchableOpacity style={[styles.addCta, { borderColor: tokens.borderSubtle }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleOpenAdd(); }} activeOpacity={0.7}>
+                <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#2DCA72" />
+                <Text style={styles.addCtaTxt}>Add New Account</Text>
+              </TouchableOpacity>
+            </Animated.View>
 
-        {accounts.map((acc, i) => (
-          <Animated.View key={acc._id || acc.name} entering={FadeInDown.delay(360 + i * 50).duration(360)}>
-            <AccountCard
-              name={acc.name}
-              type={acc.type}
-              balance={formatCurrency(acc.balance)}
-              balanceNum={acc.balance}
-              color={acc.color}
-              masked={!showBalance}
-              creditLimit={acc.creditLimit}
-              onPress={() => setHistoryTarget(acc)}
-              onLongPress={() => handleLongPress(acc, i)}
-            />
-          </Animated.View>
-        ))}
+            <Text style={[styles.footNote, { color: tokens.textMuted }]}>
+              Balances synced from your account. Long-press any account to edit or delete.
+            </Text>
 
-        {/* ═══ Add Account CTA ═══ */}
-        <Animated.View entering={FadeInDown.delay(520).duration(380)}>
-          <TouchableOpacity style={[styles.addCta, { borderColor: tokens.borderSubtle }]} onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); handleOpenAdd(); }} activeOpacity={0.7}>
-            <MaterialCommunityIcons name="plus-circle-outline" size={20} color="#2DCA72" />
-            <Text style={styles.addCtaTxt}>Add New Account</Text>
-          </TouchableOpacity>
-        </Animated.View>
+            <View style={{ height: 120 }} />
+          </>
+        }
+      />
 
-        <Text style={[styles.footNote, { color: tokens.textMuted }]}>
-          Balances synced from your account. Long-press any account to edit or delete.
-        </Text>
-
-        <View style={{ height: 120 }} />
-      </ScrollView>
 
       {/* Add/Edit Modal */}
       <AccountFormModal

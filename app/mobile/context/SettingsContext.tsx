@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useColorScheme } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as localDB from '@/services/localDB';
 
 export type CurrencySymbol = '₹' | '$' | '€' | '£' | '¥';
 export type AppTheme = 'light' | 'dark' | 'system';
@@ -30,18 +31,37 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const loadSettings = async () => {
             try {
-                const storedCurrency = await AsyncStorage.getItem('preferredCurrency');
-                if (storedCurrency) {
-                    setCurrencyState(storedCurrency as CurrencySymbol);
+                // 1. Check for legacy AsyncStorage data for migration
+                const legacyCurrency = await AsyncStorage.getItem('preferredCurrency');
+                const legacyHaptic = await AsyncStorage.getItem('hapticEnabled');
+                const legacyTheme = await AsyncStorage.getItem('appTheme');
+
+                if (legacyCurrency) {
+                    localDB.setItem('preferredCurrency', legacyCurrency);
+                    setCurrencyState(legacyCurrency as CurrencySymbol);
+                    await AsyncStorage.removeItem('preferredCurrency');
                 }
-                const storedHaptic = await AsyncStorage.getItem('hapticEnabled');
-                if (storedHaptic !== null) {
-                    setHapticEnabledState(storedHaptic === 'true');
+                if (legacyHaptic !== null) {
+                    localDB.setItem('hapticEnabled', legacyHaptic);
+                    setHapticEnabledState(legacyHaptic === 'true');
+                    await AsyncStorage.removeItem('hapticEnabled');
                 }
-                const storedTheme = await AsyncStorage.getItem('appTheme');
-                if (storedTheme) {
-                    setAppThemeState(storedTheme as AppTheme);
+                if (legacyTheme) {
+                    localDB.setItem('appTheme', legacyTheme);
+                    setAppThemeState(legacyTheme as AppTheme);
+                    await AsyncStorage.removeItem('appTheme');
                 }
+
+                // 2. Load from localDB (Synchronous via MMKV)
+                const storedCurrency = localDB.getItem('preferredCurrency');
+                if (storedCurrency) setCurrencyState(storedCurrency as CurrencySymbol);
+
+                const storedHaptic = localDB.getItem('hapticEnabled');
+                if (storedHaptic !== null) setHapticEnabledState(storedHaptic === 'true');
+
+                const storedTheme = localDB.getItem('appTheme');
+                if (storedTheme) setAppThemeState(storedTheme as AppTheme);
+
             } catch (error) {
                 console.error('Failed to load settings', error);
             }
@@ -50,30 +70,18 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const setCurrency = async (symbol: CurrencySymbol) => {
-        try {
-            await AsyncStorage.setItem('preferredCurrency', symbol);
-            setCurrencyState(symbol);
-        } catch (error) {
-            console.error('Failed to save currency', error);
-        }
+        localDB.setItem('preferredCurrency', symbol);
+        setCurrencyState(symbol);
     };
 
     const setHapticEnabled = async (enabled: boolean) => {
-        try {
-            await AsyncStorage.setItem('hapticEnabled', String(enabled));
-            setHapticEnabledState(enabled);
-        } catch (error) {
-            console.error('Failed to save haptic settings', error);
-        }
+        localDB.setItem('hapticEnabled', String(enabled));
+        setHapticEnabledState(enabled);
     };
 
     const setAppTheme = async (theme: AppTheme) => {
-        try {
-            await AsyncStorage.setItem('appTheme', theme);
-            setAppThemeState(theme);
-        } catch (error) {
-            console.error('Failed to save app theme', error);
-        }
+        localDB.setItem('appTheme', theme);
+        setAppThemeState(theme);
     };
 
     const triggerHaptic = (style: Haptics.ImpactFeedbackStyle = Haptics.ImpactFeedbackStyle.Light) => {

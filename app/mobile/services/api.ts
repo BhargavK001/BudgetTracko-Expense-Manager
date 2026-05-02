@@ -1,7 +1,7 @@
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import * as localDB from './localDB';
 
 const RAW_BACKEND_URL =
     process.env.EXPO_PUBLIC_BACKEND_URL?.trim() ||
@@ -51,10 +51,17 @@ const api = axios.create({
     },
 });
 
+type UnauthorizedCallback = () => void;
+let onUnauthorizedCallback: UnauthorizedCallback | null = null;
+
+export const setOnUnauthorizedCallback = (callback: UnauthorizedCallback | null) => {
+    onUnauthorizedCallback = callback;
+};
+
 // Request interceptor to add the token to the headers
 api.interceptors.request.use(
-    async (config) => {
-        const token = await AsyncStorage.getItem('token');
+    (config) => {
+        const token = localDB.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -70,11 +77,16 @@ api.interceptors.response.use(
     (response) => {
         return response;
     },
-    async (error) => {
+    (error) => {
         if (error.response?.status === 401) {
-            // Potential token expiration - could trigger a logout or refresh
-            await AsyncStorage.removeItem('token');
-            await AsyncStorage.removeItem('user');
+            // Potential token expiration - clear session synchronously
+            localDB.removeItem('token');
+            localDB.removeItem('user');
+            
+            // Trigger the callback if registered
+            if (onUnauthorizedCallback) {
+                onUnauthorizedCallback();
+            }
         }
         return Promise.reject(error);
     }

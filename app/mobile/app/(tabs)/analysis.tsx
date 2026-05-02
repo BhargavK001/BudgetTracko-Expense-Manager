@@ -1,4 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useIsFocused } from '@react-navigation/native';
+
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, InteractionManager, ActivityIndicator, Animated, Modal, FlatList } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,7 +19,7 @@ import { useThemeStyles } from '@/components/more/DesignSystem';
 const { width } = Dimensions.get('window');
 type TimeFilter = 'Week' | 'Month' | 'Year' | 'Custom';
 
-// ── Reusable Inner Pill Slider ──────────────────────────────────────────
+
 const PillSegment = ({ options, selectedIndex, onChange }: any) => {
     const { tokens } = useThemeStyles();
     const position = useRef(new Animated.Value(selectedIndex)).current;
@@ -63,9 +65,7 @@ const PillSegment = ({ options, selectedIndex, onChange }: any) => {
     );
 };
 
-// SimpleBarChart removed — replaced by TrendsChart component
 
-// ── Custom Drop-in Wheel Picker ───────────────────────────────────────
 const WheelPicker = React.memo(({ items, selectedValue, onValueChange, tokens }: any) => {
     const ITEM_HEIGHT = 44;
     const flatListRef = useRef<FlatList>(null);
@@ -129,12 +129,22 @@ const CustomDateInlinePicker = React.memo(({ date, onChange, tokens }: any) => {
 export default function AnalysisScreen() {
     const insets = useSafeAreaInsets();
     const router = useRouter();
-    const { transactions, getCategoryMeta } = useTransactions();
+    const {
+        transactions,
+        getCategoryMeta,
+        getTransactionsForMonth,
+        getTransactionsByYear,
+        getTransactionsForRange
+    } = useTransactions();
     const { formatCurrency, isDarkMode } = useSettings();
     const { tokens, styles: tStyles } = useThemeStyles();
 
-    const [isReady, setIsReady] = useState(false);
-    useEffect(() => { InteractionManager.runAfterInteractions(() => setIsReady(true)); }, []);
+    const isFocused = useIsFocused();
+    // Content renders immediately to avoid InteractionManager deadlock with background animations
+
+
+
+
 
     const [filterIdx, setFilterIdx] = useState(0); // 0: Week, 1: Month, 2: Year, 3: Custom
     const filters: TimeFilter[] = ['Week', 'Month', 'Year', 'Custom'];
@@ -210,14 +220,22 @@ export default function AnalysisScreen() {
 
     const filteredTxs = useMemo(() => {
         const { start, end } = dateRange;
-        return transactions.filter(t => {
-            const d = new Date(t.date);
-            return d >= start && d <= end;
-        });
-    }, [transactions, dateRange]);
+        
+        if (selectedFilter === 'Month') {
+            return getTransactionsForMonth(start.getMonth(), start.getFullYear());
+        }
+        if (selectedFilter === 'Year') {
+            return getTransactionsByYear(start.getFullYear());
+        }
 
-    const monthlyIncome = useMemo(() => filteredTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0), [filteredTxs]);
-    const monthlyExpense = useMemo(() => filteredTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0), [filteredTxs]);
+        return getTransactionsForRange(start, end);
+    }, [getTransactionsForMonth, getTransactionsByYear, getTransactionsForRange, dateRange, selectedFilter]);
+
+    const incomeTxs = useMemo(() => filteredTxs.filter(t => t.type === 'income'), [filteredTxs]);
+    const expenseTxs = useMemo(() => filteredTxs.filter(t => t.type === 'expense'), [filteredTxs]);
+
+    const monthlyIncome = useMemo(() => incomeTxs.reduce((sum, t) => sum + t.amount, 0), [incomeTxs]);
+    const monthlyExpense = useMemo(() => expenseTxs.reduce((sum, t) => sum + t.amount, 0), [expenseTxs]);
     const monthlyBalance = monthlyIncome - monthlyExpense;
 
     // ── Previous period date range (for compare) ───────────────────────
@@ -232,12 +250,10 @@ export default function AnalysisScreen() {
     }, [dateRange]);
 
     const prevFilteredTxs = useMemo(() => {
+        if (!isCompare) return [];
         const { start, end } = prevDateRange;
-        return transactions.filter(t => {
-            const d = new Date(t.date);
-            return d >= start && d <= end;
-        });
-    }, [transactions, prevDateRange]);
+        return getTransactionsForRange(start, end);
+    }, [getTransactionsForRange, prevDateRange, isCompare]);
 
     const compareLabel = useMemo(() => {
         const { start } = prevDateRange;
@@ -245,7 +261,7 @@ export default function AnalysisScreen() {
     }, [prevDateRange]);
 
     // ── Day-level data for Trends charts ────────────────────────
-    const buildDayData = (txs: any[], range: { start: Date; end: Date }, isExpense: boolean): DayDataPoint[] => {
+    const buildDayData = useCallback((txs: any[], range: { start: Date; end: Date }, isExpense: boolean): DayDataPoint[] => {
         const { start, end } = range;
         const daysCount = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
         const today = new Date();
@@ -285,30 +301,30 @@ export default function AnalysisScreen() {
             });
         }
         return points;
-    };
+    }, []);
 
     const trendsDayData = useMemo(() => {
         return buildDayData(filteredTxs, dateRange, trendSegment === 0);
-    }, [filteredTxs, dateRange, trendSegment]);
+    }, [filteredTxs, dateRange, trendSegment, buildDayData]);
 
     const previousDayData = useMemo(() => {
         return buildDayData(prevFilteredTxs, prevDateRange, trendSegment === 0);
-    }, [prevFilteredTxs, prevDateRange, trendSegment]);
+    }, [prevFilteredTxs, prevDateRange, trendSegment, buildDayData]);
 
     const currentTrendAvg = useMemo(() => {
         const pastPts = trendsDayData.filter(p => !p.isFuture && p.value > 0);
         if (pastPts.length === 0) return 0;
-        return pastPts.reduce((s, p) => s + p.value, 0) / trendsDayData.filter(p => !p.isFuture).length;
+        return pastPts.reduce((s: number, p: any) => s + p.value, 0) / (trendsDayData.filter(p => !p.isFuture).length || 1);
     }, [trendsDayData]);
 
     const previousTrendAvg = useMemo(() => {
         if (previousDayData.length === 0) return 0;
-        return previousDayData.reduce((s, p) => s + p.value, 0) / previousDayData.length;
+        return previousDayData.reduce((s: number, p: any) => s + p.value, 0) / (previousDayData.length || 1);
     }, [previousDayData]);
 
     const trendData = useMemo(() => {
         const isExpense = trendSegment === 0;
-        const targetTxs = filteredTxs.filter(t => t.type === (isExpense ? 'expense' : 'income'));
+        const targetTxs = isExpense ? expenseTxs : incomeTxs;
 
         if (selectedFilter === 'Week') {
             const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => ({ label: d, value: 0 }));
@@ -320,12 +336,19 @@ export default function AnalysisScreen() {
             return days;
         } else if (selectedFilter === 'Year') {
             const months = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'].map(m => ({ label: m, value: 0 }));
-            targetTxs.forEach(t => { months[new Date(t.date).getMonth()].value += t.amount; });
+            targetTxs.forEach(t => { 
+                const mIdx = t.month;
+                if (mIdx !== undefined && mIdx >= 0 && mIdx < 12) {
+                    months[mIdx].value += t.amount;
+                } else {
+                    months[new Date(t.date).getMonth()].value += t.amount;
+                }
+            });
             return months;
         } else {
             const weeks = [{ label: 'W1', value: 0 }, { label: 'W2', value: 0 }, { label: 'W3', value: 0 }, { label: 'W4', value: 0 }];
             targetTxs.forEach(t => {
-                const day = new Date(t.date).getDate();
+                const day = t.day || new Date(t.date).getDate();
                 if (day <= 7) weeks[0].value += t.amount;
                 else if (day <= 14) weeks[1].value += t.amount;
                 else if (day <= 21) weeks[2].value += t.amount;
@@ -333,11 +356,11 @@ export default function AnalysisScreen() {
             });
             return weeks;
         }
-    }, [filteredTxs, selectedFilter, trendSegment]);
+    }, [incomeTxs, expenseTxs, selectedFilter, trendSegment]);
 
     const categoryData = useMemo(() => {
         const isExpense = catSegment === 0;
-        const targetTxs = filteredTxs.filter(t => t.type === (isExpense ? 'expense' : 'income'));
+        const targetTxs = isExpense ? expenseTxs : incomeTxs;
         const map = new Map<Category, number>();
         targetTxs.forEach(t => map.set(t.category as Category, (map.get(t.category as Category) || 0) + t.amount));
         const total = Array.from(map.values()).reduce((a, b) => a + b, 0) || 1;
@@ -353,7 +376,7 @@ export default function AnalysisScreen() {
                 };
             })
             .sort((a, b) => b.amount - a.amount);
-    }, [filteredTxs, catSegment, getCategoryMeta]);
+    }, [incomeTxs, expenseTxs, catSegment, getCategoryMeta]);
 
     const paymentModesData = useMemo(() => {
         const typeFilter = paySegment === 0 ? 'expense' : (paySegment === 1 ? 'income' : 'transfer');
@@ -366,7 +389,6 @@ export default function AnalysisScreen() {
     const diffTime = Math.max(86400000, Math.abs(dateRange.end.getTime() - dateRange.start.getTime()));
     const daysInRange = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    // Stats logic exactly matching the mock
     const avgSpendingPerDay = filteredTxs.length > 0 ? monthlyExpense / daysInRange : 0;
     const expenseTxCount = filteredTxs.filter(t => t.type === 'expense').length;
     const avgSpendingPerTx = expenseTxCount > 0 ? monthlyExpense / expenseTxCount : 0;
@@ -374,11 +396,8 @@ export default function AnalysisScreen() {
     const avgIncomePerDay = monthlyIncome / daysInRange;
     const avgIncomePerTx = incomeTxCount > 0 ? monthlyIncome / incomeTxCount : 0;
 
-    if (!isReady) return (
-        <View style={{ flex: 1, backgroundColor: tokens.bgPrimary, justifyContent: 'center', alignItems: 'center' }}>
-            <ActivityIndicator size="large" color={tokens.amber.stroke} />
-        </View>
-    );
+
+
 
     return (
         <View style={{ flex: 1, backgroundColor: tokens.bgPrimary, paddingTop: insets.top }}>
@@ -421,8 +440,7 @@ export default function AnalysisScreen() {
                 </View>
 
                 {/* Balance Glow Card */}
-                <View style={{ borderRadius: 24, padding: 24, position: 'relative', overflow: 'hidden', borderWidth: 1, borderColor: tokens.borderDefault, backgroundColor: tokens.cardSurface, marginBottom: 30 }}>
-                    {/* The glowing aura */}
+                <View style={{ borderRadius: 24, padding: 16, paddingVertical: 20, position: 'relative', overflow: 'hidden', borderWidth: 1, borderColor: tokens.borderDefault, backgroundColor: tokens.cardSurface, marginBottom: 30 }}>
                     <LinearGradient
                         colors={isDarkMode 
                             ? ['rgba(235, 78, 107, 0.25)', 'transparent', 'rgba(45, 202, 114, 0.25)'] 
@@ -432,19 +450,37 @@ export default function AnalysisScreen() {
                         locations={[0, 0.5, 1]}
                         style={StyleSheet.absoluteFillObject}
                     />
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', zIndex: 2 }}>
-                        <View>
-                            <Text style={{ fontSize: 11, fontWeight: '800', color: '#EB4E6B', letterSpacing: 1, marginBottom: 8 }}>SPENDING</Text>
-                            <Text style={{ fontSize: 32, fontWeight: '800', color: tokens.textPrimary }}>₹{monthlyExpense.toLocaleString('en-IN')}</Text>
+                    <View style={{ flexDirection: 'row', zIndex: 2, gap: 8 }}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 10, fontWeight: '800', color: '#EB4E6B', letterSpacing: 1, marginBottom: 6 }}>SPENDING</Text>
+                            <Text 
+                                style={{ fontSize: 22, fontWeight: '800', color: tokens.textPrimary, textAlign: 'left' }}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                            >
+                                ₹{monthlyExpense.toLocaleString('en-IN')}
+                            </Text>
                         </View>
-                        <View style={{ alignItems: 'flex-end' }}>
-                            <Text style={{ fontSize: 11, fontWeight: '800', color: '#2DCA72', letterSpacing: 1, marginBottom: 8 }}>INCOME</Text>
-                            <Text style={{ fontSize: 32, fontWeight: '800', color: tokens.textPrimary }}>₹{monthlyIncome.toLocaleString('en-IN')}</Text>
+                        <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                            <Text style={{ fontSize: 10, fontWeight: '800', color: '#2DCA72', letterSpacing: 1, marginBottom: 6 }}>INCOME</Text>
+                            <Text 
+                                style={{ fontSize: 22, fontWeight: '800', color: tokens.textPrimary, textAlign: 'right' }}
+                                numberOfLines={1}
+                                adjustsFontSizeToFit
+                            >
+                                ₹{monthlyIncome.toLocaleString('en-IN')}
+                            </Text>
                         </View>
                     </View>
-                    <View style={{ backgroundColor: tokens.bgSecondary, borderRadius: 20, paddingVertical: 12, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, zIndex: 2 }}>
+                    <View style={{ backgroundColor: tokens.bgSecondary, borderRadius: 20, paddingVertical: 12, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 24, zIndex: 2, gap: 10 }}>
                         <Text style={{ fontSize: 13, fontWeight: '600', color: tokens.textMuted }}>Net Balance</Text>
-                        <Text style={{ fontSize: 16, fontWeight: '800', color: tokens.textPrimary }}>{monthlyBalance >= 0 ? '+' : '-'}{formatCurrency(Math.abs(monthlyBalance))}</Text>
+                        <Text 
+                            style={{ fontSize: 16, fontWeight: '800', color: tokens.textPrimary, flex: 1, textAlign: 'right' }}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit
+                        >
+                            {monthlyBalance >= 0 ? '+' : '−'}{formatCurrency(Math.abs(monthlyBalance))}
+                        </Text>
                     </View>
                 </View>
 

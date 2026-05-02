@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as localDB from '@/services/localDB';
+import { performDeltaSync } from '@/services/syncEngine';
 
 export type DebtType = 'lend' | 'borrow';
 export type DebtStatus = 'active' | 'settled';
@@ -14,6 +16,8 @@ export interface Debt {
     notes?: string;
     accountId?: string;
     status: DebtStatus;
+    updatedAt?: string;
+    _id?: string; // MongoDB ID if synced
 }
 
 interface DebtContextData {
@@ -24,6 +28,7 @@ interface DebtContextData {
     updateDebt: (id: string, updates: Partial<Debt>) => Promise<void>;
     deleteDebt: (id: string) => Promise<void>;
     markAsSettled: (id: string) => Promise<void>;
+    refreshDebts: () => void;
 }
 
 const DebtContext = createContext<DebtContextData>({} as DebtContextData);
@@ -32,51 +37,105 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [debts, setDebts] = useState<Debt[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const loadDebts = async () => {
+    const refreshDebts = useCallback(() => {
+        setDebts(localDB.getDebts());
+    }, []);
+
+    const initDebts = async () => {
         try {
-            const data = await AsyncStorage.getItem('@budgettracko_debts');
-            if (data) {
-                setDebts(JSON.parse(data));
+            // 1. One-time legacy migration from AsyncStorage
+            const legacyData = await AsyncStorage.getItem('@budgettracko_debts');
+            if (legacyData) {
+                const legacyDebts = JSON.parse(legacyData);
+                if (legacyDebts.length > 0) {
+                    console.log('Migrating legacy debts from AsyncStorage to MMKV');
+                    legacyDebts.forEach((d: Debt) => {
+                        localDB.upsertDebt(d);
+                        localDB.addToSyncQueue({
+                            id: d.id,
+                            entityType: 'debt',
+                            action: 'create',
+                            data: d,
+                            clientUpdatedAt: new Date().toISOString()
+                        });
+                    });
+                    await AsyncStorage.removeItem('@budgettracko_debts');
+                }
             }
+
+            // 2. Load from MMKV
+            refreshDebts();
+            
+            // 3. Background delta sync
+            performDeltaSync().then(() => refreshDebts()).catch(() => {});
         } catch (error) {
-            console.error('Failed to load debts', error);
+            console.error('Failed to init debts', error);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        loadDebts();
+        initDebts();
     }, []);
 
-    const saveDebts = async (newDebts: Debt[]) => {
-        try {
-            await AsyncStorage.setItem('@budgettracko_debts', JSON.stringify(newDebts));
-            setDebts(newDebts);
-        } catch (error) {
-            console.error('Failed to save debts', error);
-        }
-    };
-
     const addDebt = async (debtData: Omit<Debt, 'id' | 'createdAt' | 'status'>) => {
+        const id = Date.now().toString();
+        const now = new Date().toISOString();
         const newDebt: Debt = {
             ...debtData,
-            id: Date.now().toString(),
-            createdAt: new Date().toISOString(),
+            id,
+            createdAt: now,
+            updatedAt: now,
             status: 'active',
         };
-        const updatedDebts = [...debts, newDebt];
-        await saveDebts(updatedDebts);
+        
+        localDB.upsertDebt(newDebt);
+        localDB.addToSyncQueue({
+            id,
+            entityType: 'debt',
+            action: 'create',
+            data: newDebt,
+            clientUpdatedAt: now
+        });
+        refreshDebts();
+        performDeltaSync().catch(() => {});
     };
 
     const updateDebt = async (id: string, updates: Partial<Debt>) => {
-        const updatedDebts = debts.map(d => d.id === id ? { ...d, ...updates } : d);
-        await saveDebts(updatedDebts);
+        const debt = debts.find(d => d.id === id || d._id === id);
+        if (!debt) return;
+
+        const now = new Date().toISOString();
+        const updatedDebt = { ...debt, ...updates, updatedAt: now };
+        
+        localDB.upsertDebt(updatedDebt);
+        localDB.addToSyncQueue({
+            id: id,
+            entityType: 'debt',
+            action: 'update',
+            data: updatedDebt,
+            clientUpdatedAt: now
+        });
+        refreshDebts();
+        performDeltaSync().catch(() => {});
     };
 
     const deleteDebt = async (id: string) => {
-        const updatedDebts = debts.filter(d => d.id !== id);
-        await saveDebts(updatedDebts);
+        const debt = debts.find(d => d.id === id || d._id === id);
+        if (!debt) return;
+
+        const year = new Date(debt.createdAt).getFullYear();
+        localDB.removeDebt(id, year);
+        localDB.addToSyncQueue({
+            id,
+            entityType: 'debt',
+            action: 'delete',
+            data: { id },
+            clientUpdatedAt: new Date().toISOString()
+        });
+        refreshDebts();
+        performDeltaSync().catch(() => {});
     };
 
     const markAsSettled = async (id: string) => {
@@ -96,7 +155,8 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
             addDebt,
             updateDebt,
             deleteDebt,
-            markAsSettled
+            markAsSettled,
+            refreshDebts
         }}>
             {children}
         </DebtContext.Provider>

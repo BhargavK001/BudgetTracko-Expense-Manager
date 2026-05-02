@@ -1,7 +1,8 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, Image, Alert, FlatList,
+  StatusBar, Image, Alert, FlatList, InteractionManager, ActivityIndicator,
 } from 'react-native';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -77,6 +78,12 @@ const BounceButton = React.memo(function BounceButton({ children, onPress, style
 
 // ─────────────────────────────────────────────────────────────
 export default function HomeScreen() {
+  const isFocused = useIsFocused();
+  // Removed isReady/InteractionManager logic as it conflicts with infinite floating animations
+
+
+
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { tokens } = useThemeStyles();
@@ -87,17 +94,7 @@ export default function HomeScreen() {
   const [hidden, setHidden] = useState(false);
   const floatStyle = useFloat();
 
-  // Show skeleton while initial auth/data is loading
-  if (authLoading) {
-    return (
-      <View style={[styles.root, { backgroundColor: tokens.bgPrimary, paddingTop: insets.top }]}>
-        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-        <DashboardSkeleton />
-      </View>
-    );
-  }
-
-  const now = new Date();
+  const now = useMemo(() => new Date(), []);
   const mon = now.getMonth();
   const yr = now.getFullYear();
 
@@ -108,7 +105,7 @@ export default function HomeScreen() {
 
   const dayOfMonth = now.getDate();
   const projectedExpense = dayOfMonth > 0 ? (expense / dayOfMonth) * 30 : 0;
-  const spendTarget = getTotalBudget('monthly') || 30000;
+  const spendTarget = useMemo(() => getTotalBudget('monthly') || 30000, [getTotalBudget]);
   const pacePercent = spendTarget > 0 ? Math.min((projectedExpense / spendTarget) * 100, 150) : 0;
   const overPace = pacePercent > 100;
 
@@ -132,7 +129,8 @@ export default function HomeScreen() {
     const meta = getCategoryMeta(tx.category || 'Other');
     const iconColor = meta.color;
     return (
-      <Animated.View entering={FadeInDown.delay(440 + i * 40).duration(360)} style={styles.txRow}>
+      <Animated.View entering={FadeIn.delay(i * 20).duration(200)} style={styles.txRow}>
+
         <View style={[styles.txIconWrap, { backgroundColor: iconColor + '1A' }]}>
           {meta.isLucide ? (
             <LucideCategoryIcon name={meta.icon} size={20} color={iconColor} />
@@ -161,13 +159,23 @@ export default function HomeScreen() {
 
   const txKeyExtractor = useCallback((item: any) => item.id, []);
 
+  if (authLoading) {
+    return (
+      <View style={[styles.root, { backgroundColor: tokens.bgPrimary, paddingTop: insets.top }]}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <DashboardSkeleton />
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.root, { backgroundColor: tokens.bgPrimary, paddingTop: insets.top }]}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* ═══ 1. HEADER ═══ */}
-        <Animated.View entering={FadeIn.delay(50).duration(400)} style={styles.header}>
+        <Animated.View entering={FadeIn.duration(300)} style={styles.header}>
+
           <View style={styles.headerLeft}>
             <View>
               {user?.avatar ? (
@@ -195,7 +203,8 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* ═══ 2. BALANCE HERO CARD ═══ */}
-        <Animated.View entering={FadeInDown.delay(100).duration(500).springify()}>
+        <Animated.View entering={FadeInDown.duration(400)}>
+
           <LinearGradient
             colors={isDarkMode ? ['#1A1C20', '#0F1014'] : ['#111111', '#2D2D2D']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
@@ -222,7 +231,8 @@ export default function HomeScreen() {
               {savingsRate.toFixed(0)}% saved this month
             </Text>
 
-            <Animated.View entering={FadeInUp.delay(200).duration(400)} style={styles.heroPills}>
+            <Animated.View entering={FadeIn.duration(300)} style={styles.heroPills}>
+
               <View style={styles.heroPillGreen}>
                 <MaterialCommunityIcons name="arrow-down-left" size={14} color="#2DCA72" />
                 <Text style={styles.heroPillGreenText}>Income</Text>
@@ -240,7 +250,8 @@ export default function HomeScreen() {
         {/* ═══ 3. QUICK ACTIONS ═══ */}
         <View style={styles.actionsRow}>
           {actions.map((a: any, i) => (
-            <Animated.View key={a.label} entering={FadeInDown.delay(140 + i * 55).duration(380)} style={styles.actionItem}>
+            <Animated.View key={a.label} entering={FadeIn.delay(i * 30).duration(250)} style={styles.actionItem}>
+
               <BounceButton
                 onPress={() => {
                   if (a.route) router.push(a.route as any);
@@ -256,7 +267,8 @@ export default function HomeScreen() {
         </View>
 
         {/* ═══ 5. SPENDING PACE ═══ */}
-        <Animated.View entering={FadeInUp.delay(380).duration(420)} style={[styles.paceCard, { backgroundColor: isDarkMode ? tokens.cardSurface : '#F9F9FB' }]}>
+        <Animated.View entering={FadeIn.duration(300)} style={[styles.paceCard, { backgroundColor: isDarkMode ? tokens.cardSurface : '#F9F9FB' }]}>
+
           <View style={styles.paceHeader}>
             <View style={styles.paceLeft}>
               <MaterialCommunityIcons name="speedometer" size={16} color={tokens.textPrimary} />
@@ -281,7 +293,8 @@ export default function HomeScreen() {
         </Animated.View>
 
         {/* ═══ 6. RECENT ACTIVITY ═══ */}
-        <Animated.View entering={FadeIn.delay(420).duration(400)} style={styles.sectionHeader}>
+        <Animated.View entering={FadeIn.duration(300)} style={styles.sectionHeader}>
+
           <Text style={[styles.sectionTitle, { color: tokens.textPrimary }]}>Recent Activity</Text>
           <TouchableOpacity onPress={() => router.push('/features/transactions')}>
             <Text style={styles.seeAll}>See all</Text>
@@ -290,7 +303,8 @@ export default function HomeScreen() {
 
         <View style={styles.txList}>
           {recentTxs.length === 0 ? (
-            <Animated.View entering={FadeIn.delay(460).duration(400)} style={styles.emptyState}>
+            <Animated.View entering={FadeIn.duration(300)} style={styles.emptyState}>
+
               <View style={[styles.emptyIcon, { backgroundColor: tokens.bgSecondary }]}>
                 <MaterialCommunityIcons name="receipt" size={32} color={tokens.textMuted} />
               </View>
@@ -298,16 +312,11 @@ export default function HomeScreen() {
               <Text style={[styles.emptyP, { color: tokens.textMuted }]}>Tap the + button below to add your first transaction.</Text>
             </Animated.View>
           ) : (
-            <FlatList
-              data={recentTxs}
-              renderItem={renderTxItem}
-              keyExtractor={txKeyExtractor}
-              scrollEnabled={false}
-              initialNumToRender={6}
-              maxToRenderPerBatch={6}
-              windowSize={3}
-              removeClippedSubviews={true}
-            />
+            recentTxs.map((tx, i) => (
+              <View key={tx.id || tx._id || i}>
+                {renderTxItem({ item: tx, index: i })}
+              </View>
+            ))
           )}
         </View>
 
@@ -317,7 +326,6 @@ export default function HomeScreen() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { flex: 1 },
   scroll: { paddingHorizontal: 24, paddingTop: 10 },

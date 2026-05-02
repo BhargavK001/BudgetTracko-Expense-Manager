@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import {
   Alert,
   Linking,
@@ -7,6 +8,8 @@ import {
   StatusBar,
   StyleSheet,
   View,
+  InteractionManager,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -58,31 +61,33 @@ function compactINR(value: number) {
 }
 
 export default function MoreScreen() {
+  const isFocused = useIsFocused();
+  // Immediate render for better performance
+
+
+
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
   const { appTheme, setAppTheme } = useSettings();
   const { tokens, isDarkMode } = useThemeStyles();
 
-  // Handle appearance toggle
-  const handleToggleAppearance = async () => {
-    // Basic cycle or toggle logic.
-    if (appTheme === 'system') {
-      await setAppTheme(isDarkMode ? 'light' : 'dark');
-    } else if (appTheme === 'dark') {
-      await setAppTheme('light');
-    } else {
-      await setAppTheme('system'); // Or dark
-    }
-  };
-
-  const currentThemeLabel = appTheme === 'system'
+  const currentThemeLabel = useMemo(() => appTheme === 'system'
     ? 'System'
-    : (appTheme === 'dark' ? 'Dark mode' : 'Light mode');
-  const { debts } = useDebts();
+    : (appTheme === 'dark' ? 'Dark mode' : 'Light mode'), [appTheme]);
 
+  const { debts } = useDebts();
   const [billsDue, setBillsDue] = useState('0');
   const [overBudget, setOverBudget] = useState('0');
+
+  const owedToYouTotal = useMemo(
+    () =>
+      debts
+        .filter((debt: any) => debt.type === 'lend' && debt.status === 'active')
+        .reduce((sum: number, debt: any) => sum + Number(debt.amount || 0), 0),
+    [debts]
+  );
 
   const initials = useMemo(() => {
     const raw = user?.displayName || 'BT';
@@ -94,18 +99,20 @@ export default function MoreScreen() {
       .join('') || 'BT';
   }, [user?.displayName]);
 
-  const owedToYouTotal = useMemo(
-    () =>
-      debts
-        .filter((debt) => debt.type === 'lend' && debt.status === 'active')
-        .reduce((sum, debt) => sum + Number(debt.amount || 0), 0),
-    [debts]
-  );
+  const handleToggleAppearance = useCallback(async () => {
+    if (appTheme === 'system') {
+      await setAppTheme(isDarkMode ? 'light' : 'dark');
+    } else if (appTheme === 'dark') {
+      await setAppTheme('light');
+    } else {
+      await setAppTheme('system');
+    }
+  }, [appTheme, isDarkMode, setAppTheme]);
 
-  const appVersion = Constants.expoConfig?.version || '2.0.0';
-  const planLabel = user?.subscription?.plan
+  const appVersion = useMemo(() => Constants.expoConfig?.version || '2.0.0', []);
+  const planLabel = useMemo(() => user?.subscription?.plan
     ? `${String(user.subscription.plan).toUpperCase()} PLAN`
-    : 'FREE PLAN';
+    : 'FREE PLAN', [user?.subscription?.plan]);
 
   useEffect(() => {
     const loadStats = async () => {
@@ -134,18 +141,18 @@ export default function MoreScreen() {
           const limit = Number(budget?.limit || budget?.amount || 0);
           return limit > 0 && spent > limit;
         }).length;
-
         setOverBudget(String(overBudgetCount));
       } catch {
         setOverBudget('0');
       }
     };
 
-    loadStats();
-  }, []);
+    if (isFocused) {
+      loadStats();
+    }
+  }, [isFocused]);
 
-
-  const openStoreReview = async () => {
+  const openStoreReview = useCallback(async () => {
     const target = Platform.OS === 'ios' ? IOS_STORE_URL : ANDROID_STORE_URL;
     const fallback = Platform.OS === 'ios' ? IOS_STORE_URL : ANDROID_WEB_STORE_URL;
 
@@ -155,7 +162,15 @@ export default function MoreScreen() {
     } catch {
       await Linking.openURL(fallback);
     }
-  };
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    await logout();
+    router.replace('/(auth)/login');
+  }, [logout, router]);
+
+
+
 
   return (
     <View style={[styles.root, { backgroundColor: tokens.bgPrimary }]}>
@@ -297,7 +312,7 @@ export default function MoreScreen() {
 
           <FooterLinks
             version={`v${appVersion}`}
-            onPrivacy={() => router.push('/privacy-security')}
+            onPrivacy={() => router.push('/features/privacy-security')}
             onTerms={() => Linking.openURL('https://budgettracko.app/terms')}
           />
         </BodySurface>

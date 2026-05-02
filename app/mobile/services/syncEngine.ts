@@ -9,7 +9,9 @@ interface PullResponse {
         budgets: any[];
         categories: any[];
         accounts: any[];
-        deletions: { entityType: string; entityId: string; deletedAt: string }[];
+        recurringBills: any[];
+        debts: any[];
+        deletions: { entityType: string; entityId: string; deletedAt: string; year?: number }[];
     };
     serverTime: string;
 }
@@ -25,6 +27,9 @@ export type SyncStatus = 'idle' | 'syncing' | 'error' | 'offline';
 // ─── Full Sync (on login) ────────────────────────────────
 export async function performFullSync(): Promise<{ success: boolean; error?: string }> {
     try {
+        // First, migrate any legacy queue items if they exist
+        await localDB.unifyQueues();
+
         const response = await api.get<PullResponse>('/api/sync/pull');
         const { data, serverTime } = response.data;
 
@@ -32,11 +37,14 @@ export async function performFullSync(): Promise<{ success: boolean; error?: str
             return { success: false, error: 'Server returned unsuccessful response' };
         }
 
-        // Store all data locally
-        localDB.setTransactions(data.transactions || []);
+        // Store all data locally using partitioning-aware methods
+        // Batching ensures this remains fast even for 1,000+ items
+        localDB.batchUpsertTransactions(data.transactions || []);
         localDB.setBudgets(data.budgets || []);
         localDB.setCategories(data.categories || []);
         localDB.setAccounts(data.accounts || []);
+        localDB.setRecurringBills(data.recurringBills || []);
+        localDB.setDebts(data.debts || []);
 
         // Clear any pending queue since we just got fresh data
         localDB.clearSyncQueue();
@@ -46,7 +54,9 @@ export async function performFullSync(): Promise<{ success: boolean; error?: str
 
         return { success: true };
     } catch (error: any) {
-        console.error('Full sync failed:', error.message);
+        if (error.response?.status !== 401) {
+            console.error('Full sync failed:', error.message);
+        }
         return { success: false, error: error.message };
     }
 }
@@ -83,7 +93,9 @@ export async function pushLocalChanges(): Promise<{ success: boolean; conflicts?
 
         return { success: false };
     } catch (error: any) {
-        console.error('Push changes failed:', error.message);
+        if (error.response?.status !== 401) {
+            console.error('Push changes failed:', error.message);
+        }
         return { success: false };
     }
 }
@@ -117,8 +129,18 @@ export async function pullRemoteChanges(): Promise<{ success: boolean; error?: s
         }
 
         // Merge accounts
-        if (data.accounts.length > 0) {
+        if (data.accounts && data.accounts.length > 0) {
             mergeEntities('account', data.accounts);
+        }
+
+        // Merge recurring bills
+        if (data.recurringBills && data.recurringBills.length > 0) {
+            mergeEntities('recurring-bill', data.recurringBills);
+        }
+
+        // Merge debts
+        if (data.debts && data.debts.length > 0) {
+            mergeEntities('debt', data.debts);
         }
 
         // Apply deletions
@@ -131,7 +153,9 @@ export async function pullRemoteChanges(): Promise<{ success: boolean; error?: s
 
         return { success: true };
     } catch (error: any) {
-        console.error('Pull changes failed:', error.message);
+        if (error.response?.status !== 401) {
+            console.error('Pull changes failed:', error.message);
+        }
         return { success: false, error: error.message };
     }
 }
@@ -151,22 +175,29 @@ export async function performDeltaSync(): Promise<{ success: boolean; error?: st
 
 // ─── Merge Helpers ───────────────────────────────────────
 function mergeEntities(entityType: string, serverEntities: any[]): void {
+    if (entityType === 'transaction') {
+        localDB.batchUpsertTransactions(serverEntities);
+        return;
+    }
+
     const getLocal = () => {
         switch (entityType) {
-            case 'transaction': return localDB.getTransactions();
             case 'budget': return localDB.getBudgets();
             case 'category': return localDB.getCategories();
             case 'account': return localDB.getAccounts();
+            case 'recurring-bill': return localDB.getRecurringBills();
+            case 'debt': return localDB.getDebts();
             default: return [];
         }
     };
 
     const setLocal = (data: any[]) => {
         switch (entityType) {
-            case 'transaction': localDB.setTransactions(data); break;
             case 'budget': localDB.setBudgets(data); break;
             case 'category': localDB.setCategories(data); break;
             case 'account': localDB.setAccounts(data); break;
+            case 'recurring-bill': localDB.setRecurringBills(data); break;
+            case 'debt': localDB.setDebts(data); break;
         }
     };
 
@@ -177,17 +208,14 @@ function mergeEntities(entityType: string, serverEntities: any[]): void {
         if (id) localMap.set(id.toString(), e);
     });
 
-    // Merge: server version wins if newer (last-write-wins)
     for (const serverEntity of serverEntities) {
         const id = (serverEntity._id || serverEntity.id)?.toString();
         if (!id) continue;
 
         const localEntity = localMap.get(id);
         if (!localEntity) {
-            // New from server
             localMap.set(id, serverEntity);
         } else {
-            // Compare timestamps
             const serverTime = new Date(serverEntity.updatedAt || 0).getTime();
             const localTime = new Date(localEntity.updatedAt || 0).getTime();
 
@@ -200,17 +228,32 @@ function mergeEntities(entityType: string, serverEntities: any[]): void {
     setLocal(Array.from(localMap.values()));
 }
 
-function applyDeletions(deletions: { entityType: string; entityId: string }[]): void {
+function applyDeletions(deletions: { entityType: string; entityId: string; year?: number }[]): void {
     for (const del of deletions) {
         switch (del.entityType) {
             case 'transaction':
-                localDB.removeTransaction(del.entityId);
+                if (del.year) {
+                    localDB.removeTransaction(del.entityId, del.year);
+                } else {
+                    localDB.getAvailableYears().forEach(y => {
+                        localDB.removeTransaction(del.entityId, y);
+                    });
+                }
                 break;
             case 'budget':
                 localDB.removeBudget(del.entityId);
                 break;
             case 'category':
                 localDB.removeCategory(del.entityId);
+                break;
+            case 'recurring-bill':
+                localDB.removeRecurringBill(del.entityId);
+                break;
+            case 'debt':
+                localDB.removeDebt(del.entityId, del.year);
+                break;
+            case 'account':
+                localDB.removeAccount(del.entityId);
                 break;
         }
     }
@@ -227,6 +270,15 @@ function applyConflictResolutions(conflicts: { entityType: string; entityId: str
                 break;
             case 'category':
                 localDB.upsertCategory(conflict.serverVersion);
+                break;
+            case 'recurring-bill':
+                localDB.upsertRecurringBill(conflict.serverVersion);
+                break;
+            case 'debt':
+                localDB.upsertDebt(conflict.serverVersion);
+                break;
+            case 'account':
+                localDB.upsertAccount(conflict.serverVersion);
                 break;
         }
     }

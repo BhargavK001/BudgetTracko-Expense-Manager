@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './AuthContext';
 import * as localDB from '@/services/localDB';
 
@@ -83,13 +83,9 @@ export interface Transaction {
     month: number;
     year: number;
     day: number;
+    dayOfWeek?: number;
     time?: string;
     account: string;
-    accountId?: any;
-    fromAccountId?: any;
-    toAccountId?: any;
-    note?: string;
-    attachments?: any[];
     updatedAt?: string;
 }
 
@@ -121,11 +117,13 @@ export interface CategoryMeta {
 
 interface TransactionContextType {
     transactions: Transaction[];
+    transactionsByMonth: Record<string, Transaction[]>;
     budgets: Budget[];
     isLoading: boolean;
     // Transactions
     addTransaction: (tx: Omit<Transaction, 'id'>) => Promise<void>;
-    deleteTransaction: (id: string) => Promise<void>;
+    updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
+    deleteTransaction: (id: string, year: number) => Promise<void>;
     refreshTransactions: () => Promise<void>;
     // Budgets
     addBudget: (budget: Omit<Budget, 'id' | '_id'>) => Promise<void>;
@@ -145,6 +143,8 @@ interface TransactionContextType {
     getTotalExpense: (month?: number, year?: number) => number;
     getBalance: () => number;
     getTransactionsForMonth: (month: number, year: number) => Transaction[];
+    getTransactionsByYear: (year: number) => Transaction[];
+    getTransactionsForRange: (start: Date, end: Date) => Transaction[];
     getCategoryBreakdown: (month: number, year: number) => { name: string; amount: number; color: string; icon: string; isLucide: boolean }[];
 }
 
@@ -187,25 +187,20 @@ export function mapCategoryIcon(iconName: string): string {
 }
 
 function normalizeTransaction(tx: any): Transaction {
+    const d = new Date(tx.date || Date.now());
     return {
         id: tx._id || tx.id || '',
         _id: tx._id,
         title: tx.text || tx.title || '',
-        text: tx.text,
         amount: Math.abs(tx.amount || 0),
         type: tx.type || 'expense',
         category: tx.category || 'Other',
-        date: tx.date || new Date().toISOString(),
-        month: new Date(tx.date || Date.now()).getMonth(),
-        year: new Date(tx.date || Date.now()).getFullYear(),
-        day: new Date(tx.date || Date.now()).getDate(),
-        time: tx.time,
-        account: tx.accountId?.name || tx.account || '',
-        accountId: tx.accountId,
-        fromAccountId: tx.fromAccountId,
-        toAccountId: tx.toAccountId,
-        note: tx.note,
-        attachments: tx.attachments,
+        date: tx.date || d.toISOString(),
+        month: d.getMonth(),
+        year: d.getFullYear(),
+        day: d.getDate(),
+        dayOfWeek: d.getDay(),
+        account: tx.account || '',
         updatedAt: tx.updatedAt,
     };
 }
@@ -219,6 +214,7 @@ function generateLocalId(): string {
 export function TransactionProvider({ children }: { children: React.ReactNode }) {
     const { isAuthenticated } = useAuth();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [transactionsByMonth, setTransactionsByMonth] = useState<Record<string, Transaction[]>>({});
     const [categories, setCategories] = useState<CategoryItem[]>([]);
     const [budgets, setBudgets] = useState<Budget[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -226,9 +222,26 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     // ── Load from local DB (synchronous MMKV reads) ─────
     const refreshTransactions = useCallback(async () => {
         try {
+            // Priority 1: Refresh category states and metadata maps
+            // This prevents "Ghost Categories" where icons are missing after a sync
+            const catRaw = localDB.getCategories();
+            const catList = Array.isArray(catRaw) ? catRaw : [];
+            setCategories(catList);
+
+            // Priority 2: Load and normalize partitioning-aware transactions
             const raw = localDB.getTransactions();
-            const list = Array.isArray(raw) ? raw : [];
-            setTransactions(list.map(normalizeTransaction));
+            const list = (Array.isArray(raw) ? raw : []).map(normalizeTransaction);
+            
+            // Priority 3: Build indices for fast month-switching
+            const index: Record<string, Transaction[]> = {};
+            list.forEach(t => {
+                const key = `${t.year}-${t.month}`;
+                if (!index[key]) index[key] = [];
+                index[key].push(t);
+            });
+
+            setTransactionsByMonth(index);
+            setTransactions(list);
         } catch (e) {
             console.log('Failed to load local transactions:', e);
         } finally {
@@ -264,15 +277,18 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     }, []);
 
     useEffect(() => {
+        // Immediate load on mount ensures data is visible while auth is initializing
+        refreshTransactions();
+        refreshCategories();
+        refreshBudgets();
+    }, [refreshTransactions, refreshCategories, refreshBudgets]);
+
+    useEffect(() => {
+        // Re-refresh when auth definitely completes (to sync etc)
         if (isAuthenticated) {
             refreshTransactions();
             refreshCategories();
             refreshBudgets();
-        } else {
-            setTransactions([]);
-            setCategories([]);
-            setBudgets([]);
-            setIsLoading(false);
         }
     }, [isAuthenticated, refreshTransactions, refreshCategories, refreshBudgets]);
 
@@ -303,11 +319,36 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
         await refreshTransactions();
     }, [refreshTransactions]);
 
-    const deleteTransaction = useCallback(async (id: string) => {
+    const updateTransaction = useCallback(async (id: string, updates: Partial<Transaction>) => {
+        const now = new Date().toISOString();
+        
+        // 1. Get original to handle year-partitioning if date changes (though usually we keep the same year in simple edits)
+        const existing = transactions.find(t => t.id === id || t._id === id);
+        if (!existing) return;
+
+        const updatedTx = { ...existing, ...updates, updatedAt: now };
+
+        // 2. Write to local DB
+        localDB.upsertTransaction(updatedTx);
+
+        // 3. Add to sync queue
+        localDB.addToSyncQueue({
+            id: id,
+            action: 'update',
+            entityType: 'transaction',
+            data: updatedTx,
+            clientUpdatedAt: now,
+        });
+
+        // 4. Refresh in-memory state
+        await refreshTransactions();
+    }, [transactions, refreshTransactions]);
+
+    const deleteTransaction = useCallback(async (id: string, year: number) => {
         const now = new Date().toISOString();
 
         // Remove from local DB
-        localDB.removeTransaction(id);
+        localDB.removeTransaction(id, year);
 
         // Add to sync queue
         localDB.addToSyncQueue({
@@ -319,6 +360,19 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
         });
 
         // Update in-memory state
+        setTransactionsByMonth(prev => {
+            const next = { ...prev };
+            // We don't know the month here easily without searching, 
+            // so we'll just refresh or filter the whole year if we want to be precise.
+            // But for now, we'll iterate the months of that year in the index.
+            for (let m = 0; m < 12; m++) {
+                const key = `${year}-${m}`;
+                if (next[key]) {
+                    next[key] = next[key].filter(t => t.id !== id && t._id !== id);
+                }
+            }
+            return next;
+        });
         setTransactions(prev => prev.filter(t => t.id !== id && t._id !== id));
     }, []);
 
@@ -426,9 +480,24 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
 
     const getTransactionsForMonth = useCallback(
         (month: number, year: number) => {
-            return transactions.filter(t => t.month === month && t.year === year);
+            const key = `${year}-${month}`;
+            return transactionsByMonth[key] || [];
         },
-        [transactions]
+        [transactionsByMonth]
+    );
+
+    const getTransactionsByYear = useCallback(
+        (year: number) => {
+            let result: Transaction[] = [];
+            for (let m = 0; m < 12; m++) {
+                const key = `${year}-${m}`;
+                if (transactionsByMonth[key]) {
+                    result = result.concat(transactionsByMonth[key]);
+                }
+            }
+            return result;
+        },
+        [transactionsByMonth]
     );
 
     const getTotalIncome = useCallback(
@@ -452,22 +521,31 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
     }, [getTotalIncome, getTotalExpense]);
 
     // ── Resolve category icon + color from dynamic list first, then hardcoded ──
+    const categoryMap = useMemo(() => {
+        const map = new Map<string, CategoryMeta>();
+        categories.forEach(c => {
+            if (c.name) {
+                const isLucide = /^[A-Z]/.test(c.icon || '');
+                map.set(c.name, {
+                    icon: c.icon || 'ellipsis-horizontal-circle-outline',
+                    color: c.color || CATEGORY_COLORS[c.name] || '#795548',
+                    isLucide
+                });
+            }
+        });
+        return map;
+    }, [categories]);
+
     const getCategoryMeta = useCallback((categoryName: string): CategoryMeta => {
-        const dynamicCat = categories.find(c => c.name === categoryName);
-        if (dynamicCat && dynamicCat.icon) {
-            const isLucide = /^[A-Z]/.test(dynamicCat.icon);
-            return {
-                icon: dynamicCat.icon,
-                color: dynamicCat.color || CATEGORY_COLORS[categoryName] || '#795548',
-                isLucide,
-            };
-        }
+        const cached = categoryMap.get(categoryName);
+        if (cached) return cached;
+
         return {
             icon: CATEGORY_ICONS[categoryName] || 'ellipsis-horizontal-circle-outline',
             color: CATEGORY_COLORS[categoryName] || '#795548',
             isLucide: false,
         };
-    }, [categories]);
+    }, [categoryMap]);
 
     const getCategoryBreakdown = useCallback(
         (month: number, year: number) => {
@@ -493,39 +571,96 @@ export function TransactionProvider({ children }: { children: React.ReactNode })
         [getTransactionsForMonth, getCategoryMeta]
     );
 
+    const getTransactionsForRange = useCallback((start: Date, end: Date) => {
+        const result: Transaction[] = [];
+        const startY = start.getFullYear();
+        const endY = end.getFullYear();
+
+        for (let y = startY; y <= endY; y++) {
+            for (let m = 0; m < 12; m++) {
+                const key = `${y}-${m}`;
+                if (transactionsByMonth[key]) {
+                    const mDate = new Date(y, m, 1);
+                    const mEnd = new Date(y, m + 1, 0);
+                    if (mEnd < start || mDate > end) continue;
+
+                    if (mDate >= start && mEnd <= end) {
+                        result.push(...transactionsByMonth[key]);
+                    } else {
+                        result.push(...transactionsByMonth[key].filter(t => {
+                            const d = new Date(t.date);
+                            return d >= start && d <= end;
+                        }));
+                    }
+                }
+            }
+        }
+        return result;
+    }, [transactionsByMonth]);
+
+    const contextValue = useMemo(() => ({
+        transactions,
+        transactionsByMonth,
+        budgets,
+        isLoading,
+        addTransaction,
+        updateTransaction,
+        deleteTransaction,
+        refreshTransactions,
+        addBudget,
+        updateBudget,
+        deleteBudget,
+        refreshBudgets,
+        getCategoryMeta,
+        getTransactionsForMonth,
+        getTransactionsByYear,
+        getTransactionsForRange,
+        getCategoryBreakdown,
+        getTotalIncome,
+        getTotalExpense,
+        getBalance,
+        getTotalBudget,
+        categories,
+        addCategory,
+        updateCategory,
+        deleteCategory,
+        refreshCategories
+    }), [
+        transactions,
+        transactionsByMonth,
+        budgets,
+        isLoading,
+        addTransaction,
+        updateTransaction,
+        deleteTransaction,
+        refreshTransactions,
+        addBudget,
+        updateBudget,
+        deleteBudget,
+        refreshBudgets,
+        getCategoryMeta,
+        getTransactionsForMonth,
+        getTransactionsByYear,
+        getTransactionsForRange,
+        getCategoryBreakdown,
+        getTotalIncome,
+        getTotalExpense,
+        getBalance,
+        getTotalBudget,
+        categories,
+        addCategory,
+        updateCategory,
+        deleteCategory,
+        refreshCategories
+    ]);
+
     return (
-        <TransactionContext.Provider
-            value={{
-                transactions,
-                budgets,
-                isLoading,
-                addTransaction,
-                deleteTransaction,
-                refreshTransactions,
-                addBudget,
-                updateBudget,
-                deleteBudget,
-                refreshBudgets,
-                getTotalBudget,
-                categories,
-                refreshCategories,
-                addCategory,
-                updateCategory,
-                deleteCategory,
-                getCategoryMeta,
-                getTotalIncome,
-                getTotalExpense,
-                getBalance,
-                getTransactionsForMonth,
-                getCategoryBreakdown,
-            }}
-        >
+        <TransactionContext.Provider value={contextValue}>
             {children}
         </TransactionContext.Provider>
     );
 }
 
-// ─── Hook ────────────────────────────────────────────────
 export function useTransactions() {
     const ctx = useContext(TransactionContext);
     if (!ctx) throw new Error('useTransactions must be used within a TransactionProvider');

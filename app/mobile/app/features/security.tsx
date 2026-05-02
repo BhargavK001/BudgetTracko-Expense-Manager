@@ -7,6 +7,7 @@ import { useSecurity } from '@/context/SecurityContext';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInUp, FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as localDB from '@/services/localDB';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeStyles } from '@/components/more/DesignSystem';
 import { useSettings } from '@/context/SettingsContext';
@@ -23,8 +24,26 @@ export default function SecurityScreen() {
 
     React.useEffect(() => {
         const loadSettings = async () => {
-            const analytics = await AsyncStorage.getItem('BT_analyticsEnabled');
-            const offline = await AsyncStorage.getItem('BT_offlineEnabled');
+            // Priority 1: Check MMKV (Primary)
+            let analytics = localDB.getItem('BT_analyticsEnabled');
+            let offline = localDB.getItem('BT_offlineEnabled');
+
+            // Priority 2: One-time migration from AsyncStorage
+            if (analytics === null) {
+                const legacyAnalytics = await AsyncStorage.getItem('BT_analyticsEnabled');
+                if (legacyAnalytics !== null) {
+                    analytics = legacyAnalytics;
+                    localDB.setItem('BT_analyticsEnabled', legacyAnalytics);
+                }
+            }
+            if (offline === null) {
+                const legacyOffline = await AsyncStorage.getItem('BT_offlineEnabled');
+                if (legacyOffline !== null) {
+                    offline = legacyOffline;
+                    localDB.setItem('BT_offlineEnabled', legacyOffline);
+                }
+            }
+
             if (analytics) setAnalyticsEnabled(analytics === 'true');
             if (offline) setOfflineEnabled(offline === 'true');
         };
@@ -39,13 +58,13 @@ export default function SecurityScreen() {
     const toggleAnalytics = async (v: boolean) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setAnalyticsEnabled(v);
-        await AsyncStorage.setItem('BT_analyticsEnabled', v.toString());
+        localDB.setItem('BT_analyticsEnabled', v.toString());
     };
 
     const toggleOffline = async (v: boolean) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         setOfflineEnabled(v);
-        await AsyncStorage.setItem('BT_offlineEnabled', v.toString());
+        localDB.setItem('BT_offlineEnabled', v.toString());
     };
 
     return (
@@ -146,7 +165,7 @@ export default function SecurityScreen() {
                 <Animated.View entering={FadeInUp.delay(400).duration(400)}>
                     <Text style={[styles.sectionLabel, { color: tokens.textMuted }]}>More Information</Text>
                     <View style={[styles.card, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
-                        <TouchableOpacity style={[styles.infoRow]} onPress={() => router.push('/privacy-security')}>
+                        <TouchableOpacity style={[styles.infoRow]} onPress={() => router.push('/privacy-security' as any)}>
                             <Text style={[styles.infoTitle, { color: tokens.textPrimary }]}>Read Full Privacy Policy</Text>
                             <Ionicons name="open-outline" size={16} color={tokens.textMuted} />
                         </TouchableOpacity>

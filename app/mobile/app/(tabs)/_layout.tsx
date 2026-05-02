@@ -84,7 +84,7 @@ const FabButton = React.memo(function FabButton({ onPress }: { onPress: () => vo
 });
 
 // ── Custom Tab Bar ───────────────────────────────────────────
-function CustomTabBar({ state, navigation, onFabPress, triggerHaptic }: any) {
+const MemoizedCustomTabBar = React.memo(function CustomTabBar({ state, navigation, onFabPress, triggerHaptic }: any) {
   const insets = useSafeAreaInsets();
   const { isDarkMode, tokens } = useThemeStyles();
   const fabIndex = 2; // FAB between Pulse and Accounts
@@ -120,7 +120,7 @@ function CustomTabBar({ state, navigation, onFabPress, triggerHaptic }: any) {
       </View>
     </View>
   );
-}
+});
 
 // ── Layout ───────────────────────────────────────────────────
 export default function TabLayout() {
@@ -128,10 +128,19 @@ export default function TabLayout() {
   const { showModal, modalType, scanData, openModal, closeModal } = useQuickAction();
   const { triggerHaptic } = useSettings();
 
+  const handleFabPress = useCallback(() => {
+    triggerHaptic();
+    openModal();
+  }, [triggerHaptic, openModal]);
+
+  const renderTabBar = useCallback((props: any) => (
+    <MemoizedCustomTabBar {...props} triggerHaptic={triggerHaptic} onFabPress={handleFabPress} />
+  ), [triggerHaptic, handleFabPress]);
+
   return (
     <>
       <Tabs
-        tabBar={(props) => <CustomTabBar {...props} triggerHaptic={triggerHaptic} onFabPress={() => { triggerHaptic(); openModal(); }} />}
+        tabBar={renderTabBar}
         screenOptions={{ headerShown: false }}
       >
         <Tabs.Screen name="index" />
@@ -139,6 +148,7 @@ export default function TabLayout() {
         <Tabs.Screen name="accounts" />
         <Tabs.Screen name="more" />
       </Tabs>
+
       <AddTransactionModal
         visible={showModal}
         onClose={closeModal}

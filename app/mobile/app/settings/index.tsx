@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
 import { useSettings } from '@/context/SettingsContext';
 import api from '@/services/api';
+import * as localDB from '@/services/localDB';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useThemeStyles } from '@/components/more/DesignSystem';
@@ -38,9 +39,34 @@ export default function SettingsScreen() {
 
     useEffect(() => {
         (async () => {
-            const c = await AsyncStorage.getItem('setting_currency');
-            const d = await AsyncStorage.getItem('setting_firstDay');
-            const l = await AsyncStorage.getItem('setting_language');
+            // Priority 1: Check MMKV (Primary)
+            let c = localDB.getItem('setting_currency');
+            let d = localDB.getItem('setting_firstDay');
+            let l = localDB.getItem('setting_language');
+
+            // Priority 2: One-time migration from AsyncStorage
+            if (c === null) {
+                const legacyC = await AsyncStorage.getItem('setting_currency');
+                if (legacyC !== null) {
+                    c = legacyC;
+                    localDB.setItem('setting_currency', legacyC);
+                }
+            }
+            if (d === null) {
+                const legacyD = await AsyncStorage.getItem('setting_firstDay');
+                if (legacyD !== null) {
+                    d = legacyD;
+                    localDB.setItem('setting_firstDay', legacyD);
+                }
+            }
+            if (l === null) {
+                const legacyL = await AsyncStorage.getItem('setting_language');
+                if (legacyL !== null) {
+                    l = legacyL;
+                    localDB.setItem('setting_language', legacyL);
+                }
+            }
+
             if (c) setCurrency(c);
             if (d) setFirstDay(d);
             if (l) setLanguage(l);
@@ -74,9 +100,9 @@ export default function SettingsScreen() {
     };
 
     const generalSettings = [
-        { icon: 'cash-outline', label: 'Currency', value: currency, onPress: () => openPicker('Currency', CURRENCIES, async (v) => { setCurrency(v); await AsyncStorage.setItem('setting_currency', v); }) },
-        { icon: 'calendar-outline', label: 'First Day of Week', value: firstDay, onPress: () => openPicker('First Day of Week', DAYS, async (v) => { setFirstDay(v); await AsyncStorage.setItem('setting_firstDay', v); }) },
-        { icon: 'language-outline', label: 'Language', value: language, onPress: () => openPicker('Language', LANGUAGES, async (v) => { setLanguage(v); await AsyncStorage.setItem('setting_language', v); }) },
+        { icon: 'cash-outline', label: 'Currency', value: currency, onPress: () => openPicker('Currency', CURRENCIES, (v) => { setCurrency(v); localDB.setItem('setting_currency', v); }) },
+        { icon: 'calendar-outline', label: 'First Day of Week', value: firstDay, onPress: () => openPicker('First Day of Week', DAYS, (v) => { setFirstDay(v); localDB.setItem('setting_firstDay', v); }) },
+        { icon: 'language-outline', label: 'Language', value: language, onPress: () => openPicker('Language', LANGUAGES, (v) => { setLanguage(v); localDB.setItem('setting_language', v); }) },
     ];
 
     const dataSettings = [

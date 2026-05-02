@@ -9,7 +9,8 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown, Layout } from 'react-native-reanimated';
 import { useThemeStyles } from '@/components/more/DesignSystem';
-import api from '@/services/api';
+import * as localDB from '@/services/localDB';
+import { performDeltaSync } from '@/services/syncEngine';
 import { scheduleRecurringBillReminder, cancelNotification } from '@/services/notificationService';
 import { useSettings } from '@/context/SettingsContext';
 
@@ -22,6 +23,7 @@ const PRESETS = [
 
 type Bill = {
     _id: string;
+    id?: string;
     name: string;
     category: string;
     amount: number;
@@ -50,26 +52,32 @@ function RecurringBillsScreen() {
         category: 'Bills', frequency: 'monthly', autoPay: false,
     });
 
+    const refreshBills = useCallback(() => {
+        setBills(localDB.getRecurringBills());
+    }, []);
+
     const fetchBills = useCallback(async () => {
         try {
-            const res = await api.get('/api/recurring');
-            const raw = res.data;
-            const list = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : Array.isArray(raw?.bills) ? raw.bills : [];
-            setBills(list);
+            refreshBills();
+            // Background sync
+            performDeltaSync().then(() => refreshBills()).catch(() => {});
         } catch (e) {
             console.log('Failed to fetch recurring bills:', e);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [refreshBills]);
 
     useEffect(() => { fetchBills(); }, [fetchBills]);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        try { await fetchBills(); } catch {}
+        try { 
+            await performDeltaSync();
+            refreshBills();
+        } catch {}
         setRefreshing(false);
-    }, [fetchBills]);
+    }, [refreshBills]);
 
     const sortedBills = useMemo(() => {
         if (!Array.isArray(bills)) return [];
@@ -107,21 +115,28 @@ function RecurringBillsScreen() {
         }
         setSaving(true);
 
-        const payload = {
+        const id = editingBill?._id || editingBill?.id || Date.now().toString();
+        const now = new Date().toISOString();
+        const payload: Bill = {
+            _id: id,
             name: formData.name,
             amount: Number(formData.amount),
             dueDate: Number(formData.dueDate),
             category: formData.category,
             frequency: formData.frequency,
             autoPay: formData.autoPay,
+            status: editingBill?.status || 'active',
         };
 
         try {
-            if (editingBill) {
-                await api.put(`/api/recurring/${editingBill._id}`, payload);
-            } else {
-                await api.post('/api/recurring', payload);
-            }
+            localDB.upsertRecurringBill(payload);
+            localDB.addToSyncQueue({
+                id,
+                entityType: 'recurring-bill',
+                action: editingBill ? 'update' : 'create',
+                data: payload,
+                clientUpdatedAt: now
+            });
 
             const today = new Date();
             let nextDue = new Date(today.getFullYear(), today.getMonth(), payload.dueDate);
@@ -132,9 +147,10 @@ function RecurringBillsScreen() {
             scheduleRecurringBillReminder(payload.name, payload.amount, nextDue, formatCurrency(0).charAt(0));
 
             setIsModalOpen(false);
-            await fetchBills();
+            refreshBills();
+            performDeltaSync().catch(() => {});
         } catch (e: any) {
-            Alert.alert('Error', e.response?.data?.error || e.response?.data?.message || 'Failed to save bill.');
+            Alert.alert('Error', 'Failed to save bill locally. Please try again.');
         } finally {
             setSaving(false);
         }
@@ -149,10 +165,19 @@ function RecurringBillsScreen() {
                 onPress: async () => {
                     triggerHaptic();
                     try {
-                        await api.delete(`/api/recurring/${bill._id}`);
-                        await fetchBills();
+                        const id = bill._id || (bill as any).id;
+                        localDB.removeRecurringBill(id);
+                        localDB.addToSyncQueue({
+                            id,
+                            entityType: 'recurring-bill',
+                            action: 'delete',
+                            data: { id },
+                            clientUpdatedAt: new Date().toISOString()
+                        });
+                        refreshBills();
+                        performDeltaSync().catch(() => {});
                     } catch (e: any) {
-                        Alert.alert('Error', e.response?.data?.error || e.response?.data?.message || 'Failed to delete bill.');
+                        Alert.alert('Error', 'Failed to delete bill.');
                     }
                 },
             },

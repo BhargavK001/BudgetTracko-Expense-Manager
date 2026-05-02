@@ -39,11 +39,11 @@ const TransactionRow = React.memo(({ tx, index, onPress, formatCurrency, getCate
     const meta = getCategoryMeta(tx.category || 'Other');
     const iconColor = meta.color;
 
-    const isInitial = index < 10;
+    const isInitial = index < 12;
 
     return (
         <Animated.View
-            entering={isInitial ? FadeInDown.delay(50 + index * 30).duration(300) : undefined}
+            entering={isInitial ? FadeInDown.delay(index * 30).duration(300) : undefined}
         >
             <TouchableOpacity
                 style={[styles.txRow, { borderBottomColor: tokens.borderSubtle }]}
@@ -78,7 +78,7 @@ export default function TransactionsScreen() {
     const router = useRouter();
     const { tokens } = useThemeStyles();
     const { formatCurrency, isDarkMode } = useSettings();
-    const { transactions, refreshTransactions, getCategoryMeta } = useTransactions();
+    const { transactions, refreshTransactions, getCategoryMeta, getTransactionsByYear } = useTransactions();
     const [filter, setFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
     const [dateFilter, setDateFilter] = useState<Date | null>(null);
@@ -89,6 +89,20 @@ export default function TransactionsScreen() {
 
     const filteredTxs = useMemo(() => {
         let result = transactions;
+
+        // Optimization: if date filter is set, start with the specific year to narrow search space
+        if (dateFilter) {
+            const dfYear = dateFilter.getFullYear();
+            const dfMonth = dateFilter.getMonth();
+            const dfDay = dateFilter.getDate();
+            
+            // Only use indexed year if we have one, otherwise fall back to full list
+            const yearTxs = getTransactionsByYear ? getTransactionsByYear(dfYear) : transactions;
+            
+            result = yearTxs.filter(t =>
+                t.day === dfDay && t.month === dfMonth && t.year === dfYear
+            );
+        }
 
         // 1. Type Filter
         if (filter !== 'all') {
@@ -104,18 +118,8 @@ export default function TransactionsScreen() {
             );
         }
 
-        // 3. Date Filter (Match Day)
-        if (dateFilter) {
-            const dfDay = dateFilter.getDate();
-            const dfMonth = dateFilter.getMonth();
-            const dfYear = dateFilter.getFullYear();
-            result = result.filter(t =>
-                t.day === dfDay && t.month === dfMonth && t.year === dfYear
-            );
-        }
-
         return result;
-    }, [transactions, filter, searchQuery, dateFilter]);
+    }, [transactions, filter, searchQuery, dateFilter, getTransactionsByYear]);
 
     const handleRowPress = useCallback((tx: any) => {
         setSelectedTx(tx);
@@ -136,6 +140,11 @@ export default function TransactionsScreen() {
     }, [handleRowPress, formatCurrency, getCategoryMeta, tokens]);
 
     const keyExtractor = useCallback((item: any) => item.id || item._id, []);
+    const getItemLayout = useCallback((data: any, index: number) => ({
+        length: 73,
+        offset: 73 * index,
+        index,
+    }), []);
 
     return (
         <View style={[styles.container, { backgroundColor: tokens.bgPrimary, paddingTop: insets.top }]}>
@@ -147,9 +156,9 @@ export default function TransactionsScreen() {
                     <Ionicons name="arrow-back" size={20} color={tokens.textPrimary} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: tokens.textPrimary }]}>All Transactions</Text>
-                <TouchableOpacity onPress={() => setShowDatePicker(true)} style={[styles.datePickerBtn, { backgroundColor: dateFilter ? '#6366F1' : tokens.bgSecondary }]}>
+                <TouchableOpacity onPress={() => setShowDatePicker(true)} style={[styles.datePickerBtn, { backgroundColor: dateFilter ? tokens.teal.accent : tokens.bgSecondary }]}>
                     <Ionicons name="calendar-outline" size={20} color={dateFilter ? "#fff" : tokens.textPrimary} />
-                    {dateFilter && <View style={[styles.datePickerDot, { borderColor: tokens.bgPrimary }]} />}
+                    {dateFilter && <View style={[styles.datePickerDot, { borderColor: tokens.bgPrimary, backgroundColor: tokens.coral.accent }]} />}
                 </TouchableOpacity>
             </Animated.View>
 
@@ -196,13 +205,13 @@ export default function TransactionsScreen() {
                             key={f.key}
                             style={[
                                 styles.filterBtn,
-                                { backgroundColor: isActive ? (isDarkMode ? tokens.textPrimary : '#111') : tokens.bgSecondary }
+                                { backgroundColor: isActive ? tokens.textPrimary : tokens.bgSecondary }
                             ]}
                             onPress={() => setFilter(f.key)}
                         >
                             <Text style={[
                                 styles.filterTxt,
-                                { color: isActive ? (isDarkMode ? tokens.bgPrimary : '#fff') : tokens.textMuted }
+                                { color: isActive ? tokens.bgPrimary : tokens.textMuted }
                             ]}>
                                 {f.label}
                             </Text>
@@ -216,11 +225,12 @@ export default function TransactionsScreen() {
                 data={filteredTxs}
                 renderItem={renderItem}
                 keyExtractor={keyExtractor}
+                getItemLayout={getItemLayout}
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
                 initialNumToRender={15}
                 maxToRenderPerBatch={10}
-                windowSize={11}
+                windowSize={5} // Reduced from 11 for better memory management on large lists
                 removeClippedSubviews={true}
                 updateCellsBatchingPeriod={50}
                 ListEmptyComponent={

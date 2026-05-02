@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, StatusBar
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as localDB from '@/services/localDB';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 import { useThemeStyles } from '@/components/more/DesignSystem';
@@ -26,9 +27,34 @@ export default function RemindersScreen() {
 
     useEffect(() => {
         (async () => {
-            const d = await AsyncStorage.getItem(STORAGE_KEYS.daily);
-            const w = await AsyncStorage.getItem(STORAGE_KEYS.weekly);
-            const b = await AsyncStorage.getItem(STORAGE_KEYS.budget);
+            // Priority 1: Check MMKV (Primary)
+            let d = localDB.getItem(STORAGE_KEYS.daily);
+            let w = localDB.getItem(STORAGE_KEYS.weekly);
+            let b = localDB.getItem(STORAGE_KEYS.budget);
+
+            // Priority 2: One-time migration from AsyncStorage
+            if (d === null) {
+                const legacyD = await AsyncStorage.getItem(STORAGE_KEYS.daily);
+                if (legacyD !== null) {
+                    d = legacyD;
+                    localDB.setItem(STORAGE_KEYS.daily, legacyD);
+                }
+            }
+            if (w === null) {
+                const legacyW = await AsyncStorage.getItem(STORAGE_KEYS.weekly);
+                if (legacyW !== null) {
+                    w = legacyW;
+                    localDB.setItem(STORAGE_KEYS.weekly, legacyW);
+                }
+            }
+            if (b === null) {
+                const legacyB = await AsyncStorage.getItem(STORAGE_KEYS.budget);
+                if (legacyB !== null) {
+                    b = legacyB;
+                    localDB.setItem(STORAGE_KEYS.budget, legacyB);
+                }
+            }
+
             if (d !== null) setDailyReminder(d === 'true');
             if (w !== null) setWeeklyReport(w === 'true');
             if (b !== null) setBudgetAlerts(b === 'true');
@@ -95,7 +121,7 @@ export default function RemindersScreen() {
         const ok = await scheduleNotification('daily', v);
         if (ok) {
             setDailyReminder(v);
-            await AsyncStorage.setItem(STORAGE_KEYS.daily, String(v));
+            localDB.setItem(STORAGE_KEYS.daily, String(v));
         }
     };
 
@@ -103,13 +129,13 @@ export default function RemindersScreen() {
         const ok = await scheduleNotification('weekly', v);
         if (ok) {
             setWeeklyReport(v);
-            await AsyncStorage.setItem(STORAGE_KEYS.weekly, String(v));
+            localDB.setItem(STORAGE_KEYS.weekly, String(v));
         }
     };
 
     const toggleBudget = async (v: boolean) => {
         setBudgetAlerts(v);
-        await AsyncStorage.setItem(STORAGE_KEYS.budget, String(v));
+        localDB.setItem(STORAGE_KEYS.budget, String(v));
     };
 
     return (

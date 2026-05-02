@@ -1,7 +1,7 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState, useCallback } from 'react';
 import { useColorScheme, View } from 'react-native';
@@ -15,6 +15,7 @@ import { SecurityProvider } from '@/context/SecurityContext';
 import { SettingsProvider } from '@/context/SettingsContext';
 import { DebtProvider } from '@/context/DebtContext';
 import { SyncProvider } from '@/context/SyncContext';
+import { AccountProvider } from '@/context/AccountContext';
 import SyncOnLogin from '@/components/SyncOnLogin';
 import { AppState, AppStateStatus } from 'react-native';
 
@@ -87,7 +88,16 @@ const CustomDarkTheme = {
 import NetworkBanner from '@/components/NetworkBanner';
 
 function RootLayoutNav() {
-  const { isLocked, lockApp, user, hasBiometricKey } = useAuth();
+  const { isLocked, lockApp, user, hasBiometricKey, isAuthenticated, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    // If not authenticated and not loading, redirect to welcome if we're in tabs
+    // This handles session expiration while the app is active
+    if (!loading && !isAuthenticated) {
+      router.replace('/welcome');
+    }
+  }, [loading, isAuthenticated, router]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
@@ -104,42 +114,41 @@ function RootLayoutNav() {
   return (
     <SettingsProvider>
       <DebtProvider>
-        <SyncProvider>
-          <TransactionProvider>
-            <SyncOnLogin />
-            <QuickActionProvider>
-            <SafeAreaProvider>
-              <ThemeProvider value={CustomDarkTheme}>
-                <View style={{ flex: 1, backgroundColor: '#fff' }}>
-                  <NetworkBanner />
-                  <Stack
-                    initialRouteName="index"
-                    screenOptions={{
-                      animation: 'slide_from_right',
-                      gestureEnabled: true,
-                      fullScreenGestureEnabled: true,
-                      headerShown: false,
-                      contentStyle: { backgroundColor: '#fff' },
-                    }}
-                  >
-                    <Stack.Screen name="index" options={{ headerShown: false }} />
-                    <Stack.Screen name="welcome" options={{ headerShown: false }} />
-                    <Stack.Screen name="features" options={{ headerShown: false }} />
-                    <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                    <Stack.Screen name="help-support" options={{ headerShown: false }} />
-                    <Stack.Screen name="share-app" options={{ headerShown: false }} />
-                    <Stack.Screen name="premium" options={{ headerShown: false }} />
-                    <Stack.Screen name="profile" options={{ headerShown: false }} />
-                    <Stack.Screen name="privacy-security" options={{ headerShown: false }} />
-                    <Stack.Screen name="settings" options={{ headerShown: false }} />
-                  </Stack>
-                </View>
-              </ThemeProvider>
-            </SafeAreaProvider>
-          </QuickActionProvider>
-        </TransactionProvider>
-        </SyncProvider>
+        <AccountProvider>
+          <SyncProvider>
+            <TransactionProvider>
+              <SyncOnLogin />
+              <QuickActionProvider>
+              <SafeAreaProvider>
+                <ThemeProvider value={CustomDarkTheme}>
+                  <View style={{ flex: 1, backgroundColor: '#fff' }}>
+                    <NetworkBanner />
+                    <Stack
+                      initialRouteName="index"
+                      screenOptions={{
+                        animation: 'slide_from_right',
+                        gestureEnabled: true,
+                        fullScreenGestureEnabled: true,
+                        headerShown: false,
+                        contentStyle: { backgroundColor: 'transparent' },
+                      }}
+                    >
+                      <Stack.Screen name="index" options={{ headerShown: false }} />
+                      <Stack.Screen name="welcome" options={{ headerShown: false }} />
+                      <Stack.Screen name="features" options={{ headerShown: false }} />
+                      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                      <Stack.Screen name="premium" options={{ headerShown: false }} />
+                      <Stack.Screen name="profile" options={{ headerShown: false }} />
+                      <Stack.Screen name="settings" options={{ headerShown: false }} />
+                    </Stack>
+                  </View>
+                </ThemeProvider>
+              </SafeAreaProvider>
+            </QuickActionProvider>
+          </TransactionProvider>
+          </SyncProvider>
+        </AccountProvider>
       </DebtProvider>
     </SettingsProvider>
   );

@@ -15,6 +15,7 @@ import Animated, {
 import api from '@/services/api';
 import * as localDB from '@/services/localDB';
 import { mapCategoryIcon, useTransactions, CategoryItem } from '@/context/TransactionContext';
+import { useAccounts, Account } from '@/context/AccountContext';
 import { LucideCategoryIcon } from '@/app/features/categories';
 import { ScanData } from '@/context/QuickActionContext';
 import { useSettings } from '@/context/SettingsContext';
@@ -23,13 +24,7 @@ import { compressImage } from '@/utils/imageCompressor';
 // ─── Types ───────────────────────────────────────────────
 type TxType = 'expense' | 'income' | 'transfer';
 
-interface BackendAccount {
-    _id: string;
-    name: string;
-    type: string;
-    color: string;
-    balance: number;
-}
+// Removed local BackendAccount type in favor of Account from AccountContext
 
 // Deleted local BackendCategory type since we use CategoryItem from context
 
@@ -307,7 +302,8 @@ interface Props {
 }
 
 export default function AddTransactionModal({ visible, onClose, editingTransaction, onEditSuccess, initialType, scanData }: Props) {
-    const { addTransaction, deleteTransaction, categories: contextCategories, refreshCategories } = useTransactions();
+    const { addTransaction, updateTransaction, deleteTransaction, categories: contextCategories, refreshCategories } = useTransactions();
+    const { accounts, refreshAccounts } = useAccounts();
     const { formatCurrency, currency, triggerHaptic } = useSettings();
 
     // ── State ──
@@ -328,45 +324,26 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
     const [showTimePicker, setShowTimePicker] = useState(false);
 
     // Backend data
-    const [accounts, setAccounts] = useState<BackendAccount[]>([]);
-    const [loadingData, setLoadingData] = useState(true);
+    // Backend data removed in favor of context
+    const [loadingData, setLoadingData] = useState(false);
 
     const fetchData = useCallback(async () => {
-        setLoadingData(true);
-        try {
-            // Read accounts from local DB first (fast, offline-capable)
-            const localAccounts = localDB.getAccounts();
-            if (localAccounts.length > 0) {
-                setAccounts(localAccounts);
-                if (!accountId) {
-                    setAccountId(localAccounts[0]._id);
-                    setFromAccountId(localAccounts[0]._id);
-                    if (localAccounts.length > 1) setToAccountId(localAccounts[1]._id);
-                }
-            } else {
-                // Fallback to API if local cache is empty
-                try {
-                    const accRes = await api.get('/api/accounts');
-                    const accRaw = accRes.data;
-                    const accs = Array.isArray(accRaw) ? accRaw : Array.isArray(accRaw?.data) ? accRaw.data : [];
-                    setAccounts(accs);
-                    if (accs.length > 0 && !accountId) {
-                        setAccountId(accs[0]._id);
-                        setFromAccountId(accs[0]._id);
-                        if (accs.length > 1) setToAccountId(accs[1]._id);
-                    }
-                } catch (e) {
-                    console.log('Failed to load accounts:', e);
-                }
+        // Categories need background refresh
+        refreshCategories();
+        // Accounts are managed by AccountContext, but we can trigger a refresh if needed
+        refreshAccounts();
+    }, [refreshCategories, refreshAccounts]);
+
+    // Set default accounts when accounts list becomes available
+    useEffect(() => {
+        if (visible && accounts.length > 0 && !accountId && !editingTransaction) {
+            setAccountId(accounts[0]._id || accounts[0].id || null);
+            setFromAccountId(accounts[0]._id || accounts[0].id || null);
+            if (accounts.length > 1) {
+                setToAccountId(accounts[1]._id || accounts[1].id || null);
             }
-            // Refresh categories in background to ensure latest
-            refreshCategories();
-        } catch (e) {
-            console.log('Failed to load accounts:', e);
-        } finally {
-            setLoadingData(false);
         }
-    }, [accountId, refreshCategories]);
+    }, [visible, accounts, accountId, editingTransaction]);
 
     useEffect(() => {
         if (visible) fetchData();
@@ -458,9 +435,11 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
         setCategory(null); setNotes(''); setImages([]);
         setDate(new Date());
         if (accounts.length > 0) {
-            setAccountId(accounts[0]._id);
-            setFromAccountId(accounts[0]._id);
-            if (accounts.length > 1) setToAccountId(accounts[1]._id);
+            const firstId = accounts[0]._id || accounts[0].id || null;
+            const secondId = accounts[1]?._id || accounts[1]?.id || null;
+            setAccountId(firstId);
+            setFromAccountId(firstId);
+            if (secondId) setToAccountId(secondId);
         }
     }, [initialType, accounts]);
 
@@ -511,77 +490,41 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
         }
 
         setSaving(true);
+        triggerHaptic();
+
         try {
             const timeStr = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+            const txData = {
+                title: title.trim(),
+                text: title.trim(),
+                amount: num,
+                type,
+                category: isTransfer ? 'Transfer' : (category || 'Other'),
+                date: date.toISOString(),
+                month: date.getMonth(),
+                year: date.getFullYear(),
+                day: date.getDate(),
+                time: timeStr,
+                accountId: isTransfer ? undefined : accountId,
+                fromAccountId: isTransfer ? fromAccountId : undefined,
+                toAccountId: isTransfer ? toAccountId : undefined,
+                note: notes.trim(),
+                attachments: images.length > 0 ? images.map((uri) => ({ url: uri, name: uri.split('/').pop() || 'receipt.jpg' })) : [],
+            };
 
-            if (editingTransaction && (editingTransaction._id || editingTransaction.id)) {
-                // For edits, use API directly (supports file uploads + existing attachments)
-                const formData = new FormData();
-                formData.append('type', type);
-                formData.append('text', title.trim());
-                formData.append('amount', String(num));
-                formData.append('date', date.toISOString());
-                formData.append('time', timeStr);
-                if (notes.trim()) formData.append('note', notes.trim());
-
-                if (isTransfer) {
-                    formData.append('fromAccountId', fromAccountId!);
-                    formData.append('toAccountId', toAccountId!);
-                } else {
-                    if (category) formData.append('category', category);
-                    if (accountId) formData.append('accountId', accountId);
-                }
-
-                images.forEach((uri, i) => {
-                    const name = uri.split('/').pop() || `receipt_${i}.jpg`;
-                    const ext = name.split('.').pop()?.toLowerCase() || 'jpg';
-                    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
-                    formData.append('attachments', { uri, name, type: mimeType } as any);
-                });
-
-                await api.put(`/api/transactions/${editingTransaction._id || editingTransaction.id}`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                    timeout: 30000,
-                });
-
-                // Update local DB after successful API edit
-                localDB.upsertTransaction({
-                    _id: editingTransaction._id || editingTransaction.id,
-                    type, text: title.trim(), amount: num, category: isTransfer ? 'Transfer' : category,
-                    date: date.toISOString(), time: timeStr, note: notes.trim(),
-                    accountId, fromAccountId, toAccountId,
-                    updatedAt: new Date().toISOString(),
-                });
-
-                if (onEditSuccess) onEditSuccess();
+            if (editingTransaction) {
+                const id = editingTransaction._id || editingTransaction.id;
+                await updateTransaction(id, txData as any);
             } else {
-                // For new transactions, use context (local-first)
-                await addTransaction({
-                    _id: undefined,
-                    title: title.trim(),
-                    text: title.trim(),
-                    amount: num,
-                    type,
-                    category: isTransfer ? 'Transfer' : (category || 'Other'),
-                    date: date.toISOString(),
-                    month: date.getMonth(),
-                    year: date.getFullYear(),
-                    day: date.getDate(),
-                    time: timeStr,
-                    account: '',
-                    accountId: isTransfer ? undefined : accountId,
-                    fromAccountId: isTransfer ? fromAccountId : undefined,
-                    toAccountId: isTransfer ? toAccountId : undefined,
-                    note: notes.trim(),
-                    attachments: images.length > 0 ? images.map((uri) => ({ url: uri, name: uri.split('/').pop() || 'receipt.jpg' })) : [],
-                } as any);
+                await addTransaction(txData as any);
             }
 
+            if (onEditSuccess) onEditSuccess();
             reset();
             onClose();
         } catch (e: any) {
-            console.log('Save error:', e.response?.data || e.message);
-            Alert.alert('Error', e.response?.data?.message || 'Failed to save. Try again.');
+            console.log('Save error:', e.message);
+            Alert.alert('Error', 'Failed to save transaction. Please try again.');
         } finally {
             setSaving(false);
         }
@@ -607,7 +550,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
                 onPress: async () => {
                     triggerHaptic();
                     try {
-                        await deleteTransaction(editingTransaction._id || editingTransaction.id);
+                        await deleteTransaction(editingTransaction._id || editingTransaction.id, editingTransaction.year);
                         if (onEditSuccess) onEditSuccess();
                         onClose();
                     } catch (e: any) {
@@ -770,7 +713,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
                                                     <TouchableOpacity
                                                         key={acc._id}
                                                         style={[styles.accChip, sel && styles.accChipActive]}
-                                                        onPress={() => setAccountId(acc._id)}
+                                                        onPress={() => setAccountId(acc._id || acc.id || null)}
                                                     >
                                                         <View style={[styles.accDot, { backgroundColor: sel ? '#fff' : (acc.color || '#007AFF') }]} />
                                                         <Text style={[styles.accChipTxt, sel && styles.accChipTxtActive]}>{acc.name}</Text>
@@ -794,7 +737,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
                                                     <TouchableOpacity
                                                         key={acc._id}
                                                         style={[styles.accChip, sel && { backgroundColor: '#F43F5E', borderColor: '#F43F5E' }]}
-                                                        onPress={() => setFromAccountId(acc._id)}
+                                                        onPress={() => setFromAccountId(acc._id || acc.id || null)}
                                                     >
                                                         <View style={[styles.accDot, { backgroundColor: sel ? '#fff' : (acc.color || '#F43F5E') }]} />
                                                         <Text style={[styles.accChipTxt, sel && styles.accChipTxtActive]}>{acc.name}</Text>
@@ -820,7 +763,7 @@ export default function AddTransactionModal({ visible, onClose, editingTransacti
                                                     <TouchableOpacity
                                                         key={acc._id}
                                                         style={[styles.accChip, sel && { backgroundColor: '#2DCA72', borderColor: '#2DCA72' }]}
-                                                        onPress={() => setToAccountId(acc._id)}
+                                                        onPress={() => setToAccountId(acc._id || acc.id || null)}
                                                     >
                                                         <View style={[styles.accDot, { backgroundColor: sel ? '#fff' : (acc.color || '#2DCA72') }]} />
                                                         <Text style={[styles.accChipTxt, sel && styles.accChipTxtActive]}>{acc.name}</Text>

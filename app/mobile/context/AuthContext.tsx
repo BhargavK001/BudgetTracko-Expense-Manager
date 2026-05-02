@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
-import api from '../services/api';
+import api, { setOnUnauthorizedCallback } from '../services/api';
 import * as localDB from '@/services/localDB';
 
 interface User {
@@ -65,24 +65,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const checkAuth = async () => {
         try {
-            const storedToken = await AsyncStorage.getItem('token');
-            const storedUser = await AsyncStorage.getItem('user');
+            // 1. Migration from legacy AsyncStorage
+            const legacyToken = await AsyncStorage.getItem('token');
+            const legacyUser = await AsyncStorage.getItem('user');
+            
+            if (legacyToken) {
+                localDB.setItem('token', legacyToken);
+                await AsyncStorage.removeItem('token');
+            }
+            if (legacyUser) {
+                localDB.setItem('user', legacyUser);
+                await AsyncStorage.removeItem('user');
+            }
+
+            // 2. Load from localDB (Synchronous via MMKV)
+            const storedToken = localDB.getItem('token');
+            const storedUser = localDB.getItem('user');
 
             if (storedToken && storedUser) {
                 setToken(storedToken);
                 setUser(JSON.parse(storedUser));
 
-                // Optional: Verify token with /me endpoint
+                // Verify token with /me endpoint
                 try {
                     const response = await api.get('/auth/me');
                     if (response.data.user) {
-                        setUser(response.data.user);
-                        await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+                        const updatedUser = response.data.user;
+                        setUser(updatedUser);
+                        localDB.setItem('user', JSON.stringify(updatedUser)); // Sync update
                     }
                 } catch (e) {
-                    // If /me fails, token might be invalid
                     await logout();
                 }
+                
                 // Check if we should lock
                 const compatible = await LocalAuthentication.hasHardwareAsync();
                 const enrolled = await LocalAuthentication.isEnrolledAsync();
@@ -102,8 +117,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             const response = await api.get('/auth/me');
             if (response.data.user) {
-                setUser(response.data.user);
-                await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+                const updatedUser = response.data.user;
+                setUser(updatedUser);
+                localDB.setItem('user', JSON.stringify(updatedUser));
             }
         } catch (e) {
             console.error('Failed to refresh user', e);
@@ -113,18 +129,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         checkAuth();
         checkBiometricSupport();
+
+        // Register global 401 handler
+        setOnUnauthorizedCallback(() => {
+            console.log('Session expired, logging out...');
+            logout();
+        });
+
+        return () => {
+            setOnUnauthorizedCallback(null);
+        };
     }, []);
 
     const login = async (email: string, password: string) => {
         try {
             const response = await api.post('/auth/login', { email, password });
-            const { token, data: user } = response.data;
+            const { token: loginToken, data: userData } = response.data;
 
-            await AsyncStorage.setItem('token', token);
-            await AsyncStorage.setItem('user', JSON.stringify(user));
+            localDB.setItem('token', loginToken);
+            localDB.setItem('user', JSON.stringify(userData));
 
-            setToken(token);
-            setUser(user);
+            setToken(loginToken);
+            setUser(userData);
         } catch (error: any) {
             throw new Error(error.response?.data?.message || 'Login failed');
         }
@@ -133,13 +159,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const signup = async (name: string, email: string, password: string) => {
         try {
             const response = await api.post('/auth/signup', { displayName: name, email, password });
-            const { token, data: user } = response.data;
+            const { token: signupToken, data: userData } = response.data;
 
-            await AsyncStorage.setItem('token', token);
-            await AsyncStorage.setItem('user', JSON.stringify(user));
+            localDB.setItem('token', signupToken);
+            localDB.setItem('user', JSON.stringify(userData));
 
-            setToken(token);
-            setUser(user);
+            setToken(signupToken);
+            setUser(userData);
         } catch (error: any) {
             throw new Error(error.response?.data?.message || 'Signup failed');
         }
@@ -149,7 +175,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             // Clear local sync cache
             localDB.clearAll();
-            await AsyncStorage.multiRemove(['token', 'user']);
             setToken(null);
             setUser(null);
         } catch (error) {
@@ -165,13 +190,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    const completeSocialLogin = async (token: string, user: User) => {
+    const completeSocialLogin = async (sToken: string, sUser: User) => {
         try {
-            await AsyncStorage.setItem('token', token);
-            await AsyncStorage.setItem('user', JSON.stringify(user));
+            localDB.setItem('token', sToken);
+            localDB.setItem('user', JSON.stringify(sUser));
 
-            setToken(token);
-            setUser(user);
+            setToken(sToken);
+            setUser(sUser);
         } catch (error) {
             console.error('Social login completion failed', error);
         }
@@ -222,13 +247,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                 if (storedBiometricToken) {
                     setToken(storedBiometricToken);
-                    await AsyncStorage.setItem('token', storedBiometricToken);
+                    localDB.setItem('token', storedBiometricToken);
 
                     try {
                         const response = await api.get('/auth/me');
                         if (response.data.user) {
-                            setUser(response.data.user);
-                            await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+                            const bUser = response.data.user;
+                            setUser(bUser);
+                            localDB.setItem('user', JSON.stringify(bUser));
                         }
                     } catch (e) {
                         await logout();

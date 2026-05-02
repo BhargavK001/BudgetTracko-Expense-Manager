@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { AppState, AppStateStatus, View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import * as LocalAuthentication from 'expo-local-authentication';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as localDB from '@/services/localDB';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { DarkTheme } from '@/constants/Theme';
@@ -25,7 +26,17 @@ export function SecurityProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         const loadSettings = async () => {
             try {
-                const storedValue = await AsyncStorage.getItem('appLockEnabled');
+                // 1. Migration from legacy AsyncStorage
+                const legacyLock = await AsyncStorage.getItem('appLockEnabled');
+                if (legacyLock !== null) {
+                    localDB.setItem('appLockEnabled', legacyLock);
+                    setIsAppLockEnabled(legacyLock === 'true');
+                    if (legacyLock === 'true') setIsUnlocked(false);
+                    await AsyncStorage.removeItem('appLockEnabled');
+                }
+
+                // 2. Load from localDB (Synchronous via MMKV)
+                const storedValue = localDB.getItem('appLockEnabled');
                 const isEnabled = storedValue === 'true';
                 setIsAppLockEnabled(isEnabled);
                 if (isEnabled) {
@@ -68,14 +79,10 @@ export function SecurityProvider({ children }: { children: React.ReactNode }) {
     }, [isUnlocked, isAppLockEnabled, appState]);
 
     const setAppLockEnabled = async (enabled: boolean) => {
-        try {
-            await AsyncStorage.setItem('appLockEnabled', String(enabled));
-            setIsAppLockEnabled(enabled);
-            if (enabled && !isUnlocked) {
-                await authenticate();
-            }
-        } catch (error) {
-            console.error('Failed to save app lock settings', error);
+        localDB.setItem('appLockEnabled', String(enabled));
+        setIsAppLockEnabled(enabled);
+        if (enabled && !isUnlocked) {
+            await authenticate();
         }
     };
 
