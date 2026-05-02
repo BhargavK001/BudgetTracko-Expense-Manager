@@ -65,32 +65,44 @@ export default function DebtsDashboard() {
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Tabs */}
                 <View 
-                    style={[styles.tabsContainer, { backgroundColor: tokens.bgSecondary }]}
-                    onLayout={(e) => setTabWidth(e.nativeEvent.layout.width / 3)}
+                    style={[styles.tabsContainer, { backgroundColor: tokens.bgSecondary, borderWidth: 1, borderColor: tokens.borderDefault, borderRadius: 24 }]}
+                    onLayout={(e) => setTabWidth((e.nativeEvent.layout.width - 8) / 3)}
                 >
                     {tabWidth > 0 && (
                         <Animated.View style={[
                             styles.activeTabIndicator,
                             { 
-                                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#111',
-                                width: tabWidth - 8, 
-                                transform: [{ translateX: slideAnim }] 
+                                width: tabWidth, 
+                                transform: [{ translateX: slideAnim }],
+                                backgroundColor: tokens.pillSurface,
+                                shadowColor: '#000',
+                                shadowOffset: { width: 0, height: 2 },
+                                shadowOpacity: 0.1,
+                                shadowRadius: 4,
+                                elevation: 2,
+                                borderRadius: 20,
+                                top: 4,
+                                bottom: 4,
+                                left: 4
                             }
                         ]} />
                     )}
                     {(['all', 'lend', 'borrow'] as const).map(tab => (
                         <TouchableOpacity
                             key={tab}
-                            style={styles.tab}
+                            style={[styles.tab, { zIndex: 2 }]}
                             onPress={() => {
                                 setFilter(tab);
                                 triggerHaptic();
                             }}
+                            activeOpacity={0.8}
                         >
                             <Text style={[
                                 styles.tabText, 
-                                { color: tokens.textMuted },
-                                filter === tab && [styles.activeTabText, { color: isDarkMode ? '#fff' : '#fff' }]
+                                { 
+                                    color: filter === tab ? tokens.textPrimary : tokens.textMuted,
+                                    fontWeight: filter === tab ? '700' : '600'
+                                }
                             ]}>
                                 {tab.charAt(0).toUpperCase() + tab.slice(1)}
                             </Text>

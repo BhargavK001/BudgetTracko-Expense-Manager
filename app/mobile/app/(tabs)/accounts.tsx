@@ -246,17 +246,16 @@ type HistoryProps = {
 function AccountHistoryModal({ visible, account, transactions, onClose, formatCurrency }: HistoryProps) {
   const { tokens } = useThemeStyles();
   const { isDarkMode } = useSettings();
-  if (!account) return null;
-  const meta = ACCOUNT_TYPE_META[account.type] || ACCOUNT_TYPE_META['bank'];
-  const accentColor = account.color || meta.defaultColor;
+  const meta = account ? (ACCOUNT_TYPE_META[account.type] || ACCOUNT_TYPE_META['bank']) : ACCOUNT_TYPE_META['bank'];
+  const accentColor = account?.color || meta.defaultColor;
 
   const accountTxs = useMemo(() =>
-    transactions.filter(tx => tx.account === account.name).slice(0, 20),
-    [transactions, account.name]
+    account ? transactions.filter(tx => tx.account === account.name).slice(0, 20) : [],
+    [transactions, account]
   );
 
   const iconBgStyle = useMemo(() => ({ backgroundColor: accentColor + '14' }), [accentColor]);
-  const balAmtStyle = useMemo(() => ({ color: account.balance < 0 ? '#F43F5E' : tokens.textPrimary }), [account.balance, tokens]);
+  const balAmtStyle = useMemo(() => ({ color: (account?.balance ?? 0) < 0 ? '#F43F5E' : tokens.textPrimary }), [account, tokens]);
 
   const renderHistoryItem = useCallback(({ item: tx }: { item: any }) => {
     const isIncome = tx.type === 'income';
@@ -275,6 +274,8 @@ function AccountHistoryModal({ visible, account, transactions, onClose, formatCu
   }, [tokens]);
 
   const historyKeyExtractor = useCallback((item: any, index: number) => item.id || String(index), []);
+
+  if (!account) return null;
 
   return (
     <Modal visible={visible} animationType="slide" transparent statusBarTranslucent>
@@ -538,14 +539,22 @@ export default function AccountsScreen() {
 
                 <Animated.View entering={FadeInUp.delay(300).duration(400)} style={styles.heroPills}>
                   <View style={styles.heroPillGreen}>
-                    <Ionicons name="trending-up" size={14} color="#2DCA72" />
-                    <Text style={styles.heroPillLabel}>Assets</Text>
-                    <Text style={styles.heroPillGreenAmt}>{showBalance ? formatCurrency(totalAssets) : '••••'}</Text>
+                    <View style={styles.heroPillIconBadgeGreen}>
+                      <Ionicons name="trending-up" size={16} color="#2DCA72" />
+                    </View>
+                    <View style={styles.heroPillTextCol}>
+                      <Text style={styles.heroPillLabel} numberOfLines={1}>Assets</Text>
+                      <Text style={styles.heroPillGreenAmt} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{showBalance ? formatCurrency(totalAssets) : '••••'}</Text>
+                    </View>
                   </View>
                   <View style={styles.heroPillRed}>
-                    <Ionicons name="trending-down" size={14} color="#F43F5E" />
-                    <Text style={styles.heroPillLabel}>Liabilities</Text>
-                    <Text style={styles.heroPillRedAmt}>{showBalance ? formatCurrency(totalLiabilities) : '••••'}</Text>
+                    <View style={styles.heroPillIconBadgeRed}>
+                      <Ionicons name="trending-down" size={16} color="#F43F5E" />
+                    </View>
+                    <View style={styles.heroPillTextCol}>
+                      <Text style={styles.heroPillLabel} numberOfLines={1}>Liabilities</Text>
+                      <Text style={styles.heroPillRedAmt} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{showBalance ? formatCurrency(totalLiabilities) : '••••'}</Text>
+                    </View>
                   </View>
                 </Animated.View>
               </LinearGradient>
@@ -647,11 +656,14 @@ const styles = StyleSheet.create({
   heroSub: { fontSize: 11, marginTop: 4 },
   eyeBtn: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   heroPills: { flexDirection: 'row', gap: 10 },
-  heroPillGreen: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(45,202,114,0.1)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 },
-  heroPillRed: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(244,63,94,0.1)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 },
-  heroPillLabel: { fontSize: 11, color: 'rgba(255,255,255,0.45)', flex: 1 },
-  heroPillGreenAmt: { fontSize: 13, fontWeight: '700', color: '#2DCA72' },
-  heroPillRedAmt: { fontSize: 13, fontWeight: '700', color: '#F43F5E' },
+  heroPillGreen: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(45,202,114,0.1)', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 },
+  heroPillRed: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(244,63,94,0.1)', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 },
+  heroPillIconBadgeGreen: { width: 30, height: 30, borderRadius: 10, backgroundColor: 'rgba(45,202,114,0.15)', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  heroPillIconBadgeRed: { width: 30, height: 30, borderRadius: 10, backgroundColor: 'rgba(244,63,94,0.15)', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  heroPillTextCol: { flex: 1, flexDirection: 'column', gap: 2 },
+  heroPillLabel: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.5)', letterSpacing: 0.2 },
+  heroPillGreenAmt: { fontSize: 15, fontWeight: '800', color: '#2DCA72', letterSpacing: -0.3 },
+  heroPillRedAmt: { fontSize: 15, fontWeight: '800', color: '#F43F5E', letterSpacing: -0.3 },
 
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 22 },
   statCard: { flex: 1, borderRadius: 18, padding: 16, borderWidth: 1 },

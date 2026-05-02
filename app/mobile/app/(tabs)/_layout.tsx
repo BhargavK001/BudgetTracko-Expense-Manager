@@ -31,7 +31,8 @@ const TabItem = React.memo(function TabItem({ tab, isFocused, onPress }: { tab: 
   const { tokens } = useThemeStyles();
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
   const press = () => {
-    sc.value = withSequence(withSpring(0.85, { damping: 12 }), withSpring(1, { damping: 8 }));
+    sc.value = 0.85;
+    sc.value = withSpring(1, { damping: 12, stiffness: 200 });
     onPress();
   };
   return (
@@ -44,7 +45,7 @@ const TabItem = React.memo(function TabItem({ tab, isFocused, onPress }: { tab: 
         />
         {isFocused && <View style={[styles.activeDot, { backgroundColor: '#2DCA72' }]} />}
         <Text style={[
-          styles.tabLabel, 
+          styles.tabLabel,
           { color: isFocused ? tokens.textPrimary : tokens.textMuted },
           isFocused && styles.tabLabelActive
         ]}>
@@ -61,17 +62,18 @@ const FabButton = React.memo(function FabButton({ onPress }: { onPress: () => vo
   const { tokens, isDarkMode } = useThemeStyles();
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: sc.value }] }));
   const press = () => {
-    sc.value = withSequence(withSpring(0.82, { damping: 10 }), withSpring(1, { damping: 7 }));
+    sc.value = 0.85;
+    sc.value = withSpring(1, { damping: 12, stiffness: 200 });
     onPress();
   };
   return (
     <TouchableOpacity style={styles.fabTouchable} activeOpacity={1} onPress={press}>
       <Animated.View style={[
-        styles.fabCircle, 
-        animStyle, 
-        { 
-          backgroundColor: isDarkMode ? tokens.purple.stroke : '#111',
-          shadowColor: isDarkMode ? tokens.purple.stroke : '#111'
+        styles.fabCircle,
+        animStyle,
+        {
+          backgroundColor: '#6d10dfff',
+          shadowColor: '#600ac9ff'
         }
       ]}>
         <Plus size={32} color="#fff" strokeWidth={3} />
@@ -89,10 +91,10 @@ const MemoizedCustomTabBar = React.memo(function CustomTabBar({ state, navigatio
   return (
     <View style={[styles.outerWrap, { paddingBottom: insets.bottom > 0 ? insets.bottom : 8 }]}>
       <View style={[
-        styles.barContainer, 
-        { 
+        styles.barContainer,
+        {
           backgroundColor: isDarkMode ? 'rgba(28,28,35,0.95)' : '#fff',
-          borderColor: tokens.borderDefault 
+          borderColor: tokens.borderDefault
         }
       ]}>
         {state.routes.map((route: any, index: number) => {

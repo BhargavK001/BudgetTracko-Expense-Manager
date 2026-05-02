@@ -110,7 +110,7 @@ export default function MoreScreen() {
     }
   }, [appTheme, isDarkMode, setAppTheme, triggerHaptic]);
 
-  const appVersion = useMemo(() => Constants.expoConfig?.version || '2.0.0', []);
+  const appVersion = useMemo(() => Constants.expoConfig?.version || '2.1.0', []);
   const planLabel = useMemo(() => user?.subscription?.plan
     ? `${String(user.subscription.plan).toUpperCase()} PLAN`
     : 'FREE PLAN', [user?.subscription?.plan]);
@@ -191,11 +191,6 @@ export default function MoreScreen() {
           avatarUrl={user?.avatar || (user as any)?.photoURL || null}
           onPress={() => router.push('/features/edit-profile')}
           onAvatarPress={() => router.push('/features/edit-profile')}
-          stats={[
-            { value: billsDue, label: 'Bills due', tone: 'warning', Icon: Clock },
-            { value: compactINR(owedToYouTotal), label: 'Owed to you', tone: 'positive', Icon: HandCoins },
-            { value: overBudget, label: 'Over budget', tone: 'neutral', Icon: AlertCircle },
-          ]}
         />
 
         <ProBanner onPress={() => router.push('/premium')} />

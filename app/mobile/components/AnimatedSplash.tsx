@@ -233,7 +233,7 @@ export default function AnimatedSplash({ onComplete }: AnimatedSplashProps) {
 
             {/* Bottom version text */}
             <View style={styles.bottomContent}>
-                <Text style={styles.versionText}>v1.0.0</Text>
+                <Text style={styles.versionText}>v2.1.0</Text>
             </View>
         </Animated.View>
     );

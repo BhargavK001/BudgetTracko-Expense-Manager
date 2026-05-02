@@ -230,18 +230,23 @@ export default function CategoriesScreen() {
 
             {/* Tabs */}
             <Animated.View entering={FadeInDown.delay(100).duration(400).springify()} style={[styles.tabsContainer]}>
-                <View style={[styles.tabsWrapper, { backgroundColor: theme.tabBg }]} onLayout={(e) => setTabWidth(e.nativeEvent.layout.width / 2)}>
+                <View style={[styles.tabsWrapper, { backgroundColor: theme.tabBg, borderWidth: 1, borderColor: theme.cardBorder, borderRadius: 24 }]} onLayout={(e) => setTabWidth((e.nativeEvent.layout.width - 8) / 2)}>
                     {tabWidth > 0 && (
                         <RNAnimated.View style={[
                             styles.activeTabIndicator,
-                            { width: tabWidth - 8, backgroundColor: theme.tabIndicator, transform: [{ translateX: slideAnim }] }
+                            { 
+                                width: tabWidth, 
+                                transform: [{ translateX: slideAnim }],
+                                backgroundColor: theme.tabIndicator,
+                                borderRadius: 20,
+                            }
                         ]} />
                     )}
-                    <TouchableOpacity style={styles.tabBtn} onPress={() => setActiveTab('expense')} activeOpacity={0.8}>
-                        <Text style={[styles.tabText, activeTab === 'expense' && { color: theme.text, fontWeight: '800' }]}>Expense</Text>
+                    <TouchableOpacity style={[styles.tabBtn, { zIndex: 2 }]} onPress={() => setActiveTab('expense')} activeOpacity={0.8}>
+                        <Text style={[styles.tabText, { color: activeTab === 'expense' ? theme.text : theme.textSecondary, fontWeight: activeTab === 'expense' ? '700' : '600' }]}>Expense</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.tabBtn} onPress={() => setActiveTab('income')} activeOpacity={0.8}>
-                        <Text style={[styles.tabText, activeTab === 'income' && { color: theme.text, fontWeight: '800' }]}>Income</Text>
+                    <TouchableOpacity style={[styles.tabBtn, { zIndex: 2 }]} onPress={() => setActiveTab('income')} activeOpacity={0.8}>
+                        <Text style={[styles.tabText, { color: activeTab === 'income' ? theme.text : theme.textSecondary, fontWeight: activeTab === 'income' ? '700' : '600' }]}>Income</Text>
                     </TouchableOpacity>
                 </View>
             </Animated.View>

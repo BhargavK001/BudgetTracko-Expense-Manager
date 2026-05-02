@@ -236,7 +236,7 @@ export function HeroProfileCard({
   avatarUrl?: string | null;
   onPress: () => void;
   onAvatarPress: () => void;
-  stats: Array<{ value: string; label: string; tone: 'warning' | 'positive' | 'neutral'; Icon: LucideIcon }>;
+  stats?: Array<{ value: string; label: string; tone: 'warning' | 'positive' | 'neutral'; Icon: LucideIcon }>;
 }) {
   const { styles, tokens, isDarkMode } = useThemeStyles();
   return (
@@ -276,43 +276,45 @@ export function HeroProfileCard({
           <ChevronRight size={18} color="#5F5E5A" strokeWidth={1.5} />
         </View>
 
-        <View style={styles.metricsContainer}>
-          {stats.map((stat, idx) => {
-            const isLast = idx === stats.length - 1;
-            return (
-              <View 
-                key={stat.label} 
-                style={[
-                  styles.metricRow, 
-                  !isLast && { borderBottomWidth: 1, borderBottomColor: tokens.borderSubtle }
-                ]}
-              >
-                <View style={styles.metricLeft}>
-                  <View style={[styles.metricIconWrap, { backgroundColor: stat.tone === 'warning' ? 'rgba(239, 159, 39, 0.1)' : stat.tone === 'positive' ? 'rgba(93, 202, 165, 0.1)' : isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
-                    <stat.Icon size={12} color={stat.tone === 'warning' ? '#EF9F27' : stat.tone === 'positive' ? '#5DCAA5' : tokens.textSecondary} strokeWidth={2} />
-                  </View>
-                  <Text style={styles.metricLabel}>{stat.label}</Text>
-                </View>
-
-                <Text
-                  numberOfLines={1}
-                  adjustsFontSizeToFit={true}
-                  minimumFontScale={0.7}
+        {stats && stats.length > 0 && (
+          <View style={styles.metricsContainer}>
+            {stats.map((stat, idx) => {
+              const isLast = idx === stats.length - 1;
+              return (
+                <View 
+                  key={stat.label} 
                   style={[
-                    styles.metricValue,
-                    stat.tone === 'warning'
-                      ? { color: '#EF9F27' }
-                      : stat.tone === 'positive'
-                        ? { color: '#5DCAA5' }
-                        : { color: tokens.textPrimary },
+                    styles.metricRow, 
+                    !isLast && { borderBottomWidth: 1, borderBottomColor: tokens.borderSubtle }
                   ]}
                 >
-                  {stat.value}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
+                  <View style={styles.metricLeft}>
+                    <View style={[styles.metricIconWrap, { backgroundColor: stat.tone === 'warning' ? 'rgba(239, 159, 39, 0.1)' : stat.tone === 'positive' ? 'rgba(93, 202, 165, 0.1)' : isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }]}>
+                      <stat.Icon size={12} color={stat.tone === 'warning' ? '#EF9F27' : stat.tone === 'positive' ? '#5DCAA5' : tokens.textSecondary} strokeWidth={2} />
+                    </View>
+                    <Text style={styles.metricLabel}>{stat.label}</Text>
+                  </View>
+
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={true}
+                    minimumFontScale={0.7}
+                    style={[
+                      styles.metricValue,
+                      stat.tone === 'warning'
+                        ? { color: '#EF9F27' }
+                        : stat.tone === 'positive'
+                          ? { color: '#5DCAA5' }
+                          : { color: tokens.textPrimary },
+                    ]}
+                  >
+                    {stat.value}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </Pressable>
     </View>
   );

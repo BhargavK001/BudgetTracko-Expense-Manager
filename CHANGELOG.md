@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.1.0] - 2026-05-02
+
+### Added
+- **Envelope Budgeting System**: Transformed the budget management into a strict hierarchical "Envelope" system, requiring users to set a "Total Budget" before allocating sub-category limits. Built robust validation to prevent sub-categories from exceeding the remaining pool.
+- **Advanced Sync UI**: Added real-time dynamic "Sync Status" indicators directly on the Edit Profile page so users know precisely when their data last reached the cloud.
+- **Custom Analysis Charts**: Introduced completely custom SVG-based charts to the Trends section. Features a cumulative line chart for totals and a day-wise bar chart supporting smooth animations and period comparison.
+
+### Changed
+- **Full Dark Mode Token Migration**: Re-engineered the application's entire CSS infrastructure. Migrated all hardcoded components (Home, Stats, Transactions, Debts, Category Management) to utilize dynamic `useThemeStyles` for seamless Dark/Light Mode transitions.
+- **Home Screen "Monthly Budget" Card**: Removed confusing "Pace/Projected" metrics in favor of a straightforward, visually distinct actual "Used vs Total" tracker progress bar, directly tied to envelope limits.
+- **More Screen Cleanup**: Simplified the Hero Profile card, removing cluttered stats to focus purely on a beautiful user identity card.
+
+### Fixed
+- **App Navigation Bottleneck**: Completely resolved severe 10-20 second navigation delays when switching tabs. Eliminated interaction deadlocks and optimized background sync fetching logic to ensure instantaneous UI responsiveness.
+- **React Hook Violations**: Refactored major application screens (Home, Analysis, Accounts, More) to resolve critical "Rules of Hooks" exceptions caused by early returns, establishing strict execution order for core logic.
+- **Offline Sync Resiliency**: Solidified the MMKV sync engine, creating a proper queue for offline CRUD operations that flawlessly pushes to MongoDB upon reconnection without causing race conditions.
+
 ## [2.0.0] - 2026-04-25
 
 ### Added

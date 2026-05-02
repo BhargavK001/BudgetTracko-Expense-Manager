@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
     View, Text, StyleSheet, ScrollView, TouchableOpacity,
     TextInput, Modal, Switch, StatusBar, Alert, ActivityIndicator,
-    KeyboardAvoidingView, Platform, RefreshControl,
+    KeyboardAvoidingView, Platform, RefreshControl, Animated as RNAnimated
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -51,6 +51,21 @@ function RecurringBillsScreen() {
         name: '', amount: '', dueDate: '1',
         category: 'Bills', frequency: 'monthly', autoPay: false,
     });
+
+    const [tabWidth, setTabWidth] = useState(0);
+    const slideAnim = useRef(new RNAnimated.Value(0)).current;
+
+    useEffect(() => {
+        const index = formData.frequency === 'monthly' ? 0 : 1;
+        if (tabWidth > 0) {
+            RNAnimated.spring(slideAnim, {
+                toValue: index * tabWidth,
+                useNativeDriver: true,
+                bounciness: 4,
+                speed: 12
+            }).start();
+        }
+    }, [formData.frequency, tabWidth]);
 
     const refreshBills = useCallback(() => {
         setBills(localDB.getRecurringBills());
@@ -400,20 +415,37 @@ function RecurringBillsScreen() {
 
                                 <View style={styles.formSection}>
                                     <Text style={[styles.label, { color: tokens.textMuted }]}>Frequency</Text>
-                                    <View style={[styles.frequencyContainer, { backgroundColor: tokens.bgSecondary }]}>
+                                    <View 
+                                        style={[styles.frequencyContainer, { backgroundColor: tokens.bgSecondary, borderWidth: 1, borderColor: tokens.borderDefault, borderRadius: 24, padding: 4 }]}
+                                        onLayout={(e) => setTabWidth((e.nativeEvent.layout.width - 8) / 2)}
+                                    >
+                                        {tabWidth > 0 && (
+                                            <RNAnimated.View style={[
+                                                {
+                                                    position: 'absolute',
+                                                    top: 4, bottom: 4, left: 4,
+                                                    width: tabWidth,
+                                                    transform: [{ translateX: slideAnim }],
+                                                    backgroundColor: tokens.pillSurface,
+                                                    shadowColor: '#000',
+                                                    shadowOffset: { width: 0, height: 2 },
+                                                    shadowOpacity: 0.1,
+                                                    shadowRadius: 4,
+                                                    elevation: 2,
+                                                    borderRadius: 20,
+                                                }
+                                            ]} />
+                                        )}
                                         {(['monthly', 'yearly'] as const).map(f => (
                                             <TouchableOpacity
                                                 key={f}
-                                                style={[
-                                                    styles.frequencyOption,
-                                                    formData.frequency === f && { backgroundColor: tokens.purple.stroke || '#6366F1' }
-                                                ]}
+                                                style={[styles.frequencyOption, { zIndex: 2 }]}
                                                 onPress={() => { triggerHaptic(); setFormData({ ...formData, frequency: f }); }}
+                                                activeOpacity={0.8}
                                             >
                                                 <Text style={[
                                                     styles.frequencyText,
-                                                    { color: tokens.textMuted },
-                                                    formData.frequency === f && { color: '#fff' }
+                                                    { color: formData.frequency === f ? tokens.textPrimary : tokens.textMuted, fontWeight: formData.frequency === f ? '700' : '600' }
                                                 ]}>{f.charAt(0).toUpperCase() + f.slice(1)}</Text>
                                             </TouchableOpacity>
                                         ))}
@@ -491,9 +523,9 @@ const styles = StyleSheet.create({
     input: { borderRadius: 16, padding: 16, fontSize: 16, fontWeight: '700' },
     presetChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
     presetChipText: { fontSize: 13, fontWeight: '700' },
-    frequencyContainer: { flexDirection: 'row', padding: 4, borderRadius: 14 },
-    frequencyOption: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 11 },
-    frequencyText: { fontSize: 13, fontWeight: '700' },
+    frequencyContainer: { flexDirection: 'row' },
+    frequencyOption: { flex: 1, paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
+    frequencyText: { fontSize: 14 },
     switchGroup: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderRadius: 16, marginBottom: 24 },
     switchLabel: { fontSize: 15, fontWeight: '800' },
     switchSubLabel: { fontSize: 11, marginTop: 2 },

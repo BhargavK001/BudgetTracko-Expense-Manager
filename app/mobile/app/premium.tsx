@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, StatusBar, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions, StatusBar, Alert, ActivityIndicator, Animated as RNAnimated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -73,6 +73,21 @@ export default function PremiumScreen() {
 
     const [activePlan, setActivePlan] = useState('pro');
     const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+    const [tabWidth, setTabWidth] = useState(0);
+    const slideAnim = useRef(new RNAnimated.Value(0)).current;
+
+    useEffect(() => {
+        const index = billingPeriod === 'monthly' ? 0 : 1;
+        if (tabWidth > 0) {
+            RNAnimated.spring(slideAnim, {
+                toValue: index * tabWidth,
+                useNativeDriver: true,
+                bounciness: 4,
+                speed: 12
+            }).start();
+        }
+    }, [billingPeriod, tabWidth]);
+
     const [loading, setLoading] = useState(false);
     const currentPlan = user?.subscription?.plan || 'free';
     const isActive = user?.subscription?.status === 'active' || user?.subscription?.status === 'authenticated';
@@ -147,7 +162,6 @@ export default function PremiumScreen() {
                 contentContainerStyle={[
                     styles.scrollContent,
                     {
-                        paddingHorizontal: horizontalPadding,
                         paddingBottom: insets.bottom + 180,
                     }
                 ]}
@@ -170,43 +184,72 @@ export default function PremiumScreen() {
                     </Animated.View>
 
                     {/* Billing Toggle */}
-                    <Animated.View entering={FadeIn.delay(200).duration(400)} style={[styles.toggleContainer, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F5F5F5' }]}>
-                        <TouchableOpacity
-                            style={[styles.toggleBtn, billingPeriod === 'monthly' && [styles.toggleBtnActive, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#fff' }]]}
-                            onPress={() => setBillingPeriod('monthly')}
-                            activeOpacity={0.8}
+                    <Animated.View entering={FadeIn.delay(200).duration(400)}>
+                        <View 
+                            style={[styles.toggleContainer, { backgroundColor: tokens.bgSecondary, borderWidth: 1, borderColor: tokens.borderDefault, borderRadius: 24, padding: 4 }]}
+                            onLayout={(e) => setTabWidth((e.nativeEvent.layout.width - 8) / 2)}
                         >
-                            <Text style={[styles.toggleText, billingPeriod === 'monthly' && [styles.toggleTextActive, { color: tokens.textPrimary }]]}>Monthly</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.toggleBtn, billingPeriod === 'yearly' && [styles.toggleBtnActive, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : '#fff' }]]}
-                            onPress={() => setBillingPeriod('yearly')}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={[styles.toggleText, billingPeriod === 'yearly' && [styles.toggleTextActive, { color: tokens.textPrimary }]]}>Yearly</Text>
-                            <View style={styles.discountBadge}>
-                                <Text style={styles.discountBadgeText}>-20%</Text>
-                            </View>
-                        </TouchableOpacity>
+                            {tabWidth > 0 && (
+                                <RNAnimated.View style={[
+                                    { 
+                                        position: 'absolute',
+                                        top: 4, bottom: 4, left: 4,
+                                        width: tabWidth, 
+                                        transform: [{ translateX: slideAnim }],
+                                        backgroundColor: tokens.pillSurface,
+                                        shadowColor: '#000',
+                                        shadowOffset: { width: 0, height: 2 },
+                                        shadowOpacity: 0.1,
+                                        shadowRadius: 4,
+                                        elevation: 2,
+                                        borderRadius: 20,
+                                    }
+                                ]} />
+                            )}
+                            <TouchableOpacity
+                                style={[styles.toggleBtn, { zIndex: 2 }]}
+                                onPress={() => setBillingPeriod('monthly')}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={[styles.toggleText, { color: billingPeriod === 'monthly' ? tokens.textPrimary : tokens.textMuted, fontWeight: billingPeriod === 'monthly' ? '700' : '600' }]}>Monthly</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.toggleBtn, { zIndex: 2 }]}
+                                onPress={() => setBillingPeriod('yearly')}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={[styles.toggleText, { color: billingPeriod === 'yearly' ? tokens.textPrimary : tokens.textMuted, fontWeight: billingPeriod === 'yearly' ? '700' : '600' }]}>Yearly</Text>
+                                <View style={styles.discountBadge}>
+                                    <Text style={styles.discountBadgeText}>-20%</Text>
+                                </View>
+                            </TouchableOpacity>
+                        </View>
                     </Animated.View>
 
                     {/* Plans */}
-                    <View style={styles.plansContainer}>
-                        {PLANS.map((plan, index) => {
-                            const isSelected = activePlan === plan.id;
-                            const price = billingPeriod === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
-                            const periodText = plan.id === 'free' ? 'forever' : (billingPeriod === 'yearly' ? '/yr' : '/mo');
+                    <Animated.View entering={FadeInDown.delay(300).duration(500)}>
+                        <ScrollView 
+                            horizontal 
+                            showsHorizontalScrollIndicator={false} 
+                            contentContainerStyle={{ paddingHorizontal: horizontalPadding, gap: 16 }}
+                            snapToInterval={width * 0.8 + 16}
+                            decelerationRate="fast"
+                        >
+                            {PLANS.map((plan, index) => {
+                                const isSelected = activePlan === plan.id;
+                                const price = billingPeriod === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
+                                const periodText = plan.id === 'free' ? 'forever' : (billingPeriod === 'yearly' ? '/yr' : '/mo');
 
-                            return (
-                                <Animated.View key={plan.id} entering={FadeInDown.delay(300 + index * 100).duration(500)}>
+                                return (
                                     <TouchableOpacity
+                                        key={plan.id}
                                         onPress={() => setActivePlan(plan.id)}
                                         activeOpacity={0.9}
                                         style={[
                                             styles.planCard,
-                                            { backgroundColor: tokens.bgSecondary, borderColor: tokens.borderDefault },
-                                            isSelected && [styles.planCardActive, { borderColor: tokens.purple.stroke || '#6366F1' }],
-                                            plan.isPopular && [styles.planCardPopular, { backgroundColor: isDarkMode ? '#1e1b4b' : '#1E293B', borderColor: isDarkMode ? tokens.purple.stroke : '#1E293B' }]
+                                            { width: width * 0.8, backgroundColor: tokens.bgSecondary, borderColor: tokens.borderDefault },
+                                            isSelected && [styles.planCardActive, { borderColor: '#6d10dfff', borderWidth: 2 }],
+                                            plan.isPopular && [styles.planCardPopular, { backgroundColor: isDarkMode ? '#1e1b4b' : '#1E293B', borderColor: isDarkMode ? '#6d10dfff' : '#1E293B' }]
                                         ]}
                                     >
                                         {plan.isPopular && (
@@ -220,15 +263,15 @@ export default function PremiumScreen() {
                                         )}
 
                                         <View style={styles.planHeader}>
-                                            <View style={{ flex: 1 }}>
+                                            <View style={{ flex: 1, flexShrink: 1 }}>
                                                 <View style={styles.planTitleRow}>
-                                                    <Text style={[styles.planName, { color: tokens.textPrimary }, plan.isPopular && styles.planNamePopular]}>{plan.name}</Text>
+                                                    <Text style={[styles.planName, { color: tokens.textPrimary }, plan.isPopular && styles.planNamePopular]} numberOfLines={1} adjustsFontSizeToFit>{plan.name}</Text>
                                                     {plan.id === 'pro' && <Ionicons name="ribbon" size={16} color="#F59E0B" style={{ marginLeft: 6 }} />}
                                                 </View>
                                                 <Text style={[styles.planDesc, { color: tokens.textMuted }, plan.isPopular && styles.planDescPopular]}>{plan.desc}</Text>
                                             </View>
                                             <View style={styles.priceWrap}>
-                                                <Text style={[styles.planPrice, { color: tokens.textPrimary }, plan.isPopular && styles.planPricePopular]}>
+                                                <Text style={[styles.planPrice, { color: tokens.textPrimary }, plan.isPopular && styles.planPricePopular]} numberOfLines={1} adjustsFontSizeToFit>
                                                     {price === 0 ? 'Free' : formatCurrency(price as number)}
                                                 </Text>
                                                 <Text style={[styles.planPeriod, { color: tokens.textMuted }, plan.isPopular && styles.planPeriodPopular]}>{periodText}</Text>
@@ -242,7 +285,7 @@ export default function PremiumScreen() {
                                                         <Ionicons
                                                             name="checkmark"
                                                             size={12}
-                                                            color={plan.isPopular ? '#fff' : (tokens.purple.stroke || '#6366F1')}
+                                                            color={plan.isPopular ? '#fff' : '#6d10dfff'}
                                                         />
                                                     </View>
                                                     <Text style={[styles.featureText, { color: tokens.textSecondary }, plan.isPopular && styles.featureTextPopular]}>
@@ -252,10 +295,10 @@ export default function PremiumScreen() {
                                             ))}
                                         </View>
                                     </TouchableOpacity>
-                                </Animated.View>
-                            );
-                        })}
-                    </View>
+                                );
+                            })}
+                        </ScrollView>
+                    </Animated.View>
                 </View>
             </ScrollView>
 
@@ -266,7 +309,7 @@ export default function PremiumScreen() {
                 borderTopColor: tokens.borderDefault,
                 shadowColor: isDarkMode ? '#000' : tokens.shadowColor
             }]}>
-                <TouchableOpacity style={[styles.ctaButton, { backgroundColor: tokens.purple.stroke || '#6366F1', shadowColor: tokens.purple.stroke || '#6366F1' }]} activeOpacity={0.9} onPress={handleUpgrade} disabled={loading}>
+                <TouchableOpacity style={[styles.ctaButton, { backgroundColor: '#6d10dfff', shadowColor: '#600ac9ff' }]} activeOpacity={0.9} onPress={handleUpgrade} disabled={loading}>
                     {loading ? (
                         <ActivityIndicator color="#fff" size="small" />
                     ) : (
@@ -422,18 +465,18 @@ const styles = StyleSheet.create({
     popularBadge: {
         position: 'absolute',
         top: -12,
-        right: 24,
+        alignSelf: 'center',
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 12,
+        zIndex: 10,
     },
     popularBadgeText: {
         color: '#fff',
         fontSize: 10,
         fontWeight: '900',
-        letterSpacing: 1,
     },
     planHeader: {
         flexDirection: 'row',
@@ -463,6 +506,8 @@ const styles = StyleSheet.create({
     },
     priceWrap: {
         alignItems: 'flex-end',
+        flexShrink: 0,
+        marginLeft: 16,
     },
     planPrice: {
         fontSize: 24,

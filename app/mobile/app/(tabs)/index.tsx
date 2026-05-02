@@ -103,11 +103,10 @@ export default function HomeScreen() {
   const balance = useMemo(() => getBalance(), [getBalance]);
   const savingsRate = useMemo(() => income <= 0 ? 0 : Math.max(0, ((income - expense) / income) * 100), [income, expense]);
 
-  const dayOfMonth = now.getDate();
-  const projectedExpense = dayOfMonth > 0 ? (expense / dayOfMonth) * 30 : 0;
-  const spendTarget = useMemo(() => getTotalBudget('monthly') || 30000, [getTotalBudget]);
-  const pacePercent = spendTarget > 0 ? Math.min((projectedExpense / spendTarget) * 100, 150) : 0;
-  const overPace = pacePercent > 100;
+  const spendTarget = useMemo(() => getTotalBudget('monthly') || 0, [getTotalBudget]);
+  const hasBudget = spendTarget > 0;
+  const usedPercent = hasBudget ? Math.min((expense / spendTarget) * 100, 100) : 0;
+  const isOverBudget = hasBudget ? expense > spendTarget : false;
 
   const recentTxs = useMemo(() => transactions.slice(0, 6), [transactions]);
 
@@ -232,16 +231,23 @@ export default function HomeScreen() {
             </Text>
 
             <Animated.View entering={FadeIn.duration(300)} style={styles.heroPills}>
-
               <View style={styles.heroPillGreen}>
-                <MaterialCommunityIcons name="arrow-down-left" size={14} color="#2DCA72" />
-                <Text style={styles.heroPillGreenText}>Income</Text>
-                <Text style={styles.heroPillGreenAmt}>{hidden ? '••••' : fmt(income, formatCurrency)}</Text>
+                <View style={styles.heroPillIconBadgeGreen}>
+                  <MaterialCommunityIcons name="arrow-down-left" size={16} color="#2DCA72" />
+                </View>
+                <View style={styles.heroPillTextCol}>
+                  <Text style={styles.heroPillGreenText}>Income</Text>
+                  <Text style={styles.heroPillGreenAmt} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{hidden ? '••••' : fmt(income, formatCurrency)}</Text>
+                </View>
               </View>
               <View style={styles.heroPillRed}>
-                <MaterialCommunityIcons name="arrow-up-right" size={14} color="#F43F5E" />
-                <Text style={styles.heroPillRedText}>Expense</Text>
-                <Text style={styles.heroPillRedAmt}>{hidden ? '••••' : fmt(expense, formatCurrency)}</Text>
+                <View style={styles.heroPillIconBadgeRed}>
+                  <MaterialCommunityIcons name="arrow-up-right" size={16} color="#F43F5E" />
+                </View>
+                <View style={styles.heroPillTextCol}>
+                  <Text style={styles.heroPillRedText}>Expense</Text>
+                  <Text style={styles.heroPillRedAmt} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{hidden ? '••••' : fmt(expense, formatCurrency)}</Text>
+                </View>
               </View>
             </Animated.View>
           </LinearGradient>
@@ -266,31 +272,40 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        {/* ═══ 5. SPENDING PACE ═══ */}
-        <Animated.View entering={FadeIn.duration(300)} style={[styles.paceCard, { backgroundColor: isDarkMode ? tokens.cardSurface : '#F9F9FB' }]}>
+        <TouchableOpacity onPress={() => router.push('/features/budgets')} activeOpacity={0.8}>
+          <Animated.View entering={FadeIn.duration(300)} style={[styles.paceCard, { backgroundColor: isDarkMode ? tokens.cardSurface : '#F9F9FB' }]}>
 
-          <View style={styles.paceHeader}>
-            <View style={styles.paceLeft}>
-              <MaterialCommunityIcons name="speedometer" size={16} color={tokens.textPrimary} />
-              <Text style={[styles.paceTitle, { color: tokens.textPrimary }]}>Spending Pace</Text>
+            <View style={styles.paceHeader}>
+              <View style={styles.paceLeft}>
+                <MaterialCommunityIcons name="wallet-outline" size={16} color={tokens.textPrimary} />
+                <Text style={[styles.paceTitle, { color: tokens.textPrimary }]}>Monthly Budget</Text>
+              </View>
+              {hasBudget ? (
+                <View style={[styles.paceBadge, { backgroundColor: isOverBudget ? 'rgba(244,63,94,0.1)' : 'rgba(45,202,114,0.1)' }]}>
+                  <Text style={[styles.paceBadgeText, { color: isOverBudget ? '#F43F5E' : '#2DCA72' }]}>
+                    {isOverBudget ? 'Over Budget' : 'On track'}
+                  </Text>
+                </View>
+              ) : (
+                <View style={[styles.paceBadge, { backgroundColor: tokens.bgSecondary }]}>
+                  <Text style={[styles.paceBadgeText, { color: tokens.textMuted }]}>
+                    Set budget
+                  </Text>
+                </View>
+              )}
             </View>
-            <View style={[styles.paceBadge, { backgroundColor: overPace ? 'rgba(244,63,94,0.1)' : 'rgba(45,202,114,0.1)' }]}>
-              <Text style={[styles.paceBadgeText, { color: overPace ? '#F43F5E' : '#2DCA72' }]}>
-                {overPace ? 'Over pace' : 'On track'}
-              </Text>
+            <View style={[styles.paceBarOuter, { backgroundColor: tokens.borderSubtle }]}>
+              <View style={[styles.paceBarFill, {
+                width: `${usedPercent}%` as any,
+                backgroundColor: hasBudget ? (isOverBudget ? '#F43F5E' : '#2DCA72') : tokens.borderSubtle,
+              }]} />
             </View>
-          </View>
-          <View style={[styles.paceBarOuter, { backgroundColor: tokens.borderSubtle }]}>
-            <View style={[styles.paceBarFill, {
-              width: `${Math.min(pacePercent, 100)}%` as any,
-              backgroundColor: overPace ? '#F43F5E' : '#2DCA72',
-            }]} />
-          </View>
-          <View style={styles.paceFooter}>
-            <Text style={[styles.paceSub, { color: tokens.textMuted }]}>Projected: {fmt(projectedExpense, formatCurrency)}</Text>
-            <Text style={[styles.paceSub, { color: tokens.textMuted }]}>Target: {fmt(spendTarget, formatCurrency)}/mo</Text>
-          </View>
-        </Animated.View>
+            <View style={styles.paceFooter}>
+              <Text style={[styles.paceSub, { color: tokens.textMuted }]}>Used: {fmt(expense, formatCurrency)}</Text>
+              <Text style={[styles.paceSub, { color: tokens.textMuted }]}>{hasBudget ? `Total: ${fmt(spendTarget, formatCurrency)}` : 'No budget set'}</Text>
+            </View>
+          </Animated.View>
+        </TouchableOpacity>
 
         {/* ═══ 6. RECENT ACTIVITY ═══ */}
         <Animated.View entering={FadeIn.duration(300)} style={styles.sectionHeader}>
@@ -347,12 +362,15 @@ const styles = StyleSheet.create({
   savingsBarFill: { height: '100%', borderRadius: 2, backgroundColor: '#2DCA72' },
   savingsLabel: { fontSize: 11, color: 'rgba(255,255,255,0.3)', marginBottom: 16 },
   heroPills: { flexDirection: 'row', gap: 10 },
-  heroPillGreen: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(45,202,114,0.1)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 },
-  heroPillGreenText: { fontSize: 11, color: 'rgba(255,255,255,0.5)', flex: 1 },
-  heroPillGreenAmt: { fontSize: 13, fontWeight: '700', color: '#2DCA72' },
-  heroPillRed: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(244,63,94,0.1)', borderRadius: 12, paddingVertical: 10, paddingHorizontal: 12 },
-  heroPillRedText: { fontSize: 11, color: 'rgba(255,255,255,0.5)', flex: 1 },
-  heroPillRedAmt: { fontSize: 13, fontWeight: '700', color: '#F43F5E' },
+  heroPillGreen: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(45,202,114,0.1)', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 },
+  heroPillRed: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(244,63,94,0.1)', borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14 },
+  heroPillIconBadgeGreen: { width: 30, height: 30, borderRadius: 10, backgroundColor: 'rgba(45,202,114,0.15)', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  heroPillIconBadgeRed: { width: 30, height: 30, borderRadius: 10, backgroundColor: 'rgba(244,63,94,0.15)', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  heroPillTextCol: { flex: 1, flexDirection: 'column', gap: 2 },
+  heroPillGreenText: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.5)', letterSpacing: 0.2 },
+  heroPillGreenAmt: { fontSize: 15, fontWeight: '800', color: '#2DCA72', letterSpacing: -0.3 },
+  heroPillRedText: { fontSize: 11, fontWeight: '600', color: 'rgba(255,255,255,0.5)', letterSpacing: 0.2 },
+  heroPillRedAmt: { fontSize: 15, fontWeight: '800', color: '#F43F5E', letterSpacing: -0.3 },
   actionsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, paddingHorizontal: 4 },
   actionItem: { alignItems: 'center', gap: 7 },
   actionCircle: { width: 54, height: 54, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
