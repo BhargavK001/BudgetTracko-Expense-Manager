@@ -4,7 +4,7 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState, useCallback } from 'react';
-import { useColorScheme, View } from 'react-native';
+import { useColorScheme, View, StyleSheet } from 'react-native';
 import 'react-native-reanimated';
 import AnimatedSplash from '../components/AnimatedSplash';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -18,18 +18,16 @@ import { SyncProvider } from '@/context/SyncContext';
 import { AccountProvider } from '@/context/AccountContext';
 import SyncOnLogin from '@/components/SyncOnLogin';
 import { AppState, AppStateStatus } from 'react-native';
+import NetworkBanner from '@/components/NetworkBanner';
 
 export {
-  // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
 
 export const unstable_settings = {
-  // Ensure that reloading on `/ modal` keeps a back button present.
   initialRouteName: 'index',
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -38,14 +36,12 @@ export default function RootLayout() {
   });
   const [showAnimatedSplash, setShowAnimatedSplash] = useState(true);
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) throw error;
   }, [error]);
 
   useEffect(() => {
     if (loaded) {
-      // Hide native splash after a tiny delay so animated splash can take over smoothly
       setTimeout(() => {
         SplashScreen.hideAsync();
       }, 100);
@@ -56,13 +52,8 @@ export default function RootLayout() {
     setShowAnimatedSplash(false);
   }, []);
 
-  if (!loaded) {
-    return null;
-  }
-
-  if (showAnimatedSplash) {
-    return <AnimatedSplash onComplete={handleSplashComplete} />;
-  }
+  if (!loaded) return null;
+  if (showAnimatedSplash) return <AnimatedSplash onComplete={handleSplashComplete} />;
 
   return (
     <AuthProvider>
@@ -85,15 +76,13 @@ const CustomDarkTheme = {
   },
 };
 
-import NetworkBanner from '@/components/NetworkBanner';
-
 function RootLayoutNav() {
   const { isLocked, lockApp, user, hasBiometricKey, isAuthenticated, loading } = useAuth();
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
 
   useEffect(() => {
-    // If not authenticated and not loading, redirect to welcome if we're in tabs
-    // This handles session expiration while the app is active
     if (!loading && !isAuthenticated) {
       router.replace('/welcome');
     }
@@ -105,23 +94,20 @@ function RootLayoutNav() {
         lockApp();
       }
     });
-
-    return () => {
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, [lockApp]);
 
   return (
     <SettingsProvider>
-      <DebtProvider>
-        <AccountProvider>
+      <AccountProvider>
+        <DebtProvider>
           <SyncProvider>
             <TransactionProvider>
               <SyncOnLogin />
               <QuickActionProvider>
               <SafeAreaProvider>
-                <ThemeProvider value={CustomDarkTheme}>
-                  <View style={{ flex: 1, backgroundColor: '#fff' }}>
+                <ThemeProvider value={isDarkMode ? CustomDarkTheme : DefaultTheme}>
+                  <View style={{ flex: 1, backgroundColor: isDarkMode ? '#060D1F' : '#fff' }}>
                     <NetworkBanner />
                     <Stack
                       initialRouteName="index"
@@ -145,12 +131,11 @@ function RootLayoutNav() {
                   </View>
                 </ThemeProvider>
               </SafeAreaProvider>
-            </QuickActionProvider>
-          </TransactionProvider>
+              </QuickActionProvider>
+            </TransactionProvider>
           </SyncProvider>
-        </AccountProvider>
-      </DebtProvider>
+        </DebtProvider>
+      </AccountProvider>
     </SettingsProvider>
   );
 }
-import { StyleSheet } from 'react-native';

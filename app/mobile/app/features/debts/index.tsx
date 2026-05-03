@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, StatusBar, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDebts, Debt } from '../../../context/DebtContext';
 import { useSettings } from '../../../context/SettingsContext';
 import { useThemeStyles } from '@/components/more/DesignSystem';
@@ -14,6 +14,7 @@ export default function DebtsDashboard() {
     const { debts, markAsSettled, deleteDebt } = useDebts();
     const { triggerHaptic } = useSettings();
     const [filter, setFilter] = useState<'all' | 'lend' | 'borrow'>('all');
+    const [showTypeModal, setShowTypeModal] = useState(false);
 
     const [tabWidth, setTabWidth] = useState(0);
     const slideAnim = useRef(new Animated.Value(0)).current;
@@ -57,7 +58,10 @@ export default function DebtsDashboard() {
                     <Ionicons name="chevron-back" size={22} color={tokens.textPrimary} />
                 </TouchableOpacity>
                 <Text style={[styles.headerTitle, { color: tokens.textPrimary }]}>Debts</Text>
-                <TouchableOpacity style={[styles.helpButton, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F5F5F7' }]}>
+                <TouchableOpacity 
+                    style={[styles.helpButton, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : '#F5F5F7' }]}
+                    onPress={() => router.push('/features/debts/help' as any)}
+                >
                     <Ionicons name="help-circle-outline" size={24} color={tokens.textMuted} />
                 </TouchableOpacity>
             </View>
@@ -168,11 +172,66 @@ export default function DebtsDashboard() {
             {/* FAB */}
             <TouchableOpacity 
                 style={[styles.fab, { backgroundColor: tokens.purple.stroke || '#6366F1' }]} 
-                onPress={() => router.push('/features/debts/add' as any)}
+                onPress={() => {
+                    triggerHaptic();
+                    setShowTypeModal(true);
+                }}
                 activeOpacity={0.9}
             >
                 <Ionicons name="add" size={32} color="#fff" />
             </TouchableOpacity>
+
+            {/* Type Selection Modal */}
+            <Modal visible={showTypeModal} animationType="slide" transparent statusBarTranslucent>
+                <View style={[styles.modalOverlay, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.3)' }]}>
+                    <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowTypeModal(false)} />
+                    <View style={[styles.modalSheet, { backgroundColor: tokens.bgPrimary }]}>
+                        <View style={styles.modalHandleRow}><View style={[styles.modalHandle, { backgroundColor: tokens.borderSubtle }]} /></View>
+                        
+                        <Text style={[styles.modalTitle, { color: tokens.textPrimary }]}>What kind of debt?</Text>
+                        
+                        <TouchableOpacity 
+                            style={[styles.typeCardModal, { backgroundColor: isDarkMode ? 'rgba(52,199,89,0.08)' : '#F0FDF4', borderColor: isDarkMode ? 'rgba(52,199,89,0.2)' : '#bbf7d0' }]} 
+                            onPress={() => {
+                                setShowTypeModal(false);
+                                setTimeout(() => {
+                                    router.push({ pathname: '/features/debts/add' as any, params: { type: 'lend' } });
+                                }, 150);
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <View style={[styles.typeIconWrapper, { backgroundColor: 'rgba(52,199,89,0.15)' }]}>
+                                <MaterialCommunityIcons name="arrow-top-right-thick" size={24} color="#34C759" />
+                            </View>
+                            <View style={styles.typeTextContainer}>
+                                <Text style={[styles.typeTitle, { color: tokens.textPrimary }]}>I Lent Money</Text>
+                                <Text style={[styles.typeSubtitle, { color: tokens.textMuted }]}>Someone owes you money.</Text>
+                            </View>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={[styles.typeCardModal, { backgroundColor: isDarkMode ? 'rgba(255,69,58,0.08)' : '#FEF2F2', borderColor: isDarkMode ? 'rgba(255,69,58,0.2)' : '#fecaca' }]} 
+                            onPress={() => {
+                                setShowTypeModal(false);
+                                setTimeout(() => {
+                                    router.push({ pathname: '/features/debts/add' as any, params: { type: 'borrow' } });
+                                }, 150);
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <View style={[styles.typeIconWrapper, { backgroundColor: 'rgba(255,69,58,0.15)' }]}>
+                                <MaterialCommunityIcons name="arrow-bottom-left-thick" size={24} color="#FF453A" />
+                            </View>
+                            <View style={styles.typeTextContainer}>
+                                <Text style={[styles.typeTitle, { color: tokens.textPrimary }]}>I Borrowed Money</Text>
+                                <Text style={[styles.typeSubtitle, { color: tokens.textMuted }]}>You owe someone money.</Text>
+                            </View>
+                        </TouchableOpacity>
+                        
+                        <View style={{ height: 30 }} />
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -328,4 +387,15 @@ const styles = StyleSheet.create({
         shadowRadius: 12,
         elevation: 8,
     },
+    modalOverlay: { flex: 1, justifyContent: 'flex-end' },
+    modalBackdrop: { flex: 1 },
+    modalSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 24, paddingBottom: 20 },
+    modalHandleRow: { alignItems: 'center', paddingTop: 10, paddingBottom: 16 },
+    modalHandle: { width: 40, height: 4, borderRadius: 2 },
+    modalTitle: { fontSize: 20, fontWeight: '800', marginBottom: 24 },
+    typeCardModal: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 24, marginBottom: 16, borderWidth: 1 },
+    typeIconWrapper: { width: 56, height: 56, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: 16 },
+    typeTextContainer: { flex: 1 },
+    typeTitle: { fontSize: 17, fontWeight: '800', marginBottom: 4 },
+    typeSubtitle: { fontSize: 13, fontWeight: '500' },
 });

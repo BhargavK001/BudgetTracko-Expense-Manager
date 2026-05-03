@@ -1,8 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
     View, Text, StyleSheet, TouchableOpacity, StatusBar,
-    Image, ActivityIndicator, Alert, ScrollView,
+    ActivityIndicator, Alert, ScrollView,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -212,7 +213,7 @@ export default function ScanScreen() {
         <View style={styles.processingContainer}>
             {capturedUri && (
                 <Animated.View entering={FadeIn} style={styles.previewWrap}>
-                    <Image source={{ uri: capturedUri }} style={styles.previewImage} />
+                    <Image source={{ uri: capturedUri }} style={styles.previewImage} contentFit="cover" />
                     <View style={styles.previewOverlay}>
                         <LinearGradient
                             colors={['transparent', 'rgba(0,0,0,0.7)']}
@@ -235,7 +236,7 @@ export default function ScanScreen() {
             {/* Bill Image */}
             {capturedUri && (
                 <Animated.View entering={FadeInDown.delay(100)} style={styles.resultImageWrap}>
-                    <Image source={{ uri: capturedUri }} style={styles.resultImage} />
+                    <Image source={{ uri: capturedUri }} style={styles.resultImage} contentFit="cover" />
                     <View style={styles.resultImageBadge}>
                         <Ionicons name="checkmark-circle" size={14} color="#2DCA72" />
                         <Text style={styles.resultImageBadgeText}>Scanned</Text>
@@ -473,7 +474,7 @@ const styles = StyleSheet.create({
     // ── Processing ──
     processingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F9F9FB' },
     previewWrap: { ...StyleSheet.absoluteFillObject },
-    previewImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+    previewImage: { width: '100%', height: '100%' },
     previewOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(255,255,255,0.7)' },
     processingCard: {
         backgroundColor: '#fff', borderRadius: 24, padding: 36,
@@ -490,7 +491,7 @@ const styles = StyleSheet.create({
         width: '100%', height: 220, borderRadius: 20, overflow: 'hidden',
         marginBottom: 20, backgroundColor: '#E5E5EA',
     },
-    resultImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+    resultImage: { width: '100%', height: '100%' },
     resultImageBadge: {
         position: 'absolute', top: 16, right: 16,
         flexDirection: 'row', alignItems: 'center', gap: 6,

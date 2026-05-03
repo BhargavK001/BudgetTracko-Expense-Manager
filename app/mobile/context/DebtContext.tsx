@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as localDB from '@/services/localDB';
 import { performDeltaSync } from '@/services/syncEngine';
+import { useAccounts } from './AccountContext';
 
 export type DebtType = 'lend' | 'borrow';
 export type DebtStatus = 'active' | 'settled';
@@ -34,6 +35,7 @@ interface DebtContextData {
 const DebtContext = createContext<DebtContextData>({} as DebtContextData);
 
 export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    const { accounts, updateAccount } = useAccounts();
     const [debts, setDebts] = useState<Debt[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -98,6 +100,19 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
             data: newDebt,
             clientUpdatedAt: now
         });
+
+        // Update Account Balance
+        if (newDebt.accountId && updateAccount) {
+            const account = accounts.find(a => a.id === newDebt.accountId || a._id === newDebt.accountId);
+            if (account) {
+                // Lend money OUT of account (-), Borrow money INTO account (+)
+                const newBalance = newDebt.type === 'lend' 
+                    ? account.balance - newDebt.amount 
+                    : account.balance + newDebt.amount;
+                await updateAccount(account.id || account._id!, { balance: newBalance });
+            }
+        }
+
         refreshDebts();
         performDeltaSync().catch(() => {});
     };
@@ -139,6 +154,21 @@ export const DebtProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const markAsSettled = async (id: string) => {
+        const debt = debts.find(d => d.id === id || d._id === id);
+        if (!debt || debt.status === 'settled') return;
+        
+        // Revert balance on settle
+        if (debt.accountId && updateAccount) {
+            const account = accounts.find(a => a.id === debt.accountId || a._id === debt.accountId);
+            if (account) {
+                // Lend settled: money back INTO account (+). Borrow settled: pay money OUT of account (-).
+                const newBalance = debt.type === 'lend' 
+                    ? account.balance + debt.amount 
+                    : account.balance - debt.amount;
+                await updateAccount(account.id || account._id!, { balance: newBalance });
+            }
+        }
+
         await updateDebt(id, { status: 'settled' });
     };
 

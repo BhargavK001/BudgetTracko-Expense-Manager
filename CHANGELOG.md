@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.1.1] - 2026-05-03
+
+### Added
+- **Recurring Bills UI Revamp**: Completely redesigned the Recurring Bills screen. Introduced intuitive account selection using bank-specific icons for tracking payment sources. 
+- **Debts Management Overhaul**: Streamlined the "Add Debt" workflow with clean bottom-sheet navigation for lending and borrowing. Created a static, well-spaced "About Debts" informational screen.
+
+### Changed
+- **Recurring Bills Logic Update**: Accurate dynamic calculations now divide yearly recurring bills by 12 for the monthly estimate, and correctly filter out inactive bills from the main total.
+- **Expo Build Optimizations**: Configured the application for high-performance EAS production builds. Finished migrating to `expo-image` for high-performance rendering and optimized `FlatList` component rendering constraints.
+- **Accounts Screen Refinement**: Eliminated IDE warnings, enforced strong typing, and resolved incorrect icon usage by standardizing purely on the `lucide-react-native` library.
+
+### Fixed
+- **Expo Navigation Dependency Error**: Resolved an Android bundling failure by correctly linking the missing `@react-navigation/bottom-tabs` dependency in `expo-router`.
+
 ## [2.1.0] - 2026-05-02
 
 ### Added

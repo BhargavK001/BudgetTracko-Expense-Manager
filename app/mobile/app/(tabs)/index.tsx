@@ -2,8 +2,9 @@ import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  StatusBar, Image, Alert, FlatList, InteractionManager, ActivityIndicator,
+  StatusBar, Alert, FlatList, InteractionManager, ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -178,7 +179,7 @@ export default function HomeScreen() {
           <View style={styles.headerLeft}>
             <View>
               {user?.avatar ? (
-                <Image source={{ uri: user.avatar }} style={styles.avatar} />
+                <Image source={{ uri: user.avatar }} style={styles.avatar} contentFit="cover" />
               ) : (
                 <View style={[styles.avatar, { backgroundColor: tokens.bgSecondary, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: tokens.borderSubtle }]}>
                   <Text style={{ fontSize: 16, fontWeight: '800', color: '#6366F1' }}>

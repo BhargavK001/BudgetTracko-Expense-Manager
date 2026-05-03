@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity, Image, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Dimensions, TouchableOpacity, KeyboardAvoidingView, Platform, Keyboard, TouchableWithoutFeedback, ScrollView, TextInput } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
@@ -159,7 +160,7 @@ export default function Signup() {
 
                         <View style={styles.socRow}>
                             <TouchableOpacity style={styles.socBtn} onPress={() => handleSocialLogin('google')} disabled={loading}>
-                                <Image source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }} style={{ width: 17, height: 17 }} />
+                                <Image source={{ uri: 'https://img.icons8.com/color/48/000000/google-logo.png' }} style={{ width: 17, height: 17 }} contentFit="contain" />
                                 <Text style={styles.socBtnText}>Google</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.socBtn} onPress={() => handleSocialLogin('github')} disabled={loading}>

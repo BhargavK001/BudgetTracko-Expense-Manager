@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -13,6 +12,7 @@ import {
   ToastAndroid,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
@@ -228,7 +228,7 @@ export default function EditProfileScreen() {
           <View style={[styles.avatarCard, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : '#FFFFFF', borderColor: tokens.borderDefault }]}>
             <Pressable onPress={onChangePhoto} style={[styles.avatarWrap, { backgroundColor: tokens.purple.stroke }]}>
               {avatarUri ? (
-                <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+                <Image source={{ uri: avatarUri }} style={styles.avatarImage} contentFit="cover" />
               ) : (
                 <Text style={styles.avatarText}>{initials}</Text>
               )}

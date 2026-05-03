@@ -59,8 +59,14 @@ const COLORS = ['#007AFF', '#2DCA72', '#FF9500', '#F43F5E', '#AF52DE', '#FF2D55'
 
 // ── Account type list ────────────────────────────────────
 const ACCOUNT_TYPES = Object.entries(ACCOUNT_TYPE_META).map(([key, meta]) => ({
-  key, label: meta.label, icon: meta.icon, color: meta.defaultColor,
+  key, label: meta.label, icon: meta.Icon, color: meta.defaultColor,
 }));
+
+// Map backend type to form type (credit_card -> credit)
+const toFormType = (t: string) => t === 'credit_card' ? 'credit' : t;
+const toBackendType = (t: string) => t === 'credit' ? 'credit_card' : t;
+
+const defaultForm = { name: '', type: 'bank', balance: '', color: '#007AFF', creditLimit: '' };
 
 // ═══════════════════════════════════════════════════════════
 // Add / Edit Account Modal
@@ -76,7 +82,7 @@ type FormModalProps = {
   onDelete?: () => void;
 };
 
-function AccountFormModal({ visible, editMode, initial, formatCurrency, onClose, onSubmit, onDelete }: FormModalProps) {
+const AccountFormModal: React.FC<FormModalProps> = ({ visible, editMode, initial, formatCurrency, onClose, onSubmit, onDelete }) => {
   const { tokens } = useThemeStyles();
   const { isDarkMode } = useSettings();
   const [name, setName] = useState(initial.name);
@@ -85,7 +91,7 @@ function AccountFormModal({ visible, editMode, initial, formatCurrency, onClose,
   const [color, setColor] = useState(initial.color);
   const [creditLimit, setCreditLimit] = useState(initial.creditLimit);
 
-  React.useEffect(() => {
+  useEffect(() => {
     setName(initial.name); setType(initial.type);
     setBalance(initial.balance); setColor(initial.color);
     setCreditLimit(initial.creditLimit);
@@ -101,7 +107,7 @@ function AccountFormModal({ visible, editMode, initial, formatCurrency, onClose,
       <View style={[fm.overlay, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.3)' }]}>
         <TouchableOpacity style={fm.backdrop} activeOpacity={1} onPress={onClose} />
         <View style={[fm.sheet, { backgroundColor: tokens.bgPrimary }]}>
-          <View style={fm.handleRow}><View style={[fm.handle, { backgroundColor: tokens.borderSubtle }]}/></View>
+          <View style={fm.handleRow}><View style={[fm.handle, { backgroundColor: tokens.borderSubtle }]} /></View>
 
           <View style={[fm.header, { borderBottomColor: tokens.borderSubtle }]}>
             <Text style={[fm.headerTitle, { color: tokens.textPrimary }]}>{editMode ? 'Edit Account' : 'Add Account'}</Text>
@@ -116,10 +122,11 @@ function AccountFormModal({ visible, editMode, initial, formatCurrency, onClose,
             <View style={fm.typeGrid}>
               {ACCOUNT_TYPES.map(t => {
                 const sel = type === t.key;
+                const TypeIcon = t.icon;
                 return (
                   <TouchableOpacity key={t.key}
                     style={[
-                      fm.typeCard, 
+                      fm.typeCard,
                       { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle },
                       sel && { borderColor: t.color, backgroundColor: t.color + '10' }
                     ]}
@@ -127,7 +134,7 @@ function AccountFormModal({ visible, editMode, initial, formatCurrency, onClose,
                     activeOpacity={0.7}
                   >
                     <View style={[fm.typeIcon, { backgroundColor: t.color + '18' }]}>
-                      <Ionicons name={t.icon} size={16} color={t.color} />
+                      <TypeIcon size={16} color={t.color} />
                     </View>
                     <Text style={[fm.typeLabel, { color: tokens.textPrimary }, sel && { color: t.color, fontWeight: '700' }]} numberOfLines={1}>{t.label}</Text>
                   </TouchableOpacity>
@@ -243,7 +250,7 @@ type HistoryProps = {
   formatCurrency: (n: number) => string;
 };
 
-function AccountHistoryModal({ visible, account, transactions, onClose, formatCurrency }: HistoryProps) {
+const AccountHistoryModal: React.FC<HistoryProps> = ({ visible, account, transactions, onClose, formatCurrency }) => {
   const { tokens } = useThemeStyles();
   const { isDarkMode } = useSettings();
   const meta = account ? (ACCOUNT_TYPE_META[account.type] || ACCOUNT_TYPE_META['bank']) : ACCOUNT_TYPE_META['bank'];
@@ -287,7 +294,7 @@ function AccountHistoryModal({ visible, account, transactions, onClose, formatCu
           {/* Account header */}
           <View style={hm.accHeader}>
             <View style={[hm.accIcon, iconBgStyle]}>
-              <Ionicons name={meta.icon} size={22} color={accentColor} />
+              <meta.Icon size={22} color={accentColor} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[hm.accName, { color: tokens.textPrimary }]}>{account.name}</Text>
@@ -377,10 +384,6 @@ export default function AccountsScreen() {
 
   const loading = accountsLoading;
 
-  // Map backend type to form type (credit_card -> credit)
-  const toFormType = (t: string) => t === 'credit_card' ? 'credit' : t;
-  const toBackendType = (t: string) => t === 'credit' ? 'credit_card' : t;
-
   const accounts = useMemo(() => {
     if (!Array.isArray(allAccounts)) return [];
     return allAccounts.map(a => ({
@@ -395,8 +398,6 @@ export default function AccountsScreen() {
   const totalLiabilities = useMemo(() => accounts.reduce((s, a) => s + Math.abs(Math.min(a.balance, 0)), 0), [accounts]);
 
   // ── Handlers ──
-  const defaultForm = { name: '', type: 'bank', balance: '', color: '#007AFF', creditLimit: '' };
-
   const handleOpenAdd = useCallback(() => { setEditTarget(null); setShowForm(true); }, []);
   const handleOpenEdit = useCallback((acc: any) => { setEditTarget(acc); setShowForm(true); }, []);
 
@@ -503,6 +504,10 @@ export default function AccountsScreen() {
         renderItem={renderAccountItem}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
+        initialNumToRender={10}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews={true}
         ListHeaderComponent={
           <>
             {/* Header */}
@@ -560,23 +565,7 @@ export default function AccountsScreen() {
               </LinearGradient>
             </Animated.View>
 
-            {/* ═══ Quick Stats ═══ */}
-            <View style={styles.statsRow}>
-              <Animated.View entering={FadeInUp.delay(200).duration(400)} style={[styles.statCard, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
-                <View style={[styles.statIcon, { backgroundColor: 'rgba(45,202,114,0.12)' }]}>
-                  <Ionicons name="wallet-outline" size={18} color="#2DCA72" />
-                </View>
-                <Text style={[styles.statLabel, { color: tokens.textMuted }]}>Available</Text>
-                <Text style={[styles.statAmt, { color: tokens.textPrimary }]}>{showBalance ? formatCurrency(totalBalance) : '••••'}</Text>
-              </Animated.View>
-              <Animated.View entering={FadeInUp.delay(280).duration(400)} style={[styles.statCard, { backgroundColor: tokens.cardSurface, borderColor: tokens.borderSubtle }]}>
-                <View style={[styles.statIcon, { backgroundColor: 'rgba(0,122,255,0.1)' }]}>
-                  <MaterialCommunityIcons name="bank-outline" size={18} color="#007AFF" />
-                </View>
-                <Text style={[styles.statLabel, { color: tokens.textMuted }]}>Accounts</Text>
-                <Text style={[styles.statAmt, { color: tokens.textPrimary }]}>{accounts.length}</Text>
-              </Animated.View>
-            </View>
+
 
             {/* ═══ All Accounts ═══ */}
             <Animated.View entering={FadeIn.delay(320).duration(350)} style={styles.sectionHeader}>
@@ -642,7 +631,7 @@ export default function AccountsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 24, paddingVertical: 14 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, marginBottom: 8 },
   headerSub: { fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
   headerTitle: { fontSize: 24, fontWeight: '800' },
   addHeaderBtn: { width: 38, height: 38, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
@@ -665,11 +654,7 @@ const styles = StyleSheet.create({
   heroPillGreenAmt: { fontSize: 15, fontWeight: '800', color: '#2DCA72', letterSpacing: -0.3 },
   heroPillRedAmt: { fontSize: 15, fontWeight: '800', color: '#F43F5E', letterSpacing: -0.3 },
 
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 22 },
-  statCard: { flex: 1, borderRadius: 18, padding: 16, borderWidth: 1 },
-  statIcon: { width: 36, height: 36, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
-  statLabel: { fontSize: 11, fontWeight: '500', marginBottom: 4 },
-  statAmt: { fontSize: 20, fontWeight: '800' },
+
 
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   sectionTitle: { fontSize: 16, fontWeight: '700' },
